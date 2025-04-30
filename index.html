@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDFlashcard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Left Column -->
+        <div class="column left-column">
+            <!-- PDF Upload Section -->
+            <div class="upload-section">
+                <h2>Upload PDF</h2>
+                <div class="upload-btn-wrapper">
+                    <button class="btn">Choose PDF File</button>
+                    <input type="file" id="pdf-upload" accept="application/pdf" />
+                </div>
+                <div class="file-info" id="file-info">No file selected</div>
+            </div>
+
+            <!-- PDF Preview Section -->
+            <div class="preview-section">
+                <h2>PDF Preview</h2>
+                <div id="pdf-preview" class="no-preview">
+                    <p>PDF preview will appear here after upload</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column (Empty for now) -->
+        <div class="column right-column">
+            <!-- Intentionally left blank -->
+        </div>
+    </div>
+</body>
+
+</html>
