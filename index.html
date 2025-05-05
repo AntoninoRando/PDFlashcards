@@ -7,7 +7,8 @@
     <title>PDFlashcard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <link rel="stylesheet" href="styles.css">
-    <script src="script.js" defer></script>
+    <script src="scripts/script.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 </head>
 
 <body>
@@ -33,9 +34,12 @@
             </div>
         </div>
 
-        <!-- Right Column (Empty for now) -->
+        <!-- Right Column (PDF Links) -->
         <div class="column right-column">
-            <!-- Intentionally left blank -->
+            <h2 class="links-title">PDF Links</h2>
+            <div id="links-container" class="links-container">
+                <p class="no-links-message">Links from the PDF will appear here after upload</p>
+            </div>
         </div>
     </div>
 </body>
