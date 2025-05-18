@@ -1,14 +1,14 @@
 <script setup>
 import Flashcards from './components/Flashcards.vue'
 import PDFPreview from './components/PDFPreview.vue'
+import FileParser from './components/FileParser.vue'
 </script>
 
 <template>
+    <FileParser @flashcardsUploaded="readFlashcards"/>
     <div class="row">
-        <PDFPreview ref="PDF" class="column" :pageToShow="this.pageToShow"/>
-        <Flashcards class="column"
-            @reveal="showPage"
-            :flashcards="[{frontText: 'Page 4', pageRef: 4}]"/>
+        <PDFPreview ref="PDF" class="column" :pageToShow="pageToShow" />
+        <Flashcards class="column" @reveal="showPage" :flashcards="flashcards" />
     </div>
 </template>
 
@@ -16,15 +16,16 @@ import PDFPreview from './components/PDFPreview.vue'
 export default {
     data() {
         return {
-            pageToShow: 1
+            pageToShow: 1,
+            flashcards: []
         }
-    },
-    props: {
-        flashcards: Object
     },
     methods: {
         showPage(cardPageRefNumber) {
             this.pageToShow = cardPageRefNumber
+        },
+        readFlashcards(fcs) {
+            this.flashcards = fcs
         }
     }
 }

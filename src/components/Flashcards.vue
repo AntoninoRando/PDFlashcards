@@ -4,13 +4,13 @@ import FlashcardButton from './FlashcardButton.vue';
 
 
 <template>
-    <h2>Flashcards</h2>
-    <FlashcardButton v-for="({frontText, pageRef}, index) in flashcards" 
-        :key="index"
-        :pageRef="pageRef"
-        :frontText="frontText"
-        @reveal="reveal"
-    />
+    <div class="all-container">
+        <h2>Flashcards</h2>
+        <div class="flashcards-container">
+            <FlashcardButton v-for="({ frontText, pageRef }, index) in flashcards" :key="index" :pageRef="pageRef"
+                :frontText="frontText" @reveal="reveal" class="flashcard" />
+        </div>
+    </div>
 </template>
 
 <script lang="ts">
@@ -28,31 +28,17 @@ export default {
 </script>
 
 <style scoped>
-.preview-section {
-    flex: 1;
-    padding: 20px;
-    overflow: hidden;
-    /* Changed from auto to hidden */
+.all-container {
     display: flex;
     flex-direction: column;
 }
 
-#pdf-preview {
-    width: 100%;
-    height: 100%;
-    border: 1px solid #ddd;
-    background-color: #f9f9f9;
-    overflow-y: auto;
-    /* Added scroll for this container only */
-    overflow-x: hidden;
+.flashcards-container {
+    display: flex;
+    flex-direction: column;
 }
 
-.no-preview {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 500px;
-    color: #999;
-    text-align: center;
+.flashcard {
+    width: fit-content;
 }
 </style>

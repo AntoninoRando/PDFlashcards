@@ -36,11 +36,8 @@ import { ScrollMode, VPdfViewer, ZoomLevel } from '@vue-pdf-viewer/viewer'
             </div>
         </div>
 
-        <VPdfViewer v-if="pdfUrl"
-            :src="this.pdfUrl" 
-            :initialScrollMode="ScrollMode.Horizontal"
-            :initialScale="ZoomLevel.PageWidth" 
-            ref="vpvRef" />
+        <VPdfViewer v-if="pdfUrl" :src="pdfUrl" :initialScrollMode="ScrollMode.Horizontal"
+            :initialScale="ZoomLevel.PageWidth" ref="vpvRef" />
     </div>
 </template>
 
