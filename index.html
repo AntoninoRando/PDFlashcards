@@ -1,47 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
-
-<head>
+<html lang="">
+  <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDFlashcard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    <link rel="stylesheet" href="styles.css">
-    <script src="scripts/script.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-</head>
-
-<body>
-    <div class="container">
-        <!-- Left Column -->
-        <div class="column left-column">
-            <!-- PDF Upload Section -->
-            <div class="upload-section">
-                <h2>Upload PDF</h2>
-                <div class="upload-btn-wrapper">
-                    <button class="btn">Choose PDF File</button>
-                    <input type="file" id="pdf-upload" accept="application/pdf" />
-                </div>
-                <div class="file-info" id="file-info">No file selected</div>
-            </div>
-
-            <!-- PDF Preview Section -->
-            <div class="preview-section">
-                <h2>PDF Preview</h2>
-                <div id="pdf-preview" class="no-preview">
-                    <p>PDF preview will appear here after upload</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Column (PDF Links) -->
-        <div class="column right-column">
-            <h2 class="links-title">PDF Links</h2>
-            <div id="links-container" class="links-container">
-                <p class="no-links-message">Links from the PDF will appear here after upload</p>
-            </div>
-        </div>
-    </div>
-</body>
-
+    <title>Vite App</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>
