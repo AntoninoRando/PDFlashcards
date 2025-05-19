@@ -55,24 +55,36 @@ export default {
         parseFileContent() {
             if (!this.fileContent) return;
 
-            const lines = this.fileContent.split('\n').filter(line => line.trim() !== '');
+            const lines = this.fileContent.split('\n').filter(line => line.trim() !== '')
 
             this.parsedObjects = lines.map(line => {
-                // Use regex to split on the ".." pattern with optional spaces
-                const matches = line.match(/^(.*?)\s*\.\.\s*(.*)$/);
-
-                if (matches && matches.length === 3) {
-                    return {
-                        frontText: matches[1].trim(),
-                        pageRef: matches[2].trim()
-                    };
-                } else {
-                    // If the line doesn't match the expected format, return a warning object
-                    console.warn(`Warning: Line does not match expected format: "${line}"`);
+                const flashcardParts = line.split('..')
+                const n = flashcardParts.length
+                if (flashcardParts.length <= 1) {
+                    console.warn(`Warning: Line does not match expected format: "${line}"`)
+                    return {}
+                }
+                
+                const pageRef = Number(flashcardParts[n - 1])
+                if (isNaN(pageRef)) {
+                    console.warn(`Warning: Line does not match expected format: "${line}"`)
                     return {}
                 }
 
-            });
+                let frontText = flashcardParts.slice(0, n - 1).join('..')
+                let aliases = frontText.split('///')
+                if (aliases.length > 1) {
+                    frontText = aliases[0]
+                }
+                aliases = aliases.slice(1)
+
+                return {
+                    frontText: frontText,
+                    aliases: aliases,
+                    pageRef: pageRef
+                }
+
+            })
             this.$emit('flashcardsUploaded', this.parsedObjects)
         },
     }

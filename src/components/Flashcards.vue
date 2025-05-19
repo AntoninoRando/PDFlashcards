@@ -7,8 +7,8 @@ import FlashcardButton from './FlashcardButton.vue';
     <div class="all-container">
         <h2>Flashcards</h2>
         <div class="flashcards-container">
-            <FlashcardButton v-for="({ frontText, pageRef }, index) in flashcards" :key="index" :pageRef="pageRef"
-                :frontText="frontText" @reveal="reveal" class="flashcard" />
+            <FlashcardButton v-for="({ frontText, aliases, pageRef }, index) in flashcards" :key="index"
+                :pageRef="pageRef" :frontText="frontText" :aliases="aliases" @reveal="reveal" class="flashcard" />
         </div>
     </div>
 </template>
@@ -36,9 +36,12 @@ export default {
 .flashcards-container {
     display: flex;
     flex-direction: column;
+    width: 300px;
+    gap: 10px;
 }
 
 .flashcard {
-    width: fit-content;
+    width: 100%;
+    height: 70px;
 }
 </style>

@@ -1,1 +1,6 @@
-Simmetric key encryption .. 4
+Kerkchoffs' principle .. 28
+Ciphertext-only attack .. 40
+Known-plaintext attack .. 41
+Chosen-plaintext attack .. 41
+Chosen-ciphertext attack .. 41
+Perfect Secrecy /// Perfectly secret [encrytpion scheme] .. 50

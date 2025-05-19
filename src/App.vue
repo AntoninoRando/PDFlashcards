@@ -5,10 +5,12 @@ import FileParser from './components/FileParser.vue'
 </script>
 
 <template>
-    <FileParser @flashcardsUploaded="readFlashcards"/>
     <div class="row">
         <PDFPreview ref="PDF" class="column" :pageToShow="pageToShow" />
-        <Flashcards class="column" @reveal="showPage" :flashcards="flashcards" />
+        <div class="flashcards-section">
+            <FileParser @flashcardsUploaded="readFlashcards"/>
+            <Flashcards class="column" @reveal="showPage" :flashcards="flashcards" />
+        </div>
     </div>
 </template>
 
