@@ -21,6 +21,8 @@ export default {
     data() {
         return {
             fileContent: '',
+            resources: [],
+            title: '',
             parsedObjects: [],
             error: null
         };
@@ -55,20 +57,43 @@ export default {
         parseFileContent() {
             if (!this.fileContent) return;
 
-            const lines = this.fileContent.split('\n').filter(line => line.trim() !== '')
+            const lines = this.fileContent.split('\n').map(l => l.trim()).filter(l => l !== '')
+            let category = ''
+            this.parsedObjects = []
+            const categories = {
+                title: '[Title]', 
+                resources: '[Resources]',
+                cards: '[Cards]'
+            }
+            const categoriesValues = Object.values(categories)
 
-            this.parsedObjects = lines.map(line => {
+            lines.forEach(line => {
+                if (categoriesValues.includes(line)) {
+                    category = line
+                    return
+                }
+
+                if (category == categories.title) {
+                    this.title = line
+                    return
+                }
+
+                if (category == categories.resources) {
+                    this.resources.push(line)
+                    return
+                }
+
                 const flashcardParts = line.split('..')
                 const n = flashcardParts.length
                 if (flashcardParts.length <= 1) {
                     console.warn(`Warning: Line does not match expected format: "${line}"`)
-                    return {}
+                    return
                 }
                 
                 const pageRef = Number(flashcardParts[n - 1])
                 if (isNaN(pageRef)) {
                     console.warn(`Warning: Line does not match expected format: "${line}"`)
-                    return {}
+                    return
                 }
 
                 let frontText = flashcardParts.slice(0, n - 1).join('..')
@@ -78,14 +103,19 @@ export default {
                 }
                 aliases = aliases.slice(1)
 
-                return {
+                const card = {
                     frontText: frontText,
                     aliases: aliases,
                     pageRef: pageRef
                 }
+                this.parsedObjects.push(card)
 
             })
-            this.$emit('flashcardsUploaded', this.parsedObjects)
+            this.$emit('flashcardsUploaded', {
+                title: this.title,
+                resources: this.resources,
+                flashcards: this.parsedObjects,
+            })
         },
     }
 };

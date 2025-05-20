@@ -5,7 +5,7 @@ import FlashcardButton from './FlashcardButton.vue';
 
 <template>
     <div class="all-container">
-        <h2>Flashcards</h2>
+        <h2>{{ title }}</h2>
         <div class="flashcards-container">
             <FlashcardButton v-for="({ frontText, aliases, pageRef }, index) in flashcards" :key="index"
                 :pageRef="pageRef" :frontText="frontText" :aliases="aliases" @reveal="reveal" class="flashcard" />
@@ -17,7 +17,8 @@ import FlashcardButton from './FlashcardButton.vue';
 export default {
     name: 'PdfUploader',
     props: {
-        flashcards: Object
+        title: String,
+        flashcards: Object,
     },
     methods: {
         reveal(cardPageRefNumber: Number) {
