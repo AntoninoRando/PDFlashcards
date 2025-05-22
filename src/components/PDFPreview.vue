@@ -1,27 +1,41 @@
-<script setup lang="ts">
-import { ScrollMode, VPdfViewer, ZoomLevel } from '@vue-pdf-viewer/viewer'
-</script>
-
-
 <template>
-    <VPdfViewer
-        :src="pdfUrl"
-        :initialScrollMode="ScrollMode.Horizontal"
-        :initialScale="ZoomLevel.PageWidth" 
+    <VPdfViewer :src="pdfUrl" :initialScrollMode="ScrollMode.Page" :initialScale="ZoomLevel.PageFit"
         ref="vpvRef" />
 </template>
 
-<script lang="ts">
-export default {
-    props: {
-        pdfUrl: String
-    },
-    methods: {
-        scrollToPDFPage(pageNumber: number) {
-            this.pageControl.goToPage(pageNumber)
-        }
+<script setup lang="ts">
+import { ScrollMode, VPdfViewer, ZoomLevel } from '@vue-pdf-viewer/viewer'
+import { ref, computed, onMounted, watch } from 'vue'
+
+// Create a ref to hold the VPdfViewer component
+const vpvRef = ref<InstanceType<typeof VPdfViewer>>()
+const pageControl = computed(() => vpvRef.value?.pageControl)
+
+const props = defineProps<{
+    pdfUrl: string
+    pageToShow: number
+}>()
+
+function scrollToPDFPage(pageNumber: number) {
+    if (pageControl.value) {
+        pageControl.value.goToPage(pageNumber)
     }
 }
+
+// Use onMounted to ensure the component is ready before scrolling
+onMounted(() => {
+    if (props.pageToShow) {
+        scrollToPDFPage(props.pageToShow)
+    }
+})
+
+// Watch for changes in pageToShow prop
+watch(() => props.pageToShow, (newPage) => {
+    if (newPage) {
+        scrollToPDFPage(newPage)
+    }
+}, { immediate: false })
+
 </script>
 
 <style scoped>

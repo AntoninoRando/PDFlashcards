@@ -18,6 +18,7 @@
 
 <script>
 export default {
+    emits: ['setUploaded'],
     data() {
         return {
             fileContent: '',
@@ -90,10 +91,30 @@ export default {
                     return
                 }
                 
-                const pageRef = Number(flashcardParts[n - 1])
+                const configParts = flashcardParts[n - 1].split('|')
+
+                const pageRef = Number(configParts[0])
                 if (isNaN(pageRef)) {
                     console.warn(`Warning: Line does not match expected format: "${line}"`)
                     return
+                }
+                
+                const config = {
+                    reviewedAt: {
+                        value: new Date(),
+                        make: (value) => new Date(value)
+                    },
+                    ease: {
+                        value: 230,
+                        make: (value) => new Number(value)
+                    }
+                }
+                if (configParts.length > 1) {
+                    const configurations = configParts[1].split(' ');
+                    configurations.forEach(configPart => {
+                        const parts = configPart.split(' ')
+                        config[parts[0]].value = parts[1]
+                    })
                 }
 
                 let frontText = flashcardParts.slice(0, n - 1).join('..')
@@ -106,12 +127,17 @@ export default {
                 const card = {
                     frontText: frontText,
                     aliases: aliases,
-                    pageRef: pageRef
+                    pageRef: pageRef,
                 }
+
+                for (const [key, value] of Object.entries(config))  {
+                    card[key] = value.make(value.value)
+                }
+
                 this.parsedObjects.push(card)
 
             })
-            this.$emit('flashcardsUploaded', {
+            this.$emit('setUploaded', {
                 title: this.title,
                 resources: this.resources,
                 flashcards: this.parsedObjects,
