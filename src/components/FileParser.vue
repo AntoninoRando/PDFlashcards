@@ -9,6 +9,18 @@
             <input type="file" id="file-input" accept=".txt" @change="handleFileUpload"
                 class="border rounded py-2 px-3 w-full bg-gray-50" />
         </div>
+
+        <!-- Error display -->
+        <div v-if="error" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            {{ error }}
+        </div>
+
+        <!-- Success message -->
+        <div v-if="flashcards.length > 0" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+            Successfully parsed {{ flashcards.length }} flashcards
+            <div v-if="title" class="mt-2"><strong>Title:</strong> {{ title }}</div>
+            <div v-if="resources.length > 0" class="mt-2"><strong>Resources:</strong> {{ resources.length }} items</div>
+        </div>
     </div>
 </template>
 
@@ -32,6 +44,8 @@ export default {
             this.error = null;
             this.fileContent = '';
             this.flashcards = [];
+            this.resources = [];
+            this.title = '';
 
             const reader = new FileReader();
 
@@ -52,95 +66,132 @@ export default {
         },
 
         parseFileContent() {
-            if (!this.fileContent) return;
+            if (!this.fileContent) {
+                this.error = 'File content is empty';
+                return;
+            }
 
-            this.flashcards = []
-            const lines = this.fileContent.split('\n').filter(l => l.trim() !== '')
+            this.flashcards = [];
+            this.resources = [];
+            this.title = '';
+            
+            const lines = this.fileContent.split('\n').filter(l => l.trim() !== '');
             const categories = {
                 title: '[Title]', 
                 resources: '[Resources]',
                 cards: '[Cards]'
-            }
-            const categoriesValues = Object.values(categories)
+            };
             
-            let category = ''
-            let card = {}
-            lines.forEach(line => {
-                console.log(`[studySet] Reading line '${line}'`)
-                const trimmedLine = line.trim()
-                const i = categoriesValues.findIndex(x => x == trimmedLine)
-                if (i != -1) {
-                    category = trimmedLine
-                    console.log(`[studySet] Reached section '${line}'`)
-                    categoriesValues.splice(i, 1) // Never parse the same category twice
-                    return
+            let category = '';
+            let currentCard = null;
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                console.log(`[studySet] Reading line '${line}'`);
+                const trimmedLine = line.trim();
+                
+                // Check if this is a section header
+                if (Object.values(categories).includes(trimmedLine)) {
+                    category = trimmedLine;
+                    console.log(`[studySet] Reached section '${line}'`);
+                    currentCard = null; // Reset current card when entering new section
+                    continue;
                 }
                 
-                // Here we are parsing the studyset title
-                if (category == categories.title) {
-                    console.log(`[studySet] Reading title '${line}'`)
-                    this.title = line
-                    return
+                // Parse based on current category
+                if (category === categories.title) {
+                    console.log(`[studySet] Reading title '${line}'`);
+                    this.title = line;
+                    continue;
                 }
-                if (category == categories.resources)  {
-                    console.log(`[studySet] Reading resource '${line}'`)
-                    this.resources.push(line)
-                    return
+                
+                if (category === categories.resources) {
+                    console.log(`[studySet] Reading resource '${line}'`);
+                    this.resources.push(line);
+                    continue;
                 }
 
-                // Here we are parsing a card configuration setting
-                if (line.startsWith('\t\\')) {
-                    var spaceIndex = line.indexOf(' ')
-                    var codeName = line.substring(2, spaceIndex)
-                    var codeText = line.substring(spaceIndex + 1)
-                    console.log(`[studySet] Reading value '${codeText}' of category '${codeName}' for card '${card.frontText}'`)
-                    card[codeName] = [codeText, ...(card[codeName] || [])];
-                    return
+                if (category === categories.cards) {
+                    // Handle card configuration settings (indented with tab and backslash)
+                    if (line.startsWith('\t\\')) {
+                        if (!currentCard) {
+                            console.warn(`Warning: Card configuration found without a card: "${line}"`);
+                            continue;
+                        }
+                        
+                        const configLine = line.substring(2); // Remove '\t\'
+                        const spaceIndex = configLine.indexOf(' ');
+                        
+                        if (spaceIndex === -1) {
+                            console.warn(`Warning: Invalid configuration format: "${line}"`);
+                            continue;
+                        }
+                        
+                        const codeName = configLine.substring(0, spaceIndex);
+                        const codeText = configLine.substring(spaceIndex + 1);
+                        
+                        console.log(`[studySet] Reading value '${codeText}' of category '${codeName}' for card '${currentCard.frontText}'`);
+                        
+                        // Initialize array if it doesn't exist, then add to beginning
+                        if (!currentCard[codeName]) {
+                            currentCard[codeName] = [];
+                        }
+                        currentCard[codeName].unshift(codeText);
+                        continue;
+                    }
+                    
+                    // Parse flashcard line
+                    const flashcardParts = line.split('..');
+                    if (flashcardParts.length <= 1) {
+                        console.warn(`Warning: Line does not match expected format: "${line}"`);
+                        continue;
+                    }
+                    
+                    const lastPart = flashcardParts[flashcardParts.length - 1];
+                    const configParts = lastPart.split('|');
+                    const pageRef = Number(configParts[0]);
+                    
+                    if (isNaN(pageRef)) {
+                        console.warn(`Warning: Line does not match expected format: "${line}"`);
+                        continue;
+                    }
+                    
+                    const now = new Date();
+                    const randomHours = Math.floor(Math.random() * 24); // 0-23 hours
+                    const randomMinutes = Math.floor(Math.random() * 60); // 0-59 minutes
+                    const frontText = flashcardParts.slice(0, -1).join('..');
+                    
+                    currentCard = {
+                        frontText: frontText,
+                        pageRef: pageRef,
+                        reviewedAt: new Date(now.getTime() - (randomHours * 60 * 60 * 1000) - (randomMinutes * 60 * 1000)),
+                        ease: 230
+                    };
+                    
+                    this.flashcards.push(currentCard);
                 }
-                
-                // Here we are adding the card
-                const flashcardParts = line.split('..')
-                const n = flashcardParts.length
-                if (flashcardParts.length <= 1) {
-                    console.warn(`Warning: Line does not match expected format: "${line}"`)
-                    return
-                }
-                const configParts = flashcardParts[n - 1].split('|')
-                const pageRef = Number(configParts[0])
-                if (isNaN(pageRef)) {
-                    console.warn(`Warning: Line does not match expected format: "${line}"`)
-                    return
-                }
-                
-                const now = new Date()
-                const randomHours = Math.floor(Math.random() * 24); // 0-23 hours
-                const randomMinutes = Math.floor(Math.random() * 60); // 0-59 minutes
-                const frontText = flashcardParts.slice(0, n - 1).join('..')
-                card = {
-                    frontText: frontText,
-                    pageRef: pageRef,
-                    /*
-                        Random in order to shuffle cards, but before now so that
-                        review cards ends up later
-                    */
-                    reviewedAt: new Date(now.getTime() - (randomHours * 60 * 60 * 1000) - (randomMinutes * 60 * 1000)),
-                    ease: 230
-                }
-                this.flashcards.push(card)
-            })
+            }
+
+            // Log all flashcards
             this.flashcards.forEach((card) => {
-                var log = `[studySet] Flashcard:`;
+                let log = `[studySet] Flashcard:`;
                 Object.keys(card).forEach(k => {
-                    log += `\n-${k}: ${card[k]}`
-                })
-                console.log(log)
+                    log += `\n-${k}: ${Array.isArray(card[k]) ? card[k].join(', ') : card[k]}`;
+                });
+                console.log(log);
             });
+
+            // Validate that we have the required data
+            if (this.flashcards.length === 0) {
+                this.error = 'No valid flashcards found. Make sure your file has a [Cards] section with properly formatted cards.';
+                return;
+            }
 
             this.$emit('setUploaded', {
                 title: this.title,
                 resources: this.resources,
                 flashcards: this.flashcards,
-            })
+            });
         },
     }
 };
