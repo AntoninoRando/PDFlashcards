@@ -19,9 +19,10 @@ import PDFUploader from './components/PDFUploader.vue'
                 @setUploaded="loadStudySet" />
             <hr>
             <StudySet v-if="studySet.flashcards.length > 0"
-                @reveal="showPage" 
+                @reveal="showPage"
                 :flashcards="studySet.flashcards"
-                :title="studySet.title" />
+                :title="studySet.title"
+                :resources="studySet.resources" />
         </div>
     </div>
 </template>

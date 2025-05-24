@@ -1,7 +1,7 @@
 <template>
     <div class="flashcard">
         <div v-if="!revealed" class="card-container">
-            <div v-if="flashcard.aliases.length > 0" class="aliases">
+            <div v-if="flashcard.alias" class="aliases">
                 //a
             </div>
             <button @click="reveal" class="flashcard-button"

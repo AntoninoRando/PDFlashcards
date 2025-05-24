@@ -9,10 +9,6 @@
             <input type="file" id="file-input" accept=".txt" @change="handleFileUpload"
                 class="border rounded py-2 px-3 w-full bg-gray-50" />
         </div>
-
-        <div v-if="error" class="mt-4 p-4 bg-red-100 text-red-700 rounded">
-            {{ error }}
-        </div>
     </div>
 </template>
 
@@ -24,7 +20,7 @@ export default {
             fileContent: '',
             resources: [],
             title: '',
-            parsedObjects: [],
+            flashcards: [],
             error: null
         };
     },
@@ -35,7 +31,7 @@ export default {
 
             this.error = null;
             this.fileContent = '';
-            this.parsedObjects = [];
+            this.flashcards = [];
 
             const reader = new FileReader();
 
@@ -58,89 +54,92 @@ export default {
         parseFileContent() {
             if (!this.fileContent) return;
 
-            const lines = this.fileContent.split('\n').map(l => l.trim()).filter(l => l !== '')
-            let category = ''
-            this.parsedObjects = []
+            this.flashcards = []
+            const lines = this.fileContent.split('\n').filter(l => l.trim() !== '')
             const categories = {
                 title: '[Title]', 
                 resources: '[Resources]',
                 cards: '[Cards]'
             }
             const categoriesValues = Object.values(categories)
-
+            
+            let category = ''
+            let card = {}
             lines.forEach(line => {
-                if (categoriesValues.includes(line)) {
-                    category = line
+                console.log(`[studySet] Reading line '${line}'`)
+                const trimmedLine = line.trim()
+                const i = categoriesValues.findIndex(x => x == trimmedLine)
+                if (i != -1) {
+                    category = trimmedLine
+                    console.log(`[studySet] Reached section '${line}'`)
+                    categoriesValues.splice(i, 1) // Never parse the same category twice
                     return
                 }
-
+                
+                // Here we are parsing the studyset title
                 if (category == categories.title) {
+                    console.log(`[studySet] Reading title '${line}'`)
                     this.title = line
                     return
                 }
-
-                if (category == categories.resources) {
+                if (category == categories.resources)  {
+                    console.log(`[studySet] Reading resource '${line}'`)
                     this.resources.push(line)
                     return
                 }
 
+                // Here we are parsing a card configuration setting
+                if (line.startsWith('\t\\')) {
+                    var spaceIndex = line.indexOf(' ')
+                    var codeName = line.substring(2, spaceIndex)
+                    var codeText = line.substring(spaceIndex + 1)
+                    console.log(`[studySet] Reading value '${codeText}' of category '${codeName}' for card '${card.frontText}'`)
+                    card[codeName] = [codeText, ...(card[codeName] || [])];
+                    return
+                }
+                
+                // Here we are adding the card
                 const flashcardParts = line.split('..')
                 const n = flashcardParts.length
                 if (flashcardParts.length <= 1) {
                     console.warn(`Warning: Line does not match expected format: "${line}"`)
                     return
                 }
-                
                 const configParts = flashcardParts[n - 1].split('|')
-
                 const pageRef = Number(configParts[0])
                 if (isNaN(pageRef)) {
                     console.warn(`Warning: Line does not match expected format: "${line}"`)
                     return
                 }
                 
-                const config = {
-                    reviewedAt: {
-                        value: new Date(),
-                        make: (value) => new Date(value)
-                    },
-                    ease: {
-                        value: 230,
-                        make: (value) => new Number(value)
-                    }
-                }
-                if (configParts.length > 1) {
-                    const configurations = configParts[1].split(' ');
-                    configurations.forEach(configPart => {
-                        const parts = configPart.split(' ')
-                        config[parts[0]].value = parts[1]
-                    })
-                }
-
-                let frontText = flashcardParts.slice(0, n - 1).join('..')
-                let aliases = frontText.split('///')
-                if (aliases.length > 1) {
-                    frontText = aliases[0]
-                }
-                aliases = aliases.slice(1)
-
-                const card = {
+                const now = new Date()
+                const randomHours = Math.floor(Math.random() * 24); // 0-23 hours
+                const randomMinutes = Math.floor(Math.random() * 60); // 0-59 minutes
+                const frontText = flashcardParts.slice(0, n - 1).join('..')
+                card = {
                     frontText: frontText,
-                    aliases: aliases,
                     pageRef: pageRef,
+                    /*
+                        Random in order to shuffle cards, but before now so that
+                        review cards ends up later
+                    */
+                    reviewedAt: new Date(now.getTime() - (randomHours * 60 * 60 * 1000) - (randomMinutes * 60 * 1000)),
+                    ease: 230
                 }
-
-                for (const [key, value] of Object.entries(config))  {
-                    card[key] = value.make(value.value)
-                }
-
-                this.parsedObjects.push(card)
-
+                this.flashcards.push(card)
             })
+            this.flashcards.forEach((card) => {
+                var log = `[studySet] Flashcard:`;
+                Object.keys(card).forEach(k => {
+                    log += `\n-${k}: ${card[k]}`
+                })
+                console.log(log)
+            });
+
             this.$emit('setUploaded', {
                 title: this.title,
                 resources: this.resources,
-                flashcards: this.parsedObjects,
+                flashcards: this.flashcards,
             })
         },
     }
