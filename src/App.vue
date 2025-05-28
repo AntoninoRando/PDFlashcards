@@ -67,6 +67,13 @@ function addToCache(item: FileUploadItem) {
 
 <template>
     <div class="app-container">
+        <nav class="navbar">
+            <div class="navbar-buttons">
+                <button class="nav-btn">PDFs</button>
+                <button class="nav-btn">Studysets</button>
+            </div>
+        </nav>
+
         <div class="row">
             <div class="pdf-section column">
                 <PDFUploader @file-selected="addToCache" />
@@ -76,62 +83,100 @@ function addToCache(item: FileUploadItem) {
                     :pageToShow="pageToShow" 
                     :pdf-url="pdfCache[studySet.resources[0].trim()]" 
                 />
-                <div v-else class="no-pdf-message">
-                    <p>Upload a study set file to see PDF preview</p>
-                </div>
             </div>
 
             <div class="flashcards-section column">
-                <FileParser @setUploaded="loadStudySet" />
-                <hr class="divider">
+                <FileParser v-if="!studySet" 
+                    @setUploaded="loadStudySet" />
                 <StudySet 
-                    v-if="studySet"
+                    v-else
                     @reveal="showPage"
                     :flashcards="studySet.flashcards"
                     :title="studySet.title"
                     :resources="studySet.resources" 
                 />
-                <div v-else class="no-studyset-message">
-                    <p>Upload a study set file to begin studying</p>
-                </div>
             </div>
         </div>
     </div>
 </template>
 
+
+
 <style scoped>
+.navbar {
+    width: 100%;
+    height: 80px;
+    background-color: #0d1b2a;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.navbar-buttons {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.nav-btn {
+    background-color: #0d1b2a;
+    color: #ffffff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.nav-btn:hover {
+    background-color: #4b5563;
+}
+
+
 .app-container {
     height: 100vh;
     width: 100vw;
     overflow: hidden;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
 }
 
 .row {
     display: flex;
-    height: 100%;
+    flex: 1;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
 }
 
 .column {
-    flex: 1;
-    width: 50%;
+    width: 50vw;
+    height: 100vh;
     display: flex;
     flex-direction: column;
+    border-radius: 0;
     overflow: hidden;
 }
 
 .pdf-section {
-    border-right: 1px solid #e0e0e0;
-    background-color: #fafafa;
+    padding: 1rem;
+    box-sizing: border-box;
 }
 
 .flashcards-section {
-    background-color: #ffffff;
+    padding: 1rem;
+    box-sizing: border-box;
 }
 
 .divider {
-    margin: 20px 0;
+    margin: 24px 0;
     border: none;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid #e5e7eb;
 }
 
 .no-pdf-message,
@@ -140,15 +185,20 @@ function addToCache(item: FileUploadItem) {
     align-items: center;
     justify-content: center;
     flex: 1;
-    color: #666;
+    color: #6b7280;
     text-align: center;
-    padding: 40px;
+    padding: 2rem;
+    background-color: #fefefe;
+    border: 1px dashed #d1d5db;
+    border-radius: 12px;
+    margin-top: 1rem;
 }
 
 .no-pdf-message p,
 .no-studyset-message p {
-    font-size: 16px;
+    font-size: 17px;
     margin: 0;
+    line-height: 1.6;
 }
 
 /* Responsive design */
@@ -156,15 +206,16 @@ function addToCache(item: FileUploadItem) {
     .row {
         flex-direction: column;
     }
-    
+
     .column {
-        width: 100%;
+        width: 100vw;
         height: 50vh;
     }
-    
+
     .pdf-section {
         border-right: none;
-        border-bottom: 1px solid #e0e0e0;
+        border-bottom: 1px solid #e5e7eb;
     }
 }
 </style>
+

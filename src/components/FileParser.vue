@@ -3,23 +3,8 @@
         <h1 class="text-2xl font-bold mb-4">Text File Parser</h1>
 
         <div class="mb-6">
-            <label class="block text-gray-700 mb-2" for="file-input">
-                Select a text file (with "A .. B" format on each line)
-            </label>
             <input type="file" id="file-input" accept=".txt" @change="handleFileUpload"
                 class="border rounded py-2 px-3 w-full bg-gray-50" />
-        </div>
-
-        <!-- Error display -->
-        <div v-if="error" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            {{ error }}
-        </div>
-
-        <!-- Success message -->
-        <div v-if="flashcards.length > 0" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
-            Successfully parsed {{ flashcards.length }} flashcards
-            <div v-if="title" class="mt-2"><strong>Title:</strong> {{ title }}</div>
-            <div v-if="resources.length > 0" class="mt-2"><strong>Resources:</strong> {{ resources.length }} items</div>
         </div>
     </div>
 </template>

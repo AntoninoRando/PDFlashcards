@@ -35,8 +35,8 @@ export default {
             return '100%'
         },
         flashcardsBorders() {
-            if (this.aliases && this.aliases.length > 0) return '0px 7px 7px 0px'
-            return '7px'
+            if (this.aliases && this.aliases.length > 0) return '0px 3px 3px 0px'
+            return '3px'
         }
     },
     methods: {
@@ -66,9 +66,11 @@ export default {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
 .flashcard {
     width: 100%;
-    height: 70px;
+    height: 150px;
 }
 
 .card-container {
@@ -86,9 +88,14 @@ export default {
 
 .flashcard-button {
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-color: rgba(0, 0, 0, 0.2);
+    background-image: linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%);
+    border-color: rgba(0, 0, 0, 0.7);
     border-width: 1px;
+    font-size: 15px;
+    font-family: "JetBrains Mono", monospace;
+    font-optical-sizing: auto;
+    font-weight: 300;
+    font-style: normal;
 }
 
 .aliases {
@@ -96,17 +103,17 @@ export default {
     width: 20%;
     align-content: center;
     text-align: center;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.3);
     border-width: 1px;
-    border-radius: 7px 0px 0px 7px;
+    border-radius: 3px 0px 0px 3px;
 }
 
 .revealed-button {
     height: 100%;
     width: 20%;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.3);
     border-width: 1px;
 }
 </style>

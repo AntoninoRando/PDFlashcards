@@ -6,19 +6,28 @@ import Flashcard from './Flashcard.vue';
 <template>
     <div class="all-container">
         <div class="header-section">
-            <button @click="downloadSet" class="download-btn">
-                <h1>{{ title }}</h1> (save)
+            <h1>{{ title }}</h1>
+            <button @click="downloadSet" class="save-btn">
+                Save
+            </button>
+            <button @click="downloadSet" class="change-btn">
+                Change
             </button>
         </div>
-
-        <h2>Do you know...</h2>
-        <Flashcard v-if="studyCard !== null" class="main-flashcard" :flashcard="studyCard" @reveal="reveal"
-            @hide="updateCards" />
-
-        <div v-if="flashcards.length > 0" class="flashcards-container">
-            <h2>All cards</h2>
-            <Flashcard v-for="(flashcard, index) in flashcards" :key="index" :flashcard="flashcard" @reveal="reveal"
-                @hide="updateCards" />
+        <div class="cards-section">
+            <div class="cards-section-row">
+                <h2>Remember</h2>
+                <Flashcard v-if="studyCard !== null" class="main-flashcard" :flashcard="studyCard" @reveal="reveal"
+                    @hide="updateCards" />
+            </div>
+            <div class="cards-section-row">
+                <h2>All cards</h2>
+                <div v-if="flashcards.length > 0" class="flashcards-container"
+                    style="overflow-y: scroll; height:400px;">
+                    <Flashcard v-for="(flashcard, index) in flashcards" :key="index" :flashcard="flashcard"
+                        @reveal="reveal" @hide="updateCards" />
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -118,38 +127,24 @@ export default {
 
 .header-section {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-}
-
-.download-btn {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
-}
-
-.download-btn:hover {
-    background-color: #0056b3;
-}
-
-.download-btn:active {
-    background-color: #004085;
 }
 
 .flashcards-container {
     display: flex;
     flex-direction: column;
-    width: 300px;
+    width: 500px;
     gap: 10px;
 }
 
 .main-flashcard {
-    width: 300px;
+    width: 500px;
+}
+
+.cards-section {
+    display: flex;
+    flex-direction: column;
+    row-gap: 100px;
 }
 </style>
