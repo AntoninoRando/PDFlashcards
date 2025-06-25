@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  vue-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+      - ./vite.config.js:/app/vite.config.js
+      # Prevent node_modules from being overwritten
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development

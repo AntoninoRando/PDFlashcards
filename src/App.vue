@@ -68,6 +68,9 @@ function addToCache(item: FileUploadItem) {
 <template>
     <div class="app-container">
         <nav class="navbar">
+            <div class="navbar-logo">
+                <img src="@/assets/WebLogo.svg" />
+            </div>
             <div class="navbar-buttons">
                 <button class="nav-btn">PDFs</button>
                 <button class="nav-btn">Studysets</button>
@@ -106,7 +109,7 @@ function addToCache(item: FileUploadItem) {
 .navbar {
     width: 100%;
     height: 80px;
-    background-color: #0d1b2a;
+    
     color: #ffffff;
     display: flex;
     align-items: center;

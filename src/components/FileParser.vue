@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import { parseContent } from '@/FlashcardParser/FlashcardsParser';
+</script>
+
 <template>
     <div class="p-6 max-w-3xl mx-auto">
         <h1 class="text-2xl font-bold mb-4">Text File Parser</h1>
@@ -9,7 +13,7 @@
     </div>
 </template>
 
-<script>
+<script lang="ts">
 export default {
     emits: ['setUploaded'],
     data() {
@@ -56,11 +60,20 @@ export default {
                 return;
             }
 
+            const lines = this.fileContent.split('\n').filter(l => l.trim() !== '');
+            console.log('Start studyset parsing')
+            const studyset = parseContent(lines);
+            if (studyset == null) {
+                console.log('Parse failed')
+            } else {
+                console.log('Parse succeded')
+            }
+            console.log(JSON.stringify(studyset))
+
             this.flashcards = [];
             this.resources = [];
             this.title = '';
             
-            const lines = this.fileContent.split('\n').filter(l => l.trim() !== '');
             const categories = {
                 title: '[Title]', 
                 resources: '[Resources]',
@@ -72,26 +85,22 @@ export default {
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                console.log(`[studySet] Reading line '${line}'`);
                 const trimmedLine = line.trim();
                 
                 // Check if this is a section header
                 if (Object.values(categories).includes(trimmedLine)) {
                     category = trimmedLine;
-                    console.log(`[studySet] Reached section '${line}'`);
                     currentCard = null; // Reset current card when entering new section
                     continue;
                 }
                 
                 // Parse based on current category
                 if (category === categories.title) {
-                    console.log(`[studySet] Reading title '${line}'`);
                     this.title = line;
                     continue;
                 }
                 
                 if (category === categories.resources) {
-                    console.log(`[studySet] Reading resource '${line}'`);
                     this.resources.push(line);
                     continue;
                 }
@@ -100,7 +109,6 @@ export default {
                     // Handle card configuration settings (indented with tab and backslash)
                     if (line.startsWith('\t\\')) {
                         if (!currentCard) {
-                            console.warn(`Warning: Card configuration found without a card: "${line}"`);
                             continue;
                         }
                         
@@ -108,14 +116,11 @@ export default {
                         const spaceIndex = configLine.indexOf(' ');
                         
                         if (spaceIndex === -1) {
-                            console.warn(`Warning: Invalid configuration format: "${line}"`);
                             continue;
                         }
                         
                         const codeName = configLine.substring(0, spaceIndex);
                         const codeText = configLine.substring(spaceIndex + 1);
-                        
-                        console.log(`[studySet] Reading value '${codeText}' of category '${codeName}' for card '${currentCard.frontText}'`);
                         
                         // Initialize array if it doesn't exist, then add to beginning
                         if (!currentCard[codeName]) {
@@ -128,7 +133,6 @@ export default {
                     // Parse flashcard line
                     const flashcardParts = line.split('..');
                     if (flashcardParts.length <= 1) {
-                        console.warn(`Warning: Line does not match expected format: "${line}"`);
                         continue;
                     }
                     
@@ -137,7 +141,6 @@ export default {
                     const pageRef = Number(configParts[0]);
                     
                     if (isNaN(pageRef)) {
-                        console.warn(`Warning: Line does not match expected format: "${line}"`);
                         continue;
                     }
                     
