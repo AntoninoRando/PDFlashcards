@@ -101,10 +101,10 @@ export default {
 
             // Validate file size (10MB limit)
             const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-            if (file.size > maxSize) {
-                this.errorMessage = 'File size exceeds 10MB limit. Please choose a smaller file.';
-                return;
-            }
+            // if (file.size > maxSize) {
+            //     this.errorMessage = 'File size exceeds 10MB limit. Please choose a smaller file.';
+            //     return;
+            // }
 
             // Validate file name
             if (!file.name || file.name.trim() === '') {
