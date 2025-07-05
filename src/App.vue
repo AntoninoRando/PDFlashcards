@@ -4,6 +4,7 @@ import StudySet from './components/Flashcards/StudySet.vue'
 import PDFPreview from './components/PDFPreview.vue'
 import FileParser from './components/FileParser.vue'
 import PDFUploader from './components/PDFUploader.vue'
+import GestureRecognizer from './components/GestureRecognizer/GestureRecognizer.vue'
 
 // Define types
 interface Flashcard {
@@ -61,7 +62,7 @@ function addToCache(item: FileUploadItem) {
         console.error('Invalid file upload item:', item)
         return
     }
-    
+
     pdfCache[item.file.name] = item.url
     console.log(`Added to cache: ${item.file.name}; ${item.url}`)
 }
@@ -92,13 +93,10 @@ onUnmounted(() => {
     <div class="app-container">
         <!-- Logo Banner -->
         <div class="logo-banner" :class="{ 'hidden': isScrolled }" @mousemove="handleMouseMove">
-            <div 
-                class="dots-pattern" 
-                :style="{ 
-                    '--mouse-x': mousePosition.x + 'px', 
-                    '--mouse-y': mousePosition.y + 'px' 
-                }"
-            ></div>
+            <div class="dots-pattern" :style="{
+                '--mouse-x': mousePosition.x + 'px',
+                '--mouse-y': mousePosition.y + 'px'
+            }"></div>
             <div class="logo-container">
                 <img src="@/assets/WebLogo.svg" alt="Logo" class="logo" />
             </div>
@@ -109,6 +107,7 @@ onUnmounted(() => {
             <div class="navbar-buttons">
                 <button class="nav-btn">PDF</button>
                 <button class="nav-btn">Studysets</button>
+                <GestureRecognizer />
             </div>
         </nav>
 
@@ -116,24 +115,14 @@ onUnmounted(() => {
             <div class="row">
                 <div class="pdf-section column">
                     <PDFUploader @file-selected="addToCache" />
-                    <PDFPreview 
-                        v-if="studySet?.resources?.length" 
-                        ref="PDF"
-                        :pageToShow="pageToShow" 
-                        :pdf-url="pdfCache[studySet.resources[0].trim()]" 
-                    />
+                    <PDFPreview v-if="studySet?.resources?.length" ref="PDF" :pageToShow="pageToShow"
+                        :pdf-url="pdfCache[studySet.resources[0].trim()]" />
                 </div>
 
                 <div class="flashcards-section column">
-                    <FileParser v-if="!studySet" 
-                        @setUploaded="loadStudySet" />
-                    <StudySet 
-                        v-else
-                        @reveal="showPage"
-                        :flashcards="studySet.flashcards"
-                        :title="studySet.title"
-                        :resources="studySet.resources" 
-                    />
+                    <FileParser v-if="!studySet" @setUploaded="loadStudySet" />
+                    <StudySet v-else @reveal="showPage" :flashcards="studySet.flashcards" :title="studySet.title"
+                        :resources="studySet.resources" />
                 </div>
             </div>
         </div>
@@ -176,7 +165,7 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: 
+    background-image:
         radial-gradient(circle at 25px 25px, rgba(87, 87, 87, 0.3) 2px, transparent 2px),
         radial-gradient(circle at 75px 75px, rgba(87, 87, 87, 0.3) 2px, transparent 2px);
     background-size: 50px 50px;
@@ -193,7 +182,7 @@ onUnmounted(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: 
+    background-image:
         radial-gradient(circle at 25px 25px, rgba(87, 87, 87, 0.8) 2px, transparent 2px),
         radial-gradient(circle at 75px 75px, rgba(87, 87, 87, 0.8) 2px, transparent 2px);
     background-size: 50px 50px;
@@ -219,7 +208,7 @@ onUnmounted(() => {
 .logo {
     height: 60px;
     width: auto;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 /* Sticky Navbar */
@@ -279,7 +268,7 @@ onUnmounted(() => {
     transition: padding-top 0.3s ease;
 }
 
-.navbar.sticky + .content-wrapper {
+.navbar.sticky+.content-wrapper {
     padding-top: 60px;
 }
 
@@ -343,19 +332,19 @@ onUnmounted(() => {
     .logo-banner {
         height: 80px;
     }
-    
+
     .logo {
         height: 40px;
     }
-    
+
     .navbar {
         height: 50px;
     }
-    
-    .navbar.sticky + .content-wrapper {
+
+    .navbar.sticky+.content-wrapper {
         padding-top: 50px;
     }
-    
+
     .row {
         flex-direction: column;
         min-height: calc(100vh - 130px);
@@ -370,11 +359,11 @@ onUnmounted(() => {
         border-right: none;
         border-bottom: 1px solid #e5e7eb;
     }
-    
+
     .navbar-buttons {
         gap: 1rem;
     }
-    
+
     .nav-btn {
         padding: 0.5rem 1.5rem;
         font-size: 0.9rem;

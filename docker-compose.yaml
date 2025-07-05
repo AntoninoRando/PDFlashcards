@@ -16,3 +16,12 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+  
+  flask-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.flask
+    ports:
+      - "5001:5001"
+    environment:
+      - FLASK_ENV=development
