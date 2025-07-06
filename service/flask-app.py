@@ -35,21 +35,22 @@ def ping_pong():
     return jsonify('pong!')
 
 
-def send_gesture_recognition():
+gesture_commands = {
+    'Show flashcard': lambda image: GESTURE_RECOGNIZER.has_any_thumbs_up(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+}
+
+
+def send_commands_via_gestures():
     cap = cv2.VideoCapture(0)
     while True:
         success, image = cap.read()
         if not success:
             print('Unable to read video')
             exit(1)
-
-        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        result = GESTURE_RECOGNIZER.process_hands(image_rgb)
-
-        if result.multi_hand_landmarks:
-            for hand_landmarks in result.multi_hand_landmarks:
-                if GESTURE_RECOGNIZER.is_thumbs_up(hand_landmarks):
-                    socketio.emit('notification', 'Thumbs up')
+        
+        for command, condition in gesture_commands.items():
+            if condition(image):
+                socketio.emit('notification', command)
 
 
         if cv2.waitKey(5) & 0xFF == 27:
@@ -58,5 +59,5 @@ def send_gesture_recognition():
 
 
 if __name__ == '__main__':
-    threading.Thread(target=send_gesture_recognition, daemon=True).start()
+    threading.Thread(target=send_commands_via_gestures, daemon=True).start()
     app.run(host='0.0.0.0', debug=True, port=5001)

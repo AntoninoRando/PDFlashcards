@@ -6,5 +6,9 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-# Start the app with docker-compose
-docker-compose up
+# Start the app with docker-compose in the background
+docker-compose up &
+
+# Start 'uv run flask-app.py' inside the 'service' directory
+cd service
+uv run flask-app.py

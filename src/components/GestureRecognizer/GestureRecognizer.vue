@@ -22,6 +22,7 @@ onMounted(() => {
     
     socket.value.on('notification', (data) => {
         console.log('Received notification:', data)
+        emit('command-recognized', data as string);
     })
 });
 
@@ -38,7 +39,7 @@ const recognized = async () => {
         const path = 'http://localhost:5001/ping';
         const res = await axios.get(path);
         console.log(res.data);
-        emit('command-recognized', 'Ok');
+        emit('command-recognized', res.data as string);
     } catch (error) {
         console.error(error);
     }

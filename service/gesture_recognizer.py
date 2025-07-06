@@ -40,6 +40,14 @@ class GestureRecognizer:
     def get_index_pos(self, hand_landmarks):
         landmarks = hand_landmarks.landmark
         return (landmarks[8].x, landmarks[8].y)
+    
+    def has_any_thumbs_up(self, image_rgb):
+        result = self.process_hands(image_rgb)
+        if result.multi_hand_landmarks:
+            for hand_landmarks in result.multi_hand_landmarks:
+                if self.is_thumbs_up(hand_landmarks):
+                    return True
+        return False
 
     def is_thumbs_up(self, hand_landmarks):
         """

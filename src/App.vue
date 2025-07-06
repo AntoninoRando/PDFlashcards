@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, useTemplateRef } from 'vue'
 import StudySet from './components/Flashcards/StudySet.vue'
 import PDFPreview from './components/PDFPreview.vue'
 import FileParser from './components/FileParser.vue'
@@ -32,6 +32,9 @@ const studySet = ref<StudySetData | null>(null)
 const pdfCache = reactive<Record<string, string>>({})
 const isScrolled = ref<boolean>(false)
 const mousePosition = ref({ x: 0, y: 0 })
+
+// Refs
+const studySetComponent = ref(null)
 
 // Methods
 function showPage(flashcard: Flashcard | null) {
@@ -80,6 +83,14 @@ function handleMouseMove(event: MouseEvent) {
     }
 }
 
+function commandRecognized(command: string) {
+    console.log('Executing action for command '+ command)
+    if (command == 'Show flashcard') {
+        console.log('Command ' + command + ' interpreted as REVEAL')
+        studySetComponent.value.revealCurrent();
+    }
+}
+
 onMounted(() => {
     window.addEventListener('scroll', handleScroll)
 })
@@ -107,7 +118,7 @@ onUnmounted(() => {
             <div class="navbar-buttons">
                 <button class="nav-btn">PDF</button>
                 <button class="nav-btn">Studysets</button>
-                <GestureRecognizer />
+                <GestureRecognizer @command-recognized="commandRecognized" />
             </div>
         </nav>
 
@@ -121,8 +132,8 @@ onUnmounted(() => {
 
                 <div class="flashcards-section column">
                     <FileParser v-if="!studySet" @setUploaded="loadStudySet" />
-                    <StudySet v-else @reveal="showPage" :flashcards="studySet.flashcards" :title="studySet.title"
-                        :resources="studySet.resources" />
+                    <StudySet ref="studySetComponent" v-else @reveal="showPage" :flashcards="studySet.flashcards"
+                        :title="studySet.title" :resources="studySet.resources" />
                 </div>
             </div>
         </div>

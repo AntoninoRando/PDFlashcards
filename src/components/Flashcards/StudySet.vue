@@ -36,6 +36,7 @@ import Flashcard from './Flashcard.vue';
 export default {
     emits: ['reveal', 'hide'],
     props: ['title', 'flashcards', 'resources'],
+    expose: ['revealCurrent'],
     data() {
         return {
             scheduler: new FlashcardsScheduler(),
@@ -43,6 +44,9 @@ export default {
         }
     },
     methods: {
+        revealCurrent() {
+            this.reveal(this.studyCard)
+        },
         reveal(flashcard: any) {
             this.$emit('reveal', flashcard)
         },
