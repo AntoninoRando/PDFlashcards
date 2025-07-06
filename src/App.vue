@@ -5,6 +5,7 @@ import PDFPreview from './components/PDFPreview.vue'
 import FileParser from './components/FileParser.vue'
 import PDFUploader from './components/PDFUploader.vue'
 import GestureRecognizer from './components/GestureRecognizer/GestureRecognizer.vue'
+import VoiceRecognizer from './components/VoiceRecognizer/VoiceRecognizer.vue'
 
 // Define types
 interface Flashcard {
@@ -85,7 +86,8 @@ function handleMouseMove(event: MouseEvent) {
 
 function commandRecognized(command: string) {
     console.log('Executing action for command '+ command)
-    if (command == 'Show flashcard') {
+    command = command.toLowerCase()
+    if (command.includes('show')){
         console.log('Command ' + command + ' interpreted as REVEAL')
         studySetComponent.value.revealCurrent();
     }
@@ -119,6 +121,7 @@ onUnmounted(() => {
                 <button class="nav-btn">PDF</button>
                 <button class="nav-btn">Studysets</button>
                 <GestureRecognizer @command-recognized="commandRecognized" />
+                <VoiceRecognizer @command-recognized="commandRecognized" />
             </div>
         </nav>
 

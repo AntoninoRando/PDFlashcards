@@ -24,6 +24,7 @@
 export default {
     emits: ['reveal', 'hide'],
     props: ['flashcard'],
+    expose: ['reveal'],
     data() {
         return {
             revealed: false

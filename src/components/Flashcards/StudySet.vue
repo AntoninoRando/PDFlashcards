@@ -17,7 +17,7 @@ import Flashcard from './Flashcard.vue';
         <div class="cards-section">
             <div class="cards-section-row">
                 <h2>Remember</h2>
-                <Flashcard v-if="studyCard !== null" class="main-flashcard" :flashcard="studyCard" @reveal="reveal"
+                <Flashcard ref="currentFlashcardObject" v-if="studyCard !== null" class="main-flashcard" :flashcard="studyCard" @reveal="reveal"
                     @hide="updateCards" />
             </div>
             <div class="cards-section-row">
@@ -45,7 +45,8 @@ export default {
     },
     methods: {
         revealCurrent() {
-            this.reveal(this.studyCard)
+            this.$refs.currentFlashcardObject.reveal()
+            //this.reveal(this.studyCard)
         },
         reveal(flashcard: any) {
             this.$emit('reveal', flashcard)
