@@ -1,2 +1,5 @@
 flask
 flask-cors
+flask_socketio
+opencv-python-headless==4.8.1.78
+mediapipe

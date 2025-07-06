@@ -6,14 +6,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
+import { io } from 'socket.io-client'
 
 const emit = defineEmits<{
     'command-recognized': [command: string]
 }>();
 
 const on = ref(false);
+const socket = ref(null);
+
+onMounted(() => {
+    socket.value = io('http://localhost:5001')
+    
+    socket.value.on('notification', (data) => {
+        console.log('Received notification:', data)
+    })
+});
+
+onUnmounted(() => {
+    socket.value?.disconnect();
+});
 
 const toggle = () => {
     on.value = !on.value;

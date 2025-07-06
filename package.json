@@ -9,9 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "axios": "^1.10.0",
     "@vue-pdf-viewer/viewer": "^2.5.1",
+    "axios": "^1.10.0",
     "pdfjs-dist": "^5.2.133",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.7.5",
     "vue": "^3.5.13"
   },
   "devDependencies": {

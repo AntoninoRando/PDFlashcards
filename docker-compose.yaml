@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   vue-dev:
     build:
@@ -16,12 +15,25 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-  
-  flask-api:
-    build:
-      context: .
-      dockerfile: Dockerfile.flask
-    ports:
-      - "5001:5001"
-    environment:
-      - FLASK_ENV=development
+      - VITE_API_URL=http://host.docker.internal:5001
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # flask-api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.flask
+  #   ports:
+  #     - "5001:5001"
+  #   environment:
+  #     - FLASK_ENV=development
+  #   # Grant access to camera devices
+  #   devices:
+  #     - /dev/video0:/dev/video0
+  #   # Additional privileges for camera access
+  #   privileged: true
+  #   # Alternative to privileged (more secure)
+  #   # cap_add:
+  #   #   - SYS_ADMIN
+  #   # security_opt:
+  #   #   - apparmor:unconfined
