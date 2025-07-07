@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, useTemplateRef } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import StudySet from './components/Flashcards/StudySet.vue'
 import PDFPreview from './components/PDFPreview.vue'
 import FileParser from './components/FileParser.vue'
@@ -133,8 +133,8 @@ onUnmounted(() => {
             <div class="navbar-buttons">
                 <button class="nav-btn">PDF</button>
                 <button class="nav-btn">Studysets</button>
-                <GestureRecognizer @command-recognized="commandRecognized" />
-                <VoiceRecognizer @command-recognized="commandRecognized" />
+                <GestureRecognizer class="nav-btn" @command-recognized="commandRecognized" />
+                <VoiceRecognizer class="nav-btn"  @command-recognized="commandRecognized" />
             </div>
         </nav>
 

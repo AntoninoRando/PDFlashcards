@@ -50,6 +50,17 @@ def gesture(tgt, image_rgb, detection_result, recognition_result) -> bool:
     except IndexError:
         return False
 
+def index_pos(image_rgb, detection_result, recognition_result):
+    for hand in detection_result.hand_landmarks:
+        index_finger_tip = hand[8]
+        print(index_finger_tip)
+        return {
+            'x': index_finger_tip.x, 
+            'y': index_finger_tip.y,
+            'z': index_finger_tip.z
+        }
+    return {}
+
 gesture_commands = {
     #'show': lambda image: GESTURE_RECOGNIZER.has_any_thumbs_up(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)),
     'show': {
@@ -63,7 +74,7 @@ gesture_commands = {
         "allow more": False
     },
     'forgot': {
-        "condition": lambda x, y, z: count_fingers(1, x, y, z),
+        "condition": lambda x, y, z: gesture('Thumb_Down', x, y, z),
         "delay": None,
         "allow more": False
     },
@@ -78,17 +89,17 @@ gesture_commands = {
         "allow more": False
     },
     'ok': {
-        "condition": lambda x, y, z: count_fingers(4, x, y, z) and not open_palm,
+        "condition": lambda x, y, z: gesture('Thumb_Up', x, y, z),
         "delay": None,
         "allow more": False
     },
     'next page': {
-        "condition": lambda x, y, z: gesture('Thumb_Up', x, y, z),
+        "condition": lambda x, y, z: gesture('Pointing_Up', x, y, z) and index_pos(x,y,z).get('x', 1) < 0.45,
         "delay": 1,
         "allow more": True
     },
     'previous page': {
-        "condition": lambda x, y, z: gesture('Thumb_Down', x, y, z),
+        "condition": lambda x, y, z: gesture('Pointing_Up', x, y, z) and index_pos(x,y,z).get('x', 0) > 0.55,
         "delay": 1,
         "allow more": True
     },
@@ -141,15 +152,6 @@ def send_commands_via_gestures():
                 last_sent_command_ts = time.time()
                 socketio.emit('notification', command)
                 break
-        
-
-        # # Retrieve and print palm positions for each detected hand
-        # for hand in detection_result.hand_landmarks:
-        #     # The palm position is typically the wrist landmark (landmark 0)
-        #     palm_landmark = hand[12]
-        #     print(f"Palm position (x={palm_landmark.x}, y={palm_landmark.y}, z={palm_landmark.z})")
-        
-
 
         if cv2.waitKey(5) & 0xFF == 27:
             break
