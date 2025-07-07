@@ -42,24 +42,59 @@ def count_fingers(tgt, image_rgb, detection_result, recognition_result) -> bool:
 def hand_LFT(image_rgb, detection_result, recognition_result) -> bool:
     return GESTURE_RECOGNIZER.detect_left_to_right_movement(image_rgb)
 
-def open_palm(image_rgb, detection_result, recognition_result) -> bool:
+def gesture(tgt, image_rgb, detection_result, recognition_result) -> bool:
     try:
         top_gesture = recognition_result.gestures[0][0]
         gst = top_gesture.category_name
-        return gst == 'Open_Palm'
-    except:
+        return gst == tgt
+    except IndexError:
         return False
 
 gesture_commands = {
     #'show': lambda image: GESTURE_RECOGNIZER.has_any_thumbs_up(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)),
-    'show': open_palm,
-    'forgot': lambda x, y, z: count_fingers(1, x, y, z),
-    'bad': lambda x, y, z: count_fingers(2, x, y, z),
-    'not bad': lambda x, y, z: count_fingers(3, x, y, z),
-    'ok': lambda x, y, z: count_fingers(4, x, y, z),
-    'next page': hand_LFT
+    'show': {
+        "condition": lambda x, y, z: gesture('Open_Palm', x, y, z),
+        "delay": None,
+        "allow more": False
+    },
+    'hide': {
+        "condition": lambda x, y, z: gesture('Closed_Fist', x, y, z),
+        "delay": None,
+        "allow more": False
+    },
+    'forgot': {
+        "condition": lambda x, y, z: count_fingers(1, x, y, z),
+        "delay": None,
+        "allow more": False
+    },
+    'bad': {
+        "condition": lambda x, y, z: count_fingers(2, x, y, z),
+        "delay": None,
+        "allow more": False
+    },
+    'not bad': {
+        "condition": lambda x, y, z: count_fingers(3, x, y, z),
+        "delay": None,
+        "allow more": False
+    },
+    'ok': {
+        "condition": lambda x, y, z: count_fingers(4, x, y, z) and not open_palm,
+        "delay": None,
+        "allow more": False
+    },
+    'next page': {
+        "condition": lambda x, y, z: gesture('Thumb_Up', x, y, z),
+        "delay": 1,
+        "allow more": True
+    },
+    'previous page': {
+        "condition": lambda x, y, z: gesture('Thumb_Down', x, y, z),
+        "delay": 1,
+        "allow more": True
+    },
 }
 #---
+
 import mediapipe
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
@@ -72,7 +107,11 @@ base_options_gst = python.BaseOptions(model_asset_path='gesture_recognizer.task'
 options_gst = vision.GestureRecognizerOptions(base_options=base_options_gst)
 recognizer = vision.GestureRecognizer.create_from_options(options_gst)
 
+last_sent_command = None
+last_sent_command_ts = None
+
 def send_commands_via_gestures():
+    global last_sent_command, last_sent_command_ts
     cap = cv2.VideoCapture(0)
     while True:
         success, image = cap.read()
@@ -88,8 +127,18 @@ def send_commands_via_gestures():
         detection_result = detector.detect(mp_image)
         recognition_result = recognizer.recognize(mp_image)
         
-        for command, condition in gesture_commands.items():
+        for command, options in gesture_commands.items():
+            condition = options['condition']
+            allow_more = options.get('allow more', False)
+            if not allow_more and command == last_sent_command:
+                continue
+            if last_sent_command_ts is not None and options['delay'] is not None:
+                time_elapsed = time.time() - last_sent_command_ts
+                if time_elapsed < options['delay']:
+                    continue
             if condition(image_rgb, detection_result, recognition_result):
+                last_sent_command = command
+                last_sent_command_ts = time.time()
                 socketio.emit('notification', command)
                 break
         

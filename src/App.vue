@@ -98,6 +98,12 @@ function commandRecognized(command: string) {
             studySetComponent.value.hideCurrent(t);
         }
     });
+
+    if (command == 'next page') {
+        pageToShow.value = pageToShow.value + 1
+    } else if (command == 'previous page') {
+        pageToShow.value = pageToShow.value - 1
+    }
 }
 
 onMounted(() => {
