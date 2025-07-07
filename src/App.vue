@@ -85,12 +85,19 @@ function handleMouseMove(event: MouseEvent) {
 }
 
 function commandRecognized(command: string) {
-    console.log('Executing action for command '+ command)
-    command = command.toLowerCase()
-    if (command.includes('show')){
-        console.log('Command ' + command + ' interpreted as REVEAL')
+    console.log('Executing action for command ' + command)
+    command = command.toLowerCase().trim()
+
+    if (command == 'show') {
         studySetComponent.value.revealCurrent();
     }
+
+    const recallTypes = ['hide', 'forgot', 'bad', 'not bad', 'ok']
+    recallTypes.forEach((t) => {
+        if (command == t) {
+            studySetComponent.value.hideCurrent(t);
+        }
+    });
 }
 
 onMounted(() => {

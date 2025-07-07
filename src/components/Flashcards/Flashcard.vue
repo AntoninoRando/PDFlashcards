@@ -24,7 +24,7 @@
 export default {
     emits: ['reveal', 'hide'],
     props: ['flashcard'],
-    expose: ['reveal'],
+    expose: ['isRevealed', 'reveal', 'hide', 'forgot', 'bad', 'notBad', 'ok'],
     data() {
         return {
             revealed: false
@@ -41,6 +41,9 @@ export default {
         }
     },
     methods: {
+        isRevealed() {
+            return this.revealed
+        },
         reveal() {
             this.revealed = true
             this.$emit('reveal', this.flashcard)
@@ -51,7 +54,7 @@ export default {
             this.$emit('hide', this.flashcard)
         },
         forgot() {
-           this.hide(true)
+            this.hide(true)
         },
         bad() {
             this.hide(true)

@@ -35,16 +35,28 @@ def ping_pong():
     return jsonify('pong!')
 
 #---
-def count_fingers(image_rgb) -> bool:
+def count_fingers(tgt, image_rgb, detection_result, recognition_result) -> bool:
     count = GESTURE_RECOGNIZER.count_open_fingers(image_rgb)
-    return count == 4
+    return count == tgt
 
-def hand_LFT(image_rgb) -> bool:
+def hand_LFT(image_rgb, detection_result, recognition_result) -> bool:
     return GESTURE_RECOGNIZER.detect_left_to_right_movement(image_rgb)
+
+def open_palm(image_rgb, detection_result, recognition_result) -> bool:
+    try:
+        top_gesture = recognition_result.gestures[0][0]
+        gst = top_gesture.category_name
+        return gst == 'Open_Palm'
+    except:
+        return False
 
 gesture_commands = {
     #'show': lambda image: GESTURE_RECOGNIZER.has_any_thumbs_up(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)),
-    'show': count_fingers,
+    'show': open_palm,
+    'forgot': lambda x, y, z: count_fingers(1, x, y, z),
+    'bad': lambda x, y, z: count_fingers(2, x, y, z),
+    'not bad': lambda x, y, z: count_fingers(3, x, y, z),
+    'ok': lambda x, y, z: count_fingers(4, x, y, z),
     'next page': hand_LFT
 }
 #---
@@ -75,24 +87,19 @@ def send_commands_via_gestures():
         
         detection_result = detector.detect(mp_image)
         recognition_result = recognizer.recognize(mp_image)
-
-        try:
-            top_gesture = recognition_result.gestures[0][0]
-            gst = top_gesture.category_name
-            print("GESTURE", top_gesture.category_name)
-            if gst == 'Open_Palm':
-                socketio.emit('notification', 'show')
-        except: pass
-        # Retrieve and print palm positions for each detected hand
-        for hand in detection_result.hand_landmarks:
-            # The palm position is typically the wrist landmark (landmark 0)
-            palm_landmark = hand[12]
-            print(f"Palm position (x={palm_landmark.x}, y={palm_landmark.y}, z={palm_landmark.z})")
         
-        # image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        # for command, condition in gesture_commands.items():
-        #     if condition(image):
-        #         socketio.emit('notification', command)
+        for command, condition in gesture_commands.items():
+            if condition(image_rgb, detection_result, recognition_result):
+                socketio.emit('notification', command)
+                break
+        
+
+        # # Retrieve and print palm positions for each detected hand
+        # for hand in detection_result.hand_landmarks:
+        #     # The palm position is typically the wrist landmark (landmark 0)
+        #     palm_landmark = hand[12]
+        #     print(f"Palm position (x={palm_landmark.x}, y={palm_landmark.y}, z={palm_landmark.z})")
+        
 
 
         if cv2.waitKey(5) & 0xFF == 27:

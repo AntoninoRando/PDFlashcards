@@ -17,8 +17,8 @@ import Flashcard from './Flashcard.vue';
         <div class="cards-section">
             <div class="cards-section-row">
                 <h2>Remember</h2>
-                <Flashcard ref="currentFlashcardObject" v-if="studyCard !== null" class="main-flashcard" :flashcard="studyCard" @reveal="reveal"
-                    @hide="updateCards" />
+                <Flashcard ref="currentFlashcardObject" v-if="studyCard !== null" class="main-flashcard"
+                    :flashcard="studyCard" @reveal="reveal" @hide="updateCards" />
             </div>
             <div class="cards-section-row">
                 <h2>All cards</h2>
@@ -36,7 +36,7 @@ import Flashcard from './Flashcard.vue';
 export default {
     emits: ['reveal', 'hide'],
     props: ['title', 'flashcards', 'resources'],
-    expose: ['revealCurrent'],
+    expose: ['revealCurrent', 'hideCurrent'],
     data() {
         return {
             scheduler: new FlashcardsScheduler(),
@@ -47,6 +47,23 @@ export default {
         revealCurrent() {
             this.$refs.currentFlashcardObject.reveal()
             //this.reveal(this.studyCard)
+        },
+        hideCurrent(recallType: string) {
+            if (!this.$refs.currentFlashcardObject.isRevealed()) {
+                return;
+            }
+            
+            if (recallType == 'hide') {
+                this.$refs.currentFlashcardObject.hide()
+            } else if (recallType == 'forgot') {
+                this.$refs.currentFlashcardObject.forgot()
+            } else if (recallType == 'bad') {
+                this.$refs.currentFlashcardObject.bad()
+            } else if (recallType == 'not bad') {
+                this.$refs.currentFlashcardObject.notBad()
+            } else if (recallType == 'ok') {
+                this.$refs.currentFlashcardObject.ok()
+            } 
         },
         reveal(flashcard: any) {
             this.$emit('reveal', flashcard)
