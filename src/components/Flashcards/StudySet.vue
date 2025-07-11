@@ -11,18 +11,17 @@
         </div>
         <div class="cards-section">
             <div class="cards-section-row">
-                <h2>Remember</h2>
                 <Flashcard ref="currentFlashcardObject" v-if="studyCard !== null" class="main-flashcard"
                     :flashcard="studyCard" @reveal="reveal" @hide="updateCards" />
             </div>
-            <div class="cards-section-row">
+            <!-- <div class="cards-section-row">
                 <h2>All cards</h2>
                 <div v-if="flashcards.length > 0" class="flashcards-container"
                     style="overflow-y: scroll; height:400px;">
                     <Flashcard v-for="(flashcard, index) in flashcards" :key="index" :flashcard="flashcard"
                         @reveal="reveal" @hide="updateCards" />
                 </div>
-            </div>
+            </div> -->
         </div>
     </div>
 </template>
@@ -144,6 +143,10 @@ const downloadSet = () => {
     window.URL.revokeObjectURL(url);
 };
 
+const point = (what: string) => {
+    currentFlashcardObject.value.point(what);
+}
+
 // Initialize scheduler on mount
 onMounted(() => {
     if (props.flashcards && props.flashcards.length > 0) {
@@ -156,7 +159,8 @@ onMounted(() => {
 // Expose methods to parent component
 defineExpose({
     revealCurrent,
-    hideCurrent
+    hideCurrent,
+    point
 });
 </script>
 

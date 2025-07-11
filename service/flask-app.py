@@ -125,42 +125,50 @@ gesture_commands = {
     'show': {
         "condition": lambda x, y, z: gesture('Open_Palm', x, y, z),
         "delay": None,
-        "allow more": False
+        "allow more": False,
+        "allow during pointing": True,
     },
     'hide': {
         "condition": lambda x, y, z: gesture('Closed_Fist', x, y, z),
         "delay": None,
-        "allow more": False
+        "allow more": False,
+        "allow during pointing": True,
     },
     'forgot': {
         "condition": lambda x, y, z: gesture('Thumb_Down', x, y, z),
         "delay": None,
-        "allow more": False
+        "allow more": False,
+        "allow during pointing": False,
     },
     'bad': {
         "condition": lambda x, y, z: count_fingers(2, x, y, z),
         "delay": None,
-        "allow more": False
+        "allow more": False,
+        "allow during pointing": False,
     },
     'not bad': {
         "condition": lambda x, y, z: count_fingers(3, x, y, z),
         "delay": None,
-        "allow more": False
+        "allow more": False,
+        "allow during pointing": False,
     },
     'ok': {
         "condition": lambda x, y, z: gesture('Thumb_Up', x, y, z),
         "delay": None,
-        "allow more": False
+        "allow more": False,
+        "allow during pointing": False,
     },
     'next page': {
         "condition": lambda x, y, z: gesture('Pointing_Up', x, y, z) and index_pos(x,y,z).get('x', 1) < 0.45,
         "delay": 1,
-        "allow more": True
+        "allow more": True,
+        "allow during pointing": False,
     },
     'previous page': {
         "condition": lambda x, y, z: gesture('Pointing_Up', x, y, z) and index_pos(x,y,z).get('x', 0) > 0.55,
         "delay": 1,
-        "allow more": True
+        "allow more": True,
+        "allow during pointing": False,
     },
 }
 #---
@@ -205,6 +213,9 @@ def send_commands_via_gestures():
             for command, options in gesture_commands.items():
                 condition = options['condition']
                 allow_more = options.get('allow more', False)
+                allow_during_pointing = options.get('allow during pointing', False)
+                if not allow_during_pointing and pointing_with_finger:
+                    continue
                 if not allow_more and command == last_sent_command:
                     continue
                 if last_sent_command_ts is not None and options['delay'] is not None:
@@ -237,12 +248,15 @@ def send_commands_via_gestures():
                         pointing_with_finger = 'not bad'
                     elif angle >= -110:
                         pointing_with_finger = 'ok'
-                else:
-                    pointing_with_finger = None
+                    print(pointing_with_finger)
+                    break
+            else:
+                pointing_with_finger = None
                 
-                if pointing_with_finger != last_pointing_with_finger:
-                    last_pointing_with_finger = pointing_with_finger
-                    send_notification(True, pointing_with_finger)
+            if pointing_with_finger != last_pointing_with_finger:
+                print('Sending pointing notification')
+                last_pointing_with_finger = pointing_with_finger
+                send_notification(True, pointing_with_finger)
 
             if cv2.waitKey(5) & 0xFF == 27:
                 break

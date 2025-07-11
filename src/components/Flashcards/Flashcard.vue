@@ -10,37 +10,45 @@
             </button>
         </div>
         <div v-else class="buttons-container" :class="{ 'hiding': isHiding }">
-            <button class="revealed-button" :class="{ 'pressed': pressedButton === 'hide' }"
+            <button class="revealed-button"
+                :class="{ 'pressed': pressedButton === 'hide', 'pointed': pointedButton === 'hide' }"
                 style="border-radius: 7px 0px 0px 7px;" @click="() => hide(false)">Hide</button>
-            <button class="revealed-button" :class="{ 'pressed': pressedButton === 'forgot' }"
+            <button class="revealed-button"
+                :class="{ 'pressed': pressedButton === 'forgot', 'pointed': pointedButton === 'forgot' }"
                 @click="forgot">Forgot</button>
-            <button class="revealed-button" :class="{ 'pressed': pressedButton === 'bad' }" @click="bad">Bad</button>
-            <button class="revealed-button" :class="{ 'pressed': pressedButton === 'fine' }"
+            <button class="revealed-button"
+                :class="{ 'pressed': pressedButton === 'bad', 'pointed': pointedButton === 'bad' }"
+                @click="bad">Bad</button>
+            <button class="revealed-button"
+                :class="{ 'pressed': pressedButton === 'fine', 'pointed': pointedButton === 'fine' }"
                 @click="notBad">Fine</button>
-            <button class="revealed-button" :class="{ 'pressed': pressedButton === 'ok' }"
+            <button class="revealed-button"
+                :class="{ 'pressed': pressedButton === 'ok', 'pointed': pointedButton === 'ok' }"
                 style="border-radius: 0px 7px 7px 0px; border-width: 1px 1px 1px 1px;" @click="ok">Ok</button>
         </div>
     </div>
 </template>
+
 <script lang="ts">
 export default {
     emits: ['reveal', 'hide'],
     props: ['flashcard'],
-    expose: ['isRevealed', 'reveal', 'hide', 'forgot', 'bad', 'notBad', 'ok'],
+    expose: ['isRevealed', 'reveal', 'hide', 'forgot', 'bad', 'notBad', 'ok', 'point'],
     data() {
         return {
             revealed: false,
             isHiding: false,
-            pressedButton: null
+            pressedButton: null,
+            pointedButton: null, // Fixed typo: was 'pointeButton'
         }
     },
     computed: {
         flashcardSize() {
-            if (this.aliases && this.aliases.length > 0) return '90%'
+            if (this.flashcard.alias && this.flashcard.alias.length > 0) return '90%'
             return '100%'
         },
         flashcardsBorders() {
-            if (this.aliases && this.aliases.length > 0) return '0px 3px 3px 0px'
+            if (this.flashcard.alias && this.flashcard.alias.length > 0) return '0px 3px 3px 0px'
             return '3px'
         }
     },
@@ -62,6 +70,7 @@ export default {
                 this.revealed = false
                 this.isHiding = false
                 this.pressedButton = null
+                this.pointedButton = null // Clear pointed button when hiding
                 this.flashcard.reviewedAt = new Date()
                 this.$emit('hide', {
                     flashcard: this.flashcard,
@@ -84,10 +93,15 @@ export default {
         ok() {
             this.pressedButton = 'ok'
             this.hide(true)
+        },
+        point(what: string) {
+            if (what == 'not bad') what = 'fine';
+            this.pointedButton = what;
         }
     },
 }
 </script>
+
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
 
@@ -110,6 +124,7 @@ export default {
     transition: all 0.3s ease-in-out;
     transform: scale(1);
     opacity: 1;
+    display: flex;
 }
 
 .buttons-container.hiding {
@@ -162,5 +177,11 @@ export default {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     z-index: 10;
     position: relative;
+}
+
+.pointed {
+    border-color: rgb(255, 0, 0) !important;
+    border-width: 3px !important;
+    transition: all 0.2s ease;
 }
 </style>

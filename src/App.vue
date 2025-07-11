@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import StudySet from './components/Flashcards/StudySet.vue'
 import PDFPreview from './components/PDFPreview.vue'
 import FileParser from './components/FileParser.vue'
@@ -107,12 +107,19 @@ function commandRecognized(command: string) {
     }
 
     if (command == 'point') {
-        gestureRecognizer.enablePointing();
+        gestureRecognizer.value.enablePointing();
     } else if (command == 'stop point' || command == 'that') {
-        gestureRecognizer.disablePointing();
-        commandRecognized(gestureRecognizer.currentPointing);
+        gestureRecognizer.value.disablePointing();
+        commandRecognized(gestureRecognizer.value.currentPointing);
     }
 }
+
+function highlightPointing(command: string) {
+    console.log('Passing over: ' + command);
+    studySetComponent.value.point(command);
+}
+
+const isPointing = computed(() => gestureRecognizer.value?.pointing || false)
 
 onMounted(() => {
     window.addEventListener('scroll', handleScroll)
@@ -141,20 +148,21 @@ onUnmounted(() => {
             <div class="navbar-buttons">
                 <button class="nav-btn">PDF</button>
                 <button class="nav-btn">Studysets</button>
-                <GestureRecognizer ref="gestureRecognizer" class=" nav-btn" @command-recognized="commandRecognized" />
+                <GestureRecognizer ref="gestureRecognizer" class=" nav-btn" @command-recognized="commandRecognized"
+                    @pointing-changed="highlightPointing" />
                 <VoiceRecognizer class="nav-btn" @command-recognized="commandRecognized" />
             </div>
         </nav>
 
-        <div class="content-wrapper">
-            <div class="row">
-                <div class="pdf-section column">
+        <div class="content-wrapper" :class="{ 'pointing': isPointing }">
+            <div class=" row">
+                <div class="pdf-section column"><!--:class="{ 'pointing-border': isPointing }">-->
                     <PDFUploader @file-selected="addToCache" />
                     <PDFPreview v-if="studySet?.resources?.length" ref="PDF" :pageToShow="pageToShow"
                         :pdf-url="pdfCache[studySet.resources[0].trim()]" />
                 </div>
 
-                <div class="flashcards-section column">
+                <div class="flashcards-section column" :class="{ 'pointing-border': isPointing }">
                     <FileParser v-if="!studySet" @setUploaded="loadStudySet" />
                     <StudySet ref="studySetComponent" v-else @reveal="showPage" :flashcards="studySet.flashcards"
                         :title="studySet.title" :resources="studySet.resources" />
@@ -165,6 +173,13 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.pointing-border {
+    border: 5px solid rgb(255, 0, 0) !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.3) !important;
+}
+
 .app-container {
     min-height: 100vh;
     width: 100vw;
@@ -321,6 +336,7 @@ onUnmounted(() => {
     flex-direction: column;
     border-radius: 0;
     overflow: auto;
+    transition: all 0.3s ease;
 }
 
 .pdf-section {

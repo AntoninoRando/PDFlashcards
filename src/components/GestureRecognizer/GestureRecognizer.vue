@@ -11,12 +11,15 @@ import axios from 'axios';
 
 const emit = defineEmits<{
     'command-recognized': [command: string];
+    'pointing-changed': [command: string];
 }>();
 
 const on = ref(false);
 const pointing = ref(false);
 const currentPointing = ref<string | null>(null);
 const socket = ref<Socket | null>(null);
+
+const pointingTimeout = 10000;
 
 onMounted(() => {
     socket.value = io('http://localhost:5001');
@@ -27,6 +30,7 @@ onMounted(() => {
         if (data.isPointing) {
             if (!pointing.value) return;
             currentPointing.value = data.command;
+            emit('pointing-changed', currentPointing.value);
         } else {
             emit('command-recognized', data.command as string);
         }
@@ -47,12 +51,19 @@ const toggle = async () => {
     }
 };
 
-const enablePointing = () => { pointing.value = true; };
+const enablePointing = () => {
+    pointing.value = true;
+    setTimeout(() => {
+        console.log('Pointing mode expired');
+        pointing.value = false;
+    }, pointingTimeout);
+};
 const disablePointing = () => { pointing.value = false; };
 
 defineExpose({
     enablePointing,
     disablePointing,
-    currentPointing
+    currentPointing,
+    pointing
 });
 </script>
