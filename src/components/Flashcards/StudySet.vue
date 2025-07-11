@@ -1,8 +1,3 @@
-<script setup lang="ts">
-import FlashcardsScheduler from '@/flashcardsScheduler';
-import Flashcard from './Flashcard.vue';
-</script>
-
 <template>
     <div class="all-container">
         <div class="header-section">
@@ -32,113 +27,137 @@ import Flashcard from './Flashcard.vue';
     </div>
 </template>
 
-<script lang="ts">
-export default {
-    emits: ['reveal', 'hide'],
-    props: ['title', 'flashcards', 'resources'],
-    expose: ['revealCurrent', 'hideCurrent'],
-    data() {
-        return {
-            scheduler: new FlashcardsScheduler(),
-            studyCard: null
-        }
-    },
-    methods: {
-        revealCurrent() {
-            this.$refs.currentFlashcardObject.reveal()
-            //this.reveal(this.studyCard)
-        },
-        hideCurrent(recallType: string) {
-            if (!this.$refs.currentFlashcardObject.isRevealed()) {
-                return;
-            }
-            
-            if (recallType == 'hide') {
-                this.$refs.currentFlashcardObject.hide()
-            } else if (recallType == 'forgot') {
-                this.$refs.currentFlashcardObject.forgot()
-            } else if (recallType == 'bad') {
-                this.$refs.currentFlashcardObject.bad()
-            } else if (recallType == 'not bad') {
-                this.$refs.currentFlashcardObject.notBad()
-            } else if (recallType == 'ok') {
-                this.$refs.currentFlashcardObject.ok()
-            } 
-        },
-        reveal(flashcard: any) {
-            this.$emit('reveal', flashcard)
-        },
-        updateCards(flashcard: any) {
-            if (!flashcard) return
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import FlashcardsScheduler from '@/flashcardsScheduler';
+import Flashcard from './Flashcard.vue';
 
-            const n = this.flashcards.filter((f: any) => f !== undefined).length
-            if (n == 0) {
-                console.log("No cards to update")
-                return
-            }
-
-            console.log(`Update cards; current cards: ${n}`)
-            this.scheduler.resetCards()
-            this.scheduler.addMoreFlashcards(this.flashcards)
-            this.scheduler.sortCards()
-            this.studyCard = this.scheduler.flashcards[0]
-            this.$emit('hide', flashcard)
-        },
-        downloadSet() {
-            if (!this.flashcards || this.flashcards.length === 0) {
-                alert('No flashcards to download!');
-                return;
-            }
-
-            // Format flashcards data as text
-            let content = `[Title]\n${this.title}\n\n`;
-
-            content += `[Resources]\n`;
-            this.resources.forEach((resource: string) => {
-                content += `${resource}\n`
-            });
-            content += '\n';
-
-            content += `[Cards]\n`;
-            this.flashcards.forEach((card: any, index: number) => {
-                content += `${card.frontText} .. ${card.pageRef}\n\t\\reviewedAt ${card.reviewedAt}\n`;
-                if (card.alias) {
-                    card.alias.forEach((alias: string) => {
-                        content += `\t\\alias ${alias}\n`
-                    })
-                }
-                if (card.tag) {
-                    card.tag.forEach((tag: string) => {
-                        content += `\t\\tag ${tag}\n`
-                    })
-                }
-            });
-
-            // Create and download the file
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-
-            const filename = `${this.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_flashcards.txt`;
-            link.href = url;
-            link.download = filename;
-
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        }
-    },
-    created() {
-        // Initialize scheduler with flashcards first
-        if (this.flashcards && this.flashcards.length > 0) {
-            this.scheduler.addMoreFlashcards(this.flashcards)
-            this.scheduler.sortCards()
-            // Now select the study card from the sorted scheduler results
-            this.studyCard = this.scheduler.flashcards[0]
-        }
-    }
+// Define props
+interface Props {
+    title: string;
+    flashcards: any[];
+    resources: string[];
 }
+
+const props = defineProps<Props>();
+
+// Define emits
+const emit = defineEmits<{
+    reveal: [flashcard: any];
+    hide: [flashcard: any];
+}>();
+
+// Reactive data
+const scheduler = ref(new FlashcardsScheduler());
+const studyCard = ref<any>(null);
+const currentFlashcardObject = ref<InstanceType<typeof Flashcard> | null>(null);
+
+// Methods
+const revealCurrent = () => {
+    currentFlashcardObject.value?.reveal();
+};
+
+const hideCurrent = (recallType: string) => {
+    if (!currentFlashcardObject.value?.isRevealed()) {
+        return;
+    }
+
+    if (recallType === 'hide') {
+        currentFlashcardObject.value.hide();
+    } else if (recallType === 'forgot') {
+        currentFlashcardObject.value.forgot();
+    } else if (recallType === 'bad') {
+        currentFlashcardObject.value.bad();
+    } else if (recallType === 'not bad') {
+        currentFlashcardObject.value.notBad();
+    } else if (recallType === 'ok') {
+        currentFlashcardObject.value.ok();
+    }
+};
+
+const reveal = (flashcard: any) => {
+    emit('reveal', flashcard);
+};
+
+const updateCards = (flashcardObj: any) => {
+    console.log(JSON.stringify(flashcardObj));
+    const { flashcard, hiding } = flashcardObj;
+
+    if (!flashcard || hiding) return;
+
+    const n = props.flashcards.filter((f: any) => f !== undefined).length;
+    if (n === 0) {
+        console.log("No cards to update");
+        return;
+    }
+
+    console.log(`Update cards; current cards: ${n}`);
+    scheduler.value.resetCards();
+    scheduler.value.addMoreFlashcards(props.flashcards);
+    scheduler.value.sortCards();
+    studyCard.value = scheduler.value.flashcards[0];
+    emit('hide', flashcard);
+};
+
+const downloadSet = () => {
+    if (!props.flashcards || props.flashcards.length === 0) {
+        alert('No flashcards to download!');
+        return;
+    }
+
+    // Format flashcards data as text
+    let content = `[Title]\n${props.title}\n\n`;
+
+    content += `[Resources]\n`;
+    props.resources.forEach((resource: string) => {
+        content += `${resource}\n`;
+    });
+    content += '\n';
+
+    content += `[Cards]\n`;
+    props.flashcards.forEach((card: any, index: number) => {
+        content += `${card.frontText} .. ${card.pageRef}\n\t\\reviewedAt ${card.reviewedAt}\n`;
+        if (card.alias) {
+            card.alias.forEach((alias: string) => {
+                content += `\t\\alias ${alias}\n`;
+            });
+        }
+        if (card.tag) {
+            card.tag.forEach((tag: string) => {
+                content += `\t\\tag ${tag}\n`;
+            });
+        }
+    });
+
+    // Create and download the file
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    const filename = `${props.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_flashcards.txt`;
+    link.href = url;
+    link.download = filename;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+};
+
+// Initialize scheduler on mount
+onMounted(() => {
+    if (props.flashcards && props.flashcards.length > 0) {
+        scheduler.value.addMoreFlashcards(props.flashcards);
+        scheduler.value.sortCards();
+        studyCard.value = scheduler.value.flashcards[0];
+    }
+});
+
+// Expose methods to parent component
+defineExpose({
+    revealCurrent,
+    hideCurrent
+});
 </script>
 
 <style scoped>

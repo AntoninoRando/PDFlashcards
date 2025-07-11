@@ -36,6 +36,7 @@ const mousePosition = ref({ x: 0, y: 0 })
 
 // Refs
 const studySetComponent = ref(null)
+const gestureRecognizer = ref(null)
 
 // Methods
 function showPage(flashcard: Flashcard | null) {
@@ -104,6 +105,13 @@ function commandRecognized(command: string) {
     } else if (command == 'previous page') {
         pageToShow.value = pageToShow.value - 1
     }
+
+    if (command == 'point') {
+        gestureRecognizer.enablePointing();
+    } else if (command == 'stop point' || command == 'that') {
+        gestureRecognizer.disablePointing();
+        commandRecognized(gestureRecognizer.currentPointing);
+    }
 }
 
 onMounted(() => {
@@ -133,8 +141,8 @@ onUnmounted(() => {
             <div class="navbar-buttons">
                 <button class="nav-btn">PDF</button>
                 <button class="nav-btn">Studysets</button>
-                <GestureRecognizer class="nav-btn" @command-recognized="commandRecognized" />
-                <VoiceRecognizer class="nav-btn"  @command-recognized="commandRecognized" />
+                <GestureRecognizer ref="gestureRecognizer" class=" nav-btn" @command-recognized="commandRecognized" />
+                <VoiceRecognizer class="nav-btn" @command-recognized="commandRecognized" />
             </div>
         </nav>
 

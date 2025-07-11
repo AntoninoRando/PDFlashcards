@@ -23,16 +23,22 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 def handle_connect():
     print('Client connected')
 
-def send_notification(data):
+def send_notification(isPointing: bool, command: str):
     # Call this function when your event occurs
-    socketio.emit('notification', data)
+    socketio.emit('notification', {
+        'isPointing': isPointing,
+        'command': command
+    })
 
 
 # sanity check route
 @app.route('/ping', methods=['GET'])
 def ping_pong():
-    send_notification('pong with websocket!')
     return jsonify('pong!')
+
+@app.route('/whatispointing', methods=['GET'])
+def what_is_pointing():
+    return jsonify(pointing_with_finger)
 
 #---
 def count_fingers(tgt, image_rgb, detection_result, recognition_result) -> bool:
@@ -52,12 +58,12 @@ def gesture(tgt, image_rgb, detection_result, recognition_result) -> bool:
 
 def index_pos(image_rgb, detection_result, recognition_result):
     for hand in detection_result.hand_landmarks:
-        index_finger_tip = hand[8]
-        print(index_finger_tip)
+        index_finger_base = hand[5]
+        print(index_finger_base)
         return {
-            'x': index_finger_tip.x, 
-            'y': index_finger_tip.y,
-            'z': index_finger_tip.z
+            'x': index_finger_base.x, 
+            'y': index_finger_base.y,
+            'z': index_finger_base.z
         }
     return {}
 
@@ -109,6 +115,7 @@ gesture_commands = {
 import mediapipe
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+import math
 base_options = python.BaseOptions(model_asset_path='hand_landmarker.task')
 options = vision.HandLandmarkerOptions(base_options=base_options,
                                        num_hands=2)
@@ -120,9 +127,11 @@ recognizer = vision.GestureRecognizer.create_from_options(options_gst)
 
 last_sent_command = None
 last_sent_command_ts = None
+pointing_with_finger = None
+last_pointing_with_finger = None
 
 def send_commands_via_gestures():
-    global last_sent_command, last_sent_command_ts
+    global last_sent_command, last_sent_command_ts, pointing_with_finger, last_pointing_with_finger
     cap = cv2.VideoCapture(0)
     while True:
         success, image = cap.read()
@@ -150,8 +159,35 @@ def send_commands_via_gestures():
             if condition(image_rgb, detection_result, recognition_result):
                 last_sent_command = command
                 last_sent_command_ts = time.time()
-                socketio.emit('notification', command)
+                send_notification(False, command)
                 break
+        
+        if gesture('Pointing_Up',image_rgb, detection_result, recognition_result):
+            for hand in detection_result.hand_landmarks:
+                index_finger_tip = hand[8]
+                index_finger_base = hand[5]
+                # Calculate the angle between the tip and base of the index finger
+                dx = index_finger_tip.x - index_finger_base.x
+                dy = index_finger_tip.y - index_finger_base.y
+                angle = math.degrees(math.atan2(dy, dx))
+                print(f"Angle between index finger tip and base: {angle:.2f} degrees")
+                print('Pointing', end=' ')
+                if angle >= -70:
+                    pointing_with_finger = 'hide'
+                elif angle >= -80:
+                    pointing_with_finger = 'forgot'
+                elif angle >= -90:
+                    pointing_with_finger = 'bad'
+                elif angle >= -100:
+                    pointing_with_finger = 'not bad'
+                elif angle >= -110:
+                    pointing_with_finger = 'ok'
+            else:
+                pointing_with_finger = None
+            
+            if pointing_with_finger != last_pointing_with_finger:
+                last_pointing_with_finger = pointing_with_finger
+                send_notification(True, pointing_with_finger)
 
         if cv2.waitKey(5) & 0xFF == 27:
             break

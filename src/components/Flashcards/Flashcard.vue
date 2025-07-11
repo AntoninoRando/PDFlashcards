@@ -11,7 +11,7 @@
         </div>
         <div v-else class="buttons-container" :class="{ 'hiding': isHiding }">
             <button class="revealed-button" :class="{ 'pressed': pressedButton === 'hide' }"
-                style="border-radius: 7px 0px 0px 7px;" @click="hide">Hide</button>
+                style="border-radius: 7px 0px 0px 7px;" @click="() => hide(false)">Hide</button>
             <button class="revealed-button" :class="{ 'pressed': pressedButton === 'forgot' }"
                 @click="forgot">Forgot</button>
             <button class="revealed-button" :class="{ 'pressed': pressedButton === 'bad' }" @click="bad">Bad</button>
@@ -63,7 +63,10 @@ export default {
                 this.isHiding = false
                 this.pressedButton = null
                 this.flashcard.reviewedAt = new Date()
-                this.$emit('hide', this.flashcard)
+                this.$emit('hide', {
+                    flashcard: this.flashcard,
+                    hiding: !fromAction
+                })
             }, 300) // Match the CSS animation duration
         },
         forgot() {
