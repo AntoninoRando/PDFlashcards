@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import RecallOptions from "./RecallOptions.vue";
+import { createApp } from 'vue'
 </script>
 
 <template>
@@ -81,10 +82,20 @@ export default {
         console.log(`[Flashcard] Parsing subparts: ${JSON.stringify(this.flashcard)}`);
         this.flashcard.subParts.forEach((sub) => {
             if (!sub.vueComponent) return;
-            console.log(`Flashcard] Adding Vue component for subpart ${sub.name}`)
-            const cmp = sub.vueComponent;
-            cmp.configureFromJson(sub);
-            subpartsElement.appendChild(cmp);
+
+            console.log(`[Flashcard] Adding Vue component for subpart ${sub.name}`);
+
+            // Create a unique container for each component
+            const componentContainer = document.createElement('div');
+            componentContainer.className = 'subpart-container';
+            componentContainer.id = `subpart-${sub.name || Math.random().toString(36)}`;
+
+            // Append the container to the subparts element
+            subpartsElement.appendChild(componentContainer);
+
+            // Create and mount the Vue app to the individual container
+            const app = createApp(sub.vueComponent, { config: sub });
+            const componentInstance = app.mount(componentContainer);
         });
     },
 };

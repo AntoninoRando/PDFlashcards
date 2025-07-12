@@ -7,7 +7,6 @@ import PDFUploader from './components/PDFUploader.vue'
 import GestureRecognizer from './components/GestureRecognizer/GestureRecognizer.vue'
 import VoiceRecognizer from './components/VoiceRecognizer/VoiceRecognizer.vue'
 import { IStudySet } from './FlashcardParser/FlashcardsParser'
-import { IPageRef } from './commands/allCommands/PageRef'
 
 // Define types
 interface Flashcard {

@@ -3,7 +3,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+
+interface Props {
+    config: any;
+}
+const props = defineProps<Props>();
 
 const what = ref<string>('');
 
@@ -11,9 +16,10 @@ const configureFromJson = (settings: any) => {
     what.value = settings.what || ''
 }
 
-defineExpose({
-    configureFromJson
+onMounted(() => {
+    configureFromJson(props.config)
 });
+
 </script>
 
 <style scoped>
