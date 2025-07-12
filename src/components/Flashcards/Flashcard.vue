@@ -1,109 +1,85 @@
+<script setup lang="ts">
+import RecallOptions from "./RecallOptions.vue";
+</script>
+
 <template>
     <div class="flashcard">
         <div v-if="!revealed" class="card-container">
-            <div v-if="flashcard.alias" class="aliases">
-                //a
-            </div>
+            <div v-if="flashcard.alias" class="aliases">//a</div>
             <button @click="reveal" class="flashcard-button"
                 :style="`width: ${flashcardSize}; border-radius: ${flashcardsBorders};`">
                 {{ flashcard.frontText }}
             </button>
         </div>
-        <div v-else class="buttons-container" :class="{ 'hiding': isHiding }">
-            <button class="revealed-button"
-                :class="{ 'pressed': pressedButton === 'hide', 'pointed': pointedButton === 'hide' }"
-                style="border-radius: 7px 0px 0px 7px;" @click="() => hide(false)">Hide</button>
-            <button class="revealed-button"
-                :class="{ 'pressed': pressedButton === 'forgot', 'pointed': pointedButton === 'forgot' }"
-                @click="forgot">Forgot</button>
-            <button class="revealed-button"
-                :class="{ 'pressed': pressedButton === 'bad', 'pointed': pointedButton === 'bad' }"
-                @click="bad">Bad</button>
-            <button class="revealed-button"
-                :class="{ 'pressed': pressedButton === 'fine', 'pointed': pointedButton === 'fine' }"
-                @click="notBad">Fine</button>
-            <button class="revealed-button"
-                :class="{ 'pressed': pressedButton === 'ok', 'pointed': pointedButton === 'ok' }"
-                style="border-radius: 0px 7px 7px 0px; border-width: 1px 1px 1px 1px;" @click="ok">Ok</button>
-        </div>
+        <RecallOptions v-else ref="recallOptions" class="buttons-container" :class="{ hiding: hidingRecallOptions }"
+            @optionSelected="option => hide(option !== 'hide')" />
     </div>
 </template>
 
 <script lang="ts">
 export default {
-    emits: ['reveal', 'hide'],
-    props: ['flashcard'],
-    expose: ['isRevealed', 'reveal', 'hide', 'forgot', 'bad', 'notBad', 'ok', 'point'],
+    emits: ["reveal", "hide"],
+    props: ["flashcard"],
+    expose: ["isRevealed", "reveal", "hide", "forgot", "bad", "notBad", "ok", "point"],
     data() {
         return {
             revealed: false,
-            isHiding: false,
-            pressedButton: null,
-            pointedButton: null, // Fixed typo: was 'pointeButton'
-        }
+            hidingRecallOptions: false,
+        };
     },
     computed: {
         flashcardSize() {
-            if (this.flashcard.alias && this.flashcard.alias.length > 0) return '90%'
-            return '100%'
+            if (this.flashcard.alias && this.flashcard.alias.length > 0) return "90%";
+            return "100%";
         },
         flashcardsBorders() {
-            if (this.flashcard.alias && this.flashcard.alias.length > 0) return '0px 3px 3px 0px'
-            return '3px'
-        }
+            if (this.flashcard.alias && this.flashcard.alias.length > 0)
+                return "0px 3px 3px 0px";
+            return "3px";
+        },
     },
     methods: {
         isRevealed() {
-            return this.revealed
+            return this.revealed;
         },
         reveal() {
-            this.revealed = true
-            this.$emit('reveal', this.flashcard)
+            this.revealed = true;
+            this.$emit("reveal", this.flashcard);
         },
         hide(fromAction = false) {
-            if (!fromAction) {
-                this.pressedButton = 'hide'
-            }
-            this.isHiding = true
+            this.hidingRecallOptions = true;
             // Wait for animation to complete before hiding
             setTimeout(() => {
-                this.revealed = false
-                this.isHiding = false
-                this.pressedButton = null
-                this.pointedButton = null // Clear pointed button when hiding
-                this.flashcard.reviewedAt = new Date()
-                this.$emit('hide', {
+                this.revealed = false;
+                this.hidingRecallOptions = false;
+                this.flashcard.reviewedAt = new Date();
+                this.$emit("hide", {
                     flashcard: this.flashcard,
-                    hiding: !fromAction
-                })
-            }, 300) // Match the CSS animation duration
+                    hiding: !fromAction,
+                });
+            }, 300); // Match the CSS animation duration
         },
         forgot() {
-            this.pressedButton = 'forgot'
-            this.hide(true)
+            this.$refs.recallOptions.chooseRecallOption('forgot');
         },
         bad() {
-            this.pressedButton = 'bad'
-            this.hide(true)
+            this.$refs.recallOptions.chooseRecallOption('bad');
         },
         notBad() {
-            this.pressedButton = 'fine'
-            this.hide(true)
+            this.$refs.recallOptions.chooseRecallOption('not bad');
         },
         ok() {
-            this.pressedButton = 'ok'
-            this.hide(true)
+            this.$refs.recallOptions.chooseRecallOption('ok');
         },
         point(what: string) {
-            if (what == 'not bad') what = 'fine';
-            this.pointedButton = what;
-        }
+            this.$refs.recallOptions.point(what);
+        },
     },
-}
+};
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
 
 .flashcard {
     width: 100%;
@@ -115,7 +91,7 @@ export default {
     height: 100%;
     width: 100%;
     flex-direction: row;
-    gap: 3px
+    gap: 3px;
 }
 
 .buttons-container {
@@ -170,7 +146,7 @@ export default {
 }
 
 .revealed-button.pressed {
-    background-color: #4CAF50;
+    background-color: #4caf50;
     color: white;
     border-color: #45a049;
     transform: scale(1.05);

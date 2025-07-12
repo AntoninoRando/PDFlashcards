@@ -1,6 +1,6 @@
-import { Header } from "./List/Header";
-import { PageCard } from "./List/PageCard";
-import { Remember } from "./List/Remember";
+import { Header } from "./allCommands/Header";
+import { PageCard } from "./allCommands/PageCard";
+import { Remember } from "./allCommands/Remember";
 
 export class CommandsFactory {
     static Make(commandNameOrShortcut: string, commandArgument: string | null) {
