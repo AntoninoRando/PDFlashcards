@@ -8,8 +8,9 @@ import RecallOptions from "./RecallOptions.vue";
             <div v-if="flashcard.alias" class="aliases">//a</div>
             <button @click="reveal" class="flashcard-button"
                 :style="`width: ${flashcardSize}; border-radius: ${flashcardsBorders};`">
-                {{ flashcard.frontText }}
+                {{ flashcard.text }}
             </button>
+            <div ref="subparts" id="subparts"></div>
         </div>
         <RecallOptions v-else ref="recallOptions" class="buttons-container" :class="{ hiding: hidingRecallOptions }"
             @optionSelected="option => hide(option !== 'hide')" />
@@ -74,6 +75,17 @@ export default {
         point(what: string) {
             this.$refs.recallOptions.point(what);
         },
+    },
+    mounted() {
+        const subpartsElement = document.getElementById('subparts')
+        console.log(`[Flashcard] Parsing subparts: ${JSON.stringify(this.flashcard)}`);
+        this.flashcard.subParts.forEach((sub) => {
+            if (!sub.vueComponent) return;
+            console.log(`Flashcard] Adding Vue component for subpart ${sub.name}`)
+            const cmp = sub.vueComponent;
+            cmp.configureFromJson(sub);
+            subpartsElement.appendChild(cmp);
+        });
     },
 };
 </script>

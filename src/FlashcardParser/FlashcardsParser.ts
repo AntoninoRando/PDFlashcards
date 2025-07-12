@@ -1,6 +1,6 @@
 import { CommandsFactory } from "@/commands/CommandsFactory";
 
-interface StudySet {
+export interface IStudySet {
   title: string;
   flashcards: any[];
   resources: string[];
@@ -21,7 +21,7 @@ const categories = {
   aliases: "[Aliases]",
 };
 
-export function parseContent(lines: string[]): StudySet | null {
+export function parseStudyset(lines: string[]): StudySet | null {
   const studySet: StudySet = {
     title: "",
     flashcards: [],
@@ -94,12 +94,20 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: StudySet): void {
       text = line;
     }
 
+    const now = new Date();
+    const randomHours = Math.floor(Math.random() * 24); // 0-23 hours
+    const randomMinutes = Math.floor(Math.random() * 60); // 0-59 minutes
+
     const card = {
       text: text,
       subParts: [],
+      reviewedAt: new Date(
+        now.getTime() - randomHours * 60 * 60 * 1000 - randomMinutes * 60 * 1000
+      ),
+      ease: 230,
     };
     if (command) {
-      card.subParts.push(command);
+      card.subParts.push({...command.toJson(), subParts: []});
     }
     studySet.flashcards.push(card);
   } else if (studySet.flashcards.length == 0) {
@@ -136,13 +144,7 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: StudySet): void {
       console.error(`[studySet] Unrecognized command at line: "${line}"`);
       return null;
     }
-
-    const commandElement = {
-      command: command,
-      subParts: [],
-    };
-
-    subParts.push(commandElement);
+    subParts.push({ ...command.toJson(), subParts: [] });
   }
 }
 

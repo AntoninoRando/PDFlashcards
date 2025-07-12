@@ -38,8 +38,7 @@ export default class FlashcardsScheduler {
     });
     if (n > 0) {
       console.log(`First flashcard: 
-          - frontText: ${this.flashcards[0].frontText};
-          - pageRef: ${this.flashcards[0].pageRef};
+          - frontText: ${this.flashcards[0].text};
           - reviewedAt: ${this.flashcards[0].reviewedAt}`);
     }
   }

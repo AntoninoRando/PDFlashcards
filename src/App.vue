@@ -6,30 +6,28 @@ import FileParser from './components/FileParser.vue'
 import PDFUploader from './components/PDFUploader.vue'
 import GestureRecognizer from './components/GestureRecognizer/GestureRecognizer.vue'
 import VoiceRecognizer from './components/VoiceRecognizer/VoiceRecognizer.vue'
+import { IStudySet } from './FlashcardParser/FlashcardsParser'
+import { IPageRef } from './commands/allCommands/PageRef'
 
 // Define types
 interface Flashcard {
-    frontText: string
-    pageRef: number
-    reviewedAt: Date
-    ease: number
-    [key: string]: any
+    frontText: string;
+    pageRef: number;
+    reviewedAt: Date;
+    ease: number;
+    subParts: any[];
+    [key: string]: any;
 }
 
-interface StudySetData {
-    title: string
-    resources: string[]
-    flashcards: Flashcard[]
-}
 
 interface FileUploadItem {
-    file: File
-    url: string
+    file: File;
+    url: string;
 }
 
 // Reactive data
 const pageToShow = ref<number>(1)
-const studySet = ref<StudySetData | null>(null)
+const studySet = ref<IStudySet | null>(null)
 const pdfCache = reactive<Record<string, string>>({})
 const isScrolled = ref<boolean>(false)
 const mousePosition = ref({ x: 0, y: 0 })
@@ -45,21 +43,26 @@ function showPage(flashcard: Flashcard | null) {
         return
     }
 
-    if (!flashcard.pageRef) {
+    let pageRefNum = null;
+    for (let component of (flashcard.subParts || [])) {
+        if (component.name == 'pageref') {
+            pageRefNum = component.ref;
+            break;
+        }
+    }
+
+    if (!pageRefNum) {
         console.error('Revealed card has no page')
         return
     }
 
-    pageToShow.value = flashcard.pageRef
+    pageToShow.value = pageRefNum
     console.log(`Showing page ${pageToShow.value}`)
 }
 
-function loadStudySet(newStudySet: StudySetData) {
+function loadStudySet(newStudySet: IStudySet) {
     studySet.value = newStudySet
-    console.info(`Loaded study set: 
-        - title: ${newStudySet.title}
-        - resources: ${newStudySet.resources}
-        - flashcards: ${newStudySet.flashcards.length}`)
+    console.info(`Loaded study set: ${JSON.stringify(newStudySet, null, 2)}`)
 }
 
 function addToCache(item: FileUploadItem) {

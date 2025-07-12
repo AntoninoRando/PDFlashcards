@@ -1,5 +1,5 @@
 import { Header } from "./allCommands/Header";
-import { PageCard } from "./allCommands/PageCard";
+import { PageRef } from "./allCommands/PageRef";
 import { Remember } from "./allCommands/Remember";
 
 export class CommandsFactory {
@@ -16,7 +16,7 @@ export class CommandsFactory {
         switch (commandNameOrShortcut) {
             case '..':
             case 'page':
-                return new PageCard(commandArgument);
+                return new PageRef(commandArgument);
             case '+':
             case 'remember':
                 return new Remember(commandArgument);

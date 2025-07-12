@@ -5,9 +5,9 @@
             <button @click="downloadSet" class="save-btn">
                 Save
             </button>
-            <button @click="downloadSet" class="change-btn">
+            <!-- <button @click="downloadSet" class="change-btn">
                 Change
-            </button>
+            </button> -->
         </div>
         <div class="cards-section">
             <div class="cards-section-row">

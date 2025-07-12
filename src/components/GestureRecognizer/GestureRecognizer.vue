@@ -1,5 +1,5 @@
 <template>
-    <button class="toggle-button" @click="toggle">
+    <button v-if="connected" class="toggle-button" @click="toggle">
         {{ on ? 'Disable Gestures' : 'Activate Gestures' }}
     </button>
 </template>
@@ -14,6 +14,7 @@ const emit = defineEmits<{
     'pointing-changed': [command: string];
 }>();
 
+const connected = ref<boolean>(false);
 const on = ref(false);
 const pointing = ref(false);
 const currentPointing = ref<string | null>(null);
@@ -22,19 +23,25 @@ const socket = ref<Socket | null>(null);
 const pointingTimeout = 10000;
 
 onMounted(() => {
-    socket.value = io('http://localhost:5001');
-    socket.value.on('notification', (data) => {
-        if (!on.value) return;
-        console.log('Received notification:', data);
-
-        if (data.isPointing) {
-            if (!pointing.value) return;
-            currentPointing.value = data.command;
-            emit('pointing-changed', currentPointing.value);
-        } else {
-            emit('command-recognized', data.command as string);
-        }
-    });
+    try {
+        socket.value = io('http://localhost:5001');
+        socket.value.on('notification', (data) => {
+            if (!on.value) return;
+            console.log('Received notification:', data);
+            
+            if (data.isPointing) {
+                if (!pointing.value) return;
+                currentPointing.value = data.command;
+                emit('pointing-changed', currentPointing.value);
+            } else {
+                emit('command-recognized', data.command as string);
+            }
+        });
+        connected.value = true;
+    } catch (error) {
+        console.error(error);
+        connected.value = false;
+    }
 });
 
 onUnmounted(() => {
