@@ -1,6 +1,8 @@
 import { Header } from "./allCommands/Header";
 import { PageRef } from "./allCommands/PageRef";
 import { Remember } from "./allCommands/Remember";
+import { Tag } from "./allCommands/Tag";
+import { AutoReveal } from "./allCommands/AutoReveal";
 
 export class CommandsFactory {
     static Make(commandNameOrShortcut: string, commandArgument: string | null) {
@@ -20,10 +22,15 @@ export class CommandsFactory {
             case '+':
             case 'remember':
                 return new Remember(commandArgument);
+            case '#':
+            case 'tag':
+                return new Tag(commandArgument || "");
+            case '@':
+            case 'auto_reveal':
+                return new AutoReveal();
             case 'h1':
             case 'example':
             case 'recap':
-            case 'tag':
                 return new Header(1);
         }
     }
