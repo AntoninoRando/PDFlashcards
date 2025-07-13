@@ -1,5 +1,62 @@
 <script setup lang="ts">
-import { parseStudyset } from '@/FlashcardParser/FlashcardsParser';
+import { ref } from 'vue'
+import { parseStudyset, IStudySet } from '@/FlashcardParser/FlashcardsParser'
+
+const emit = defineEmits<{
+  setUploaded: [studySet: IStudySet]
+}>()
+
+const fileContent = ref('')
+const resources = ref<string[]>([])
+const title = ref('')
+const flashcards = ref<any[]>([])
+const error = ref<string | null>(null)
+
+function handleFileUpload(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  error.value = null
+  fileContent.value = ''
+  flashcards.value = []
+  resources.value = []
+  title.value = ''
+
+  const reader = new FileReader()
+
+  reader.onload = (e) => {
+    try {
+      fileContent.value = e.target?.result as string
+      parseFileContent()
+    } catch (err: any) {
+      error.value = `Error reading file: ${err.message}`
+    }
+  }
+
+  reader.onerror = () => {
+    error.value = 'Failed to read the file'
+  }
+
+  reader.readAsText(file)
+}
+
+function parseFileContent() {
+  if (!fileContent.value) {
+    error.value = 'File content is empty'
+    return
+  }
+
+  const lines = fileContent.value.split('\n').filter((l) => l.trim() !== '')
+  console.log('Start studyset parsing')
+  const studyset = parseStudyset(lines)
+  if (studyset == null) {
+    console.error('Parse failed')
+  } else {
+    console.log('Parse succeded')
+    emit('setUploaded', studyset)
+  }
+}
 </script>
 
 <template>
@@ -12,64 +69,3 @@ import { parseStudyset } from '@/FlashcardParser/FlashcardsParser';
         </div>
     </div>
 </template>
-
-<script lang="ts">
-export default {
-    emits: ['setUploaded'],
-    data() {
-        return {
-            fileContent: '',
-            resources: [],
-            title: '',
-            flashcards: [],
-            error: null
-        };
-    },
-    methods: {
-        handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            this.error = null;
-            this.fileContent = '';
-            this.flashcards = [];
-            this.resources = [];
-            this.title = '';
-
-            const reader = new FileReader();
-
-            reader.onload = (e) => {
-                try {
-                    this.fileContent = e.target.result;
-                    this.parseFileContent();
-                } catch (err) {
-                    this.error = `Error reading file: ${err.message}`;
-                }
-            };
-
-            reader.onerror = () => {
-                this.error = 'Failed to read the file';
-            };
-
-            reader.readAsText(file);
-        },
-
-        parseFileContent() {
-            if (!this.fileContent) {
-                this.error = 'File content is empty';
-                return;
-            }
-
-            const lines = this.fileContent.split('\n').filter(l => l.trim() !== '');
-            console.log('Start studyset parsing')
-            const studyset = parseStudyset(lines);
-            if (studyset == null) {
-                console.error('Parse failed')
-            } else {
-                console.log('Parse succeded')
-                this.$emit('setUploaded', studyset);
-            }
-        },
-    }
-};
-</script>

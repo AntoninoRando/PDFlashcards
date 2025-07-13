@@ -36,170 +36,154 @@
     </div>
 </template>
 
-<script lang="ts">
-export default {
-    emits: ['file-selected', 'file-removed'],
-    data() {
-        return {
-            selectedFile: null as File | null,
-            pdfUrl: null as string | null,
-            isDragging: false,
-            errorMessage: null as string | null,
-            dragCounter: 0
-        }
-    },
-    methods: {
-        handleFileChange(event: Event) {
-            const target = event.target as HTMLInputElement;
-            const file = target.files?.[0];
-            if (file) {
-                this.validateAndProcessFile(file);
-            }
-            // Reset input value to allow selecting the same file again
-            target.value = '';
-        },
+<script setup lang="ts">
+import { ref, onBeforeUnmount } from 'vue'
 
-        handleDragOver(event: DragEvent) {
-            event.preventDefault();
-        },
+const emit = defineEmits<{
+  'file-selected': [{ file: File; url: string }]
+  'file-removed': []
+}>()
 
-        handleDragEnter(event: DragEvent) {
-            event.preventDefault();
-            this.dragCounter++;
-            this.isDragging = true;
-        },
+const selectedFile = ref<File | null>(null)
+const pdfUrl = ref<string | null>(null)
+const isDragging = ref(false)
+const errorMessage = ref<string | null>(null)
+const dragCounter = ref(0)
 
-        handleDragLeave(event: DragEvent) {
-            event.preventDefault();
-            this.dragCounter--;
-            if (this.dragCounter === 0) {
-                this.isDragging = false;
-            }
-        },
-
-        handleFileDrop(event: DragEvent) {
-            event.preventDefault();
-            this.isDragging = false;
-            this.dragCounter = 0;
-            
-            const files = event.dataTransfer?.files;
-            const file = files?.[0];
-            
-            if (file) {
-                this.validateAndProcessFile(file);
-            }
-        },
-
-        validateAndProcessFile(file: File) {
-            this.errorMessage = null;
-
-            // Validate file type
-            if (file.type !== 'application/pdf') {
-                this.errorMessage = 'Please upload a PDF file only.';
-                return;
-            }
-
-            // Validate file size (10MB limit)
-            const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-            // if (file.size > maxSize) {
-            //     this.errorMessage = 'File size exceeds 10MB limit. Please choose a smaller file.';
-            //     return;
-            // }
-
-            // Validate file name
-            if (!file.name || file.name.trim() === '') {
-                this.errorMessage = 'Invalid file name.';
-                return;
-            }
-
-            this.processFile(file);
-        },
-
-        processFile(file: File) {
-            try {
-                // Clean up previous file URL
-                if (this.pdfUrl) {
-                    URL.revokeObjectURL(this.pdfUrl);
-                }
-
-                this.selectedFile = file;
-                this.pdfUrl = URL.createObjectURL(file);
-
-                // Emit event with file data
-                this.$emit('file-selected', {
-                    file: file,
-                    url: this.pdfUrl
-                });
-
-                console.log(`PDF uploaded: ${file.name} (${this.formatFileSize(file.size)})`);
-            } catch (error) {
-                console.error('Error processing file:', error);
-                this.errorMessage = 'Error processing the file. Please try again.';
-            }
-        },
-
-        removeFile() {
-            try {
-                // Clean up object URL
-                if (this.pdfUrl) {
-                    URL.revokeObjectURL(this.pdfUrl);
-                }
-
-                // Reset state
-                this.selectedFile = null;
-                this.pdfUrl = null;
-                this.errorMessage = null;
-
-                // Emit removal event
-                this.$emit('file-removed');
-
-                console.log('PDF file removed');
-            } catch (error) {
-                console.error('Error removing file:', error);
-            }
-        },
-
-        downloadPdf() {
-            if (!this.pdfUrl || !this.selectedFile) {
-                this.errorMessage = 'No file available for download.';
-                return;
-            }
-
-            try {
-                const link = document.createElement('a');
-                link.href = this.pdfUrl;
-                link.download = this.selectedFile.name;
-                link.style.display = 'none';
-                
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-                console.log(`Downloaded: ${this.selectedFile.name}`);
-            } catch (error) {
-                console.error('Error downloading file:', error);
-                this.errorMessage = 'Error downloading the file. Please try again.';
-            }
-        },
-
-        formatFileSize(bytes: number): string {
-            if (bytes === 0) return '0 Bytes';
-
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-    },
-
-    beforeUnmount() {
-        // Clean up object URL to prevent memory leaks
-        if (this.pdfUrl) {
-            URL.revokeObjectURL(this.pdfUrl);
-        }
-    }
+function handleFileChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (file) {
+    validateAndProcessFile(file)
+  }
+  target.value = ''
 }
+
+function handleDragOver(event: DragEvent) {
+  event.preventDefault()
+}
+
+function handleDragEnter(event: DragEvent) {
+  event.preventDefault()
+  dragCounter.value++
+  isDragging.value = true
+}
+
+function handleDragLeave(event: DragEvent) {
+  event.preventDefault()
+  dragCounter.value--
+  if (dragCounter.value === 0) {
+    isDragging.value = false
+  }
+}
+
+function handleFileDrop(event: DragEvent) {
+  event.preventDefault()
+  isDragging.value = false
+  dragCounter.value = 0
+
+  const file = event.dataTransfer?.files?.[0]
+  if (file) {
+    validateAndProcessFile(file)
+  }
+}
+
+function validateAndProcessFile(file: File) {
+  errorMessage.value = null
+
+  if (file.type !== 'application/pdf') {
+    errorMessage.value = 'Please upload a PDF file only.'
+    return
+  }
+
+  const maxSize = 10 * 1024 * 1024
+  // Size validation commented out in original
+
+  if (!file.name || file.name.trim() === '') {
+    errorMessage.value = 'Invalid file name.'
+    return
+  }
+
+  processFile(file)
+}
+
+function processFile(file: File) {
+  try {
+    if (pdfUrl.value) {
+      URL.revokeObjectURL(pdfUrl.value)
+    }
+
+    selectedFile.value = file
+    pdfUrl.value = URL.createObjectURL(file)
+
+    emit('file-selected', {
+      file,
+      url: pdfUrl.value
+    })
+
+    console.log(`PDF uploaded: ${file.name} (${formatFileSize(file.size)})`)
+  } catch (error) {
+    console.error('Error processing file:', error)
+    errorMessage.value = 'Error processing the file. Please try again.'
+  }
+}
+
+function removeFile() {
+  try {
+    if (pdfUrl.value) {
+      URL.revokeObjectURL(pdfUrl.value)
+    }
+
+    selectedFile.value = null
+    pdfUrl.value = null
+    errorMessage.value = null
+
+    emit('file-removed')
+
+    console.log('PDF file removed')
+  } catch (error) {
+    console.error('Error removing file:', error)
+  }
+}
+
+function downloadPdf() {
+  if (!pdfUrl.value || !selectedFile.value) {
+    errorMessage.value = 'No file available for download.'
+    return
+  }
+
+  try {
+    const link = document.createElement('a')
+    link.href = pdfUrl.value
+    link.download = selectedFile.value.name
+    link.style.display = 'none'
+
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    console.log(`Downloaded: ${selectedFile.value.name}`)
+  } catch (error) {
+    console.error('Error downloading file:', error)
+    errorMessage.value = 'Error downloading the file. Please try again.'
+  }
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes'
+
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+onBeforeUnmount(() => {
+  if (pdfUrl.value) {
+    URL.revokeObjectURL(pdfUrl.value)
+  }
+})
 </script>
 
 <style scoped>

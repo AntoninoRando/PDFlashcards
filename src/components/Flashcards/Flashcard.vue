@@ -1,6 +1,92 @@
 <script setup lang="ts">
-import RecallOptions from "./RecallOptions.vue";
-import { createApp } from 'vue'
+import RecallOptions from './RecallOptions.vue'
+import { createApp, ref, computed, onMounted } from 'vue'
+
+const emit = defineEmits<{
+  reveal: [flashcard: any]
+  hide: [payload: { flashcard: any; hiding: boolean }]
+}>()
+
+const props = defineProps<{
+  flashcard: any
+}>()
+
+const revealed = ref(false)
+const hidingRecallOptions = ref(false)
+
+const flashcardSize = computed(() => {
+  if (props.flashcard.alias && props.flashcard.alias.length > 0) return '90%'
+  return '100%'
+})
+
+const flashcardsBorders = computed(() => {
+  if (props.flashcard.alias && props.flashcard.alias.length > 0)
+    return '0px 3px 3px 0px'
+  return '3px'
+})
+
+const recallOptions = ref<InstanceType<typeof RecallOptions> | null>(null)
+const subparts = ref<HTMLElement | null>(null)
+
+function isRevealed() {
+  return revealed.value
+}
+
+function reveal() {
+  revealed.value = true
+  emit('reveal', props.flashcard)
+}
+
+function hide(fromAction = false) {
+  hidingRecallOptions.value = true
+  setTimeout(() => {
+    revealed.value = false
+    hidingRecallOptions.value = false
+    props.flashcard.reviewedAt = new Date()
+    emit('hide', { flashcard: props.flashcard, hiding: !fromAction })
+  }, 300)
+}
+
+function forgot() {
+  recallOptions.value?.chooseRecallOption('forgot')
+}
+
+function bad() {
+  recallOptions.value?.chooseRecallOption('bad')
+}
+
+function notBad() {
+  recallOptions.value?.chooseRecallOption('not bad')
+}
+
+function ok() {
+  recallOptions.value?.chooseRecallOption('ok')
+}
+
+function point(what: string) {
+  recallOptions.value?.point(what)
+}
+
+onMounted(() => {
+  const subpartsElement = subparts.value as HTMLElement
+  console.log(`[Flashcard] Parsing subparts: ${JSON.stringify(props.flashcard)}`)
+  props.flashcard.subParts.forEach((sub: any) => {
+    if (!sub.vueComponent) return
+
+    console.log(`[Flashcard] Adding Vue component for subpart ${sub.name}`)
+
+    const componentContainer = document.createElement('div')
+    componentContainer.className = 'subpart-container'
+    componentContainer.id = `subpart-${sub.name || Math.random().toString(36)}`
+
+    subpartsElement.appendChild(componentContainer)
+
+    const app = createApp(sub.vueComponent, { config: sub })
+    app.mount(componentContainer)
+  })
+})
+
+defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point })
 </script>
 
 <template>
@@ -18,88 +104,6 @@ import { createApp } from 'vue'
     </div>
 </template>
 
-<script lang="ts">
-export default {
-    emits: ["reveal", "hide"],
-    props: ["flashcard"],
-    expose: ["isRevealed", "reveal", "hide", "forgot", "bad", "notBad", "ok", "point"],
-    data() {
-        return {
-            revealed: false,
-            hidingRecallOptions: false,
-        };
-    },
-    computed: {
-        flashcardSize() {
-            if (this.flashcard.alias && this.flashcard.alias.length > 0) return "90%";
-            return "100%";
-        },
-        flashcardsBorders() {
-            if (this.flashcard.alias && this.flashcard.alias.length > 0)
-                return "0px 3px 3px 0px";
-            return "3px";
-        },
-    },
-    methods: {
-        isRevealed() {
-            return this.revealed;
-        },
-        reveal() {
-            this.revealed = true;
-            this.$emit("reveal", this.flashcard);
-        },
-        hide(fromAction = false) {
-            this.hidingRecallOptions = true;
-            // Wait for animation to complete before hiding
-            setTimeout(() => {
-                this.revealed = false;
-                this.hidingRecallOptions = false;
-                this.flashcard.reviewedAt = new Date();
-                this.$emit("hide", {
-                    flashcard: this.flashcard,
-                    hiding: !fromAction,
-                });
-            }, 300); // Match the CSS animation duration
-        },
-        forgot() {
-            this.$refs.recallOptions.chooseRecallOption('forgot');
-        },
-        bad() {
-            this.$refs.recallOptions.chooseRecallOption('bad');
-        },
-        notBad() {
-            this.$refs.recallOptions.chooseRecallOption('not bad');
-        },
-        ok() {
-            this.$refs.recallOptions.chooseRecallOption('ok');
-        },
-        point(what: string) {
-            this.$refs.recallOptions.point(what);
-        },
-    },
-    mounted() {
-        const subpartsElement = document.getElementById('subparts')
-        console.log(`[Flashcard] Parsing subparts: ${JSON.stringify(this.flashcard)}`);
-        this.flashcard.subParts.forEach((sub) => {
-            if (!sub.vueComponent) return;
-
-            console.log(`[Flashcard] Adding Vue component for subpart ${sub.name}`);
-
-            // Create a unique container for each component
-            const componentContainer = document.createElement('div');
-            componentContainer.className = 'subpart-container';
-            componentContainer.id = `subpart-${sub.name || Math.random().toString(36)}`;
-
-            // Append the container to the subparts element
-            subpartsElement.appendChild(componentContainer);
-
-            // Create and mount the Vue app to the individual container
-            const app = createApp(sub.vueComponent, { config: sub });
-            const componentInstance = app.mount(componentContainer);
-        });
-    },
-};
-</script>
 
 <style scoped>
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
