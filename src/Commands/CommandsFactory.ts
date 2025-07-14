@@ -31,7 +31,7 @@ export class CommandsFactory {
             case '^':
                 return new Header(commandArgument || 1);
             default:
-                return null;
+                return new PageRef(commandArgument || '');
         }
     }
 }

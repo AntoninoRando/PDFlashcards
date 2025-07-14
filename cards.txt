@@ -47,9 +47,8 @@ Protection against Exploit vs. against Threat vs. against Vulnerability .. 83
 
 
 
-Buffer Overflow ^ 1
-	\recap
-		.. 142-144
+Buffer Overflow (\recap(.. 142-144))
+	^ 1
 The essence of the problem .. 91
 	+ Solution to the problem
 		.. 92
@@ -66,68 +65,68 @@ strcopy function .. 104
 	+ What it does
 	+ Why it's bad
 	+ Alternative
-		\page 104, 110, 157
+		.. 104, 110, 157
 Advantages of a programming language with "security" provisions .. 115
 Format string attack .. 153, 126-128
 	+ What originates this problem
-		\page 147-149, 159
+		.. 147-149, 159
 	\example A code vulnerable to a format string attack and its correct version
-		\page 150-152
+		.. 150-152
 	\example A case study: fingered 1.4.3
-		\page 160-165
+		.. 160-165
 	+ definition
-		\page 154
+		.. 154
 	+ Which C functions uses string format
-		\page 156, 158
+		.. 156, 158
 	+ How to prevent it
-		\page 166
+		.. 166
 Dynamic countermeasures to buffer overflow .. 129-134, 139-141
 	+ The problems with each countermeasure
-	\page 132
+	.. 132
 Dangerous C system calls .. 135
 	+ Solution
-		\page 136-138
+		.. 136-138
 Code injection .. 167
 	+ Defenses
-		\page 168, 177-185
+		.. 168, 177-185
 	\example
-		\page 170-175
+		.. 170-175
 	+ Shell metachars that can cause a code injection
-		\page 176
+		.. 176
 Kind of defenses against buffer overflow .. 257
 	+ Pros and cons of each defense
-		\page 258-276
+		.. 258-276
 Stack guard .. 278-290
 Buffer overflow in Java or C# .. 649-650
 Buffer overflow with scant in C .. 676-678
 
 
 
-Input Validation ^ 1
-	\recap
-		\page 211-213
+Input Validation (\recap .. 211-213)
+	^ 1
 Attacks that exploit the lack of input validation .. 187
 	\example
-		\page 189-190
+		.. 189-190
 Where command injection arise .. 191
 	+ Countermeasures
 SQL injection .. 193-199
 	+ Where this vulnerability may arise
 	+ How does this attack work
-		\page 297-301
+		.. 297-301
 	+ Solutions and countermeasures
-		\page 200-203, 206, 302-304
+		.. 200-203, 206, 302-304
 	+ Database command injection
-		\page 204
+		.. 204
 	+ Function call injection
-		\page 
+		.. 
 Blind SQL injection .. 451-452
 Common theme to many injection attacks .. 199
 File name injection .. 208-209
 
 
 
-Code Analysis ^ 1
+Code Analysis
+	^ 1
 Types of code analysis .. 219
 TP, True positive .. 220
 TN, True negative .. 220
@@ -151,8 +150,8 @@ Hybrid analysis .. 248
 Operational testing .. 252
 Program analysis .. 306-409
 
-Fuzzy Testing ^ 2
-	\recap(.. 824)
+Fuzzy Testing (\recap(.. 824))
+	^ 2
 Test suite .. 796
 	# def
 Test oracle .. 796
@@ -179,7 +178,8 @@ Smarter fuzzing .. 809
 	+(.. 814-821) Whitebox
 CVEs suggests for fuzzing file formats .. 813
 
-Program Verification ^ 2
+Program Verification
+	^ 2
 Program verification .. 827
 	# def
 	+(.. 828-829) What is needed
@@ -197,23 +197,24 @@ Verifying a compiler .. 871
 
 
 
-Design Principles ^ 1
+Design Principles
+	^ 1
 What is design .. 490, 501
 Security principles .. 411-415, 418-421, 463
 	\example Using credit cards on internet
-		\page 416-417
+		.. 416-417
 	\example Counterexample
-		\page 422-423
+		.. 422-423
 Principle of least privilege .. 424-430
 	+ Compartmentalize
-		\page 429-430, 432-436
+		.. 429-430, 432-436
 	\example
-		\page 431
+		.. 431
 Minimize attack surface .. 437-440
 Use secure defaults .. 440
 Fall securely .. 441, 443
 	\example
-		\page 442, 444-449
+		.. 442, 444-449
 Promote privacy .. 450
 It's hard to keep secrets .. 453
 Use community resources .. 454-455
@@ -223,7 +224,7 @@ Clearly assign responsibilities .. 458
 Identify your assumptions .. 459
 Be reluctant to trust .. 460, 462
 	\example
-		\page 461, 69-71
+		.. 461, 69-71
 Saltzer and Schroeder design principles .. 492-495
 Analysis approaches .. 496-498
 Microsoft STRIDE approach .. 499
@@ -231,25 +232,27 @@ CERT attack modeling .. 500
 
 
 
-Race Condition ^ 1
+Race Condition
+	^ 1
 Requirements for race condition .. 465, 468
 	\example
-		\page 466-467
+		.. 466-467
 How to fix race conditions .. 469
 	+ Java synchronized keyword
 	\example
-		\page 471-473
+		.. 471-473
 Database race condition .. 474
 	\example
-		\page 475
+		.. 475
 Effects of race conditions .. 476
 	\example
-		\page 477-479
+		.. 477-479
 Why does the race conditions problem arise .. 480-488
 
 
 
-Security Engineering ^ 1
+Security Engineering
+	^ 1
 Software engineering .. 503
 	# def
 Current vs. Traditional software engineering .. 504
@@ -276,7 +279,8 @@ RMF, Risk management framework .. 595-610
 ARA, Architettura risk analysis .. 611-616
 Software penetration testing .. 617-623
 
-Testing ^ 2
+Testing
+	^ 2
 (Some) Kind of testing .. 781
 	+ What are each testing type used for
 		.. 782-785, 787-794
@@ -284,32 +288,33 @@ Testing ^ 2
 
 
 
-Language-Based Security ^ 1
+Language-Based Security
+	^ 1
 Objective of language-based security .. 668
 Which security features can a programming language guarantee? .. 625-626, 655-656
 Safety vs. Security .. 627
 	+ General definition of safety
-		\page 635
+		.. 635
 Safe programming language .. 628-631, 666
 	+ Abstraction
-		\page 631-634
+		.. 631-634
 Unsafe vs. Safe languages .. 636
 Dimensions and levels of safety .. 637-648
 How to break type safety .. 651-652
 	+ Typing breaks in C, Java, C#
-		\page 663-665
+		.. 663-665
 How to know a type system is sound .. 653-654
 Safe arithmetic .. 657
 Thread safety .. 658-662
 Types .. 669-670
 	\example Type-correct program
-		\page 671-672
+		.. 671-672
 	+ Why types
-		\page 673-674
+		.. 673-674
 	+ What types can do
-		\page 702
+		.. 702
 	\recap
-		\page 681, 701
+		.. 681, 701
 Safe [program] .. 675
 	# def
 Type-safe [language] .. 675
@@ -323,15 +328,12 @@ Soundness of the type system .. 725, 728
 Completeness of the type system .. 725
 	# def
 	\example Counterexample
-		\page 726-728
+		.. 726-728
 
 
 
-Information Flow ^ 1
-	\example Motivation
-		\page 704-711, 713-714, 716-717
-	\recap
-		\page 736
+Information Flow (\example(.. 704-711, 713-714, 716-717) Motivation) (\recap(.. 736))
+	^ 1
 Type-based information flow .. 712
 Indirect vs. Direct flows .. 715
 Hdden channels .. 718
@@ -348,9 +350,8 @@ Information flow in practice .. 735
 
 
 
-Java Programming Rules ^ 1
-	\note(.. 739) Motivation
-	\recap(.. 779) Aliasing
+Java Programming Rules  (\note(.. 739) Motivation) (\recap(.. 779) Aliasing)
+	^ 1
 Security features of Java .. 738
 Java programming rules .. 742-751, 753-757
 	\example(.. 752) Inner class
@@ -364,9 +365,8 @@ Immutability .. 771, 775-779
 
 
 
-Program obfuscation
+Program obfuscation (\recap(.. 978))
     ^ 1
-	\recap(.. 978)
 Reverse engineering .. 923
 	+(.. 924-929) Legality concerns
 	+(.. 925) EULA
@@ -396,12 +396,15 @@ iO, Indistinguishability obfuscation .. 976-977
 
 
 
-Smart Contracts: 979-1241 ^ 1
+Smart Contracts: 979-1241
+	^ 1
 
 
 
-Exercises ^ 1
-Spot the security flaws ^ 2
+Exercises
+	^ 1
+Spot the security flaws
+	^ 2
 EX 1 .. 38-39
     @ 37
 EX 2 .. 106

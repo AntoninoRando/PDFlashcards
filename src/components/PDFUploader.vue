@@ -9,8 +9,10 @@
             @dragleave.prevent="handleDragLeave" 
             @drop.prevent="handleFileDrop">
             <div class="text-center">
-                <div v-if="!selectedFile">
-                   <input type="file" class="hidden" accept="application/pdf" @change="handleFileChange" />
+                <div v-if="!selectedFile" class="space-y-2">
+                    <label for="pdf-upload" class="upload-btn">Select PDF</label>
+                    <input id="pdf-upload" type="file" class="hidden" accept="application/pdf" @change="handleFileChange" />
+                    <p class="text-sm text-gray-600">or drag and drop</p>
                 </div>
                 <div v-else class="text-left">
                     <div class="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
@@ -198,6 +200,20 @@ onBeforeUnmount(() => {
 .border-dashed:hover {
     border-color: #93c5fd;
     background-color: #eff6ff;
+}
+
+.upload-btn {
+    display: inline-block;
+    background-color: #4f46e5;
+    color: white;
+    padding: 0.5rem 1.25rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.upload-btn:hover {
+    background-color: #4338ca;
 }
 
 /* Remove unused styles that don't belong to uploader */

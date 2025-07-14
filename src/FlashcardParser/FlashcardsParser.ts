@@ -6,12 +6,32 @@ interface IHeader {
     header: Header;
 }
 
+interface IFlashcard {
+    line: number;
+    headers: string[];
+    text: string;
+    subParts: ISubPart[];
+    reviewedAt: Date;
+    ease: number;
+    interval: number;
+    learningPhase: boolean;
+}
+
+interface ISubPart {
+    subParts: ISubPart[];
+    [key: string]: any; // For command-specific properties
+}
+
+interface IAlias {
+    [key: string]: any; // Define based on your alias structure
+}
+
 export interface IStudySet {
     title: string;
-    flashcards: any[];
+    flashcards: IFlashcard[];
     resources: string[];
-    aliases: any[];
-    headers: IHeader[]
+    aliases: IAlias[];
+    headers: IHeader[];
 }
 
 interface LineDescriptor {
@@ -26,7 +46,7 @@ const categories = {
     resources: "[Resources]",
     cards: "[Cards]",
     aliases: "[Aliases]",
-};
+} as const;
 
 export function parseStudyset(lines: string[]): IStudySet | null {
     const studySet: IStudySet = {
@@ -51,19 +71,23 @@ export function parseStudyset(lines: string[]): IStudySet | null {
             };
 
             // Check if this is a section header
-            if (categoriesValues.includes(lineDescriptor.trimmedLine)) {
+            if (categoriesValues.includes(lineDescriptor.trimmedLine as any)) {
                 console.log(
                     `[studySet] Reached SECTION '${lineDescriptor.trimmedLine}'`
                 );
                 category = lineDescriptor.trimmedLine;
             } else {
-                parseCategory(category, lineDescriptor, studySet);
+                const result = parseCategory(category, lineDescriptor, studySet);
+                if (result === false) {
+                    console.error(`[parseStudySet] Failed to parse line ${i}: "${lineDescriptor.trimmedLine}"`);
+                    return null;
+                }
             }
         }
 
         return studySet;
     } catch (error) {
-        console.log(error);
+        console.error(`[parseStudySet] ERROR: ${error}`);
         return null;
     }
 }
@@ -72,22 +96,33 @@ function parseCategory(
     category: string,
     lineDescriptor: LineDescriptor,
     studySet: IStudySet
-): void {
+): boolean {
     const { trimmedLine } = lineDescriptor;
+    
     if (category === categories.title) {
         console.log(`[studySet] Reading title '${trimmedLine}'`);
         studySet.title = trimmedLine;
+        return true;
     } else if (category === categories.resources) {
         console.log(`[studySet] Reading resource '${trimmedLine}'`);
         studySet.resources.push(trimmedLine);
+        return true;
     } else if (category === categories.cards) {
-        parseCards(lineDescriptor, studySet);
+        return parseCards(lineDescriptor, studySet);
+    } else if (category === categories.aliases) {
+        // Handle aliases parsing if needed
+        console.log(`[studySet] Reading alias '${trimmedLine}'`);
+        // Add alias parsing logic here
+        return true;
     }
+    
+    return true;
 }
 
-function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): void {
+function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): boolean {
     const { trimmedLine: line, index: i, tabs } = lineDescriptor;
-    console.log(`[studySet] Reached Line: ${line}; Tabs ${tabs}`)
+    console.log(`[studySet] Reached Line: ${line}; Tabs ${tabs}`);
+    
     // New card
     if (tabs === 0) {
         let text: string;
@@ -106,7 +141,7 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): void {
         const randomHours = Math.floor(Math.random() * 24); // 0-23 hours
         const randomMinutes = Math.floor(Math.random() * 60); // 0-59 minutes
 
-        const card = {
+        const card: IFlashcard = {
             line: i,
             headers: [],
             text: text,
@@ -119,39 +154,50 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): void {
             learningPhase: true,
         };
 
+        // Fix header parsing logic - reverse the order and correct the level comparison
         let j = studySet.headers.length - 1;
-        let lastHeaderLevel;
+        let lastHeaderLevel: number | undefined;
+        
         while (j >= 0) {
             const iHeader = studySet.headers[j];
-            if (lastHeaderLevel && lastHeaderLevel <= iHeader.header.num) break;
+            // If we have a last header level and current header level is greater or equal, break
+            if (lastHeaderLevel !== undefined && iHeader.header.num >= lastHeaderLevel) {
+                break;
+            }
             
-            j--;
-            card.headers.push(iHeader.header.text)
+            card.headers.unshift(iHeader.header.text); // Add to beginning to maintain order
             lastHeaderLevel = iHeader.header.num;
+            j--;
         }
 
         if (command) {
             card.subParts.push({ ...command.toJson(), subParts: [] });
         }
         studySet.flashcards.push(card);
-    } else if (studySet.flashcards.length == 0) {
+        return true;
+        
+    } else if (studySet.flashcards.length === 0) {
         console.error(
             `[studySet] ERROR AT LINE ${i}: "${line}"\n` +
             "Found a command for a flashcard, " +
             "but no flashcards has been parsed yet."
         );
-        return null;
+        return false;
     } else {
         let subParts = studySet.flashcards[studySet.flashcards.length - 1].subParts;
-        // The first subpart has already been set, so we start counting from 1
+        
+        // Navigate to the correct nesting level
         for (let j = 1; j < tabs; j++) {
+            if (subParts.length === 0) {
+                console.error(`[studySet] Invalid nesting at line ${i}: "${line}"`);
+                return false;
+            }
             const lastSubPart = subParts[subParts.length - 1];
-            subParts = lastSubPart?.subParts;
-        }
-
-        if (subParts === undefined) {
-            console.error(`[studySet] Too many tabs: "${line}"`);
-            return null;
+            if (!lastSubPart?.subParts) {
+                console.error(`[studySet] Invalid nesting structure at line ${i}: "${line}"`);
+                return false;
+            }
+            subParts = lastSubPart.subParts;
         }
 
         let command: any;
@@ -166,20 +212,18 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): void {
 
         if (!command) {
             console.error(`[studySet] Unrecognized command at line: "${line}"`);
-            return null;
-        }
-
-        if (command instanceof Header) {
+            return false;
+        } else if (command instanceof Header) {
             command.text = studySet.flashcards[studySet.flashcards.length - 1].text || 'NO HEADER TEXT';
             studySet.headers.push({
                 line: i,
                 header: command
             });
-            return;
+        } else {
+            subParts.push({ ...command.toJson(), subParts: [] });
         }
 
-        
-        subParts.push({ ...command.toJson(), subParts: [] });
+        return true;
     }
 }
 

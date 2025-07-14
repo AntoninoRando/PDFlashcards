@@ -69,7 +69,7 @@ defineExpose({
 }
 
 .revealed-button:hover {
-  border-color: rgb(255, 0, 0) !important;
+  border-color: rgb(180, 0, 0) !important;
   border-width: 3px !important;
   transition: all 0.2s ease;
   transform: translateY(-1px);

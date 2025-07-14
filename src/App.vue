@@ -234,6 +234,7 @@ onUnmounted(() => {
     transition: all 0.3s ease;
     transform: translateY(0);
     opacity: 1;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.3);
 }
 
 .logo-banner.hidden {
@@ -297,17 +298,13 @@ onUnmounted(() => {
 /* Sticky Navbar */
 .navbar {
     width: 100%;
-    height: 25px;
-    background-color: rgba(0, 0, 0, 0.9);
-    backdrop-filter: blur(10px);
-    color: #ffffff;
+    height: 60px;
+    color: #000000;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     z-index: 1000;
     transition: all 0.3s ease;
-    box-shadow: 0 -4px 8px 0 rgba(0, 0, 0, 0.3), 0 -6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 
 .navbar.sticky {
@@ -315,7 +312,6 @@ onUnmounted(() => {
     top: 0;
     left: 0;
     right: 0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .navbar-buttons {
@@ -324,25 +320,23 @@ onUnmounted(() => {
 }
 
 .nav-btn {
-    background-color: transparent;
-    color: #ffffff;
-    border: none;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #000000;
     padding: 0.75rem 2rem;
     font-size: 1em;
-    font-weight: bolder;
+    font-weight: 600;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .nav-btn:hover {
-    background-color: rgba(255, 255, 255, 0.9);
-    color: #000000;
-    border-color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.25);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Content */

@@ -1,11 +1,12 @@
 <template>
     <div class="all-container">
         <div class="header-section" v-if="!showingFlashcard">
-            <h2>{{ studySet.title }}</h2><h1>{{ headerBreadcrumb }}</h1>
-            <button @click="downloadSet" class="save-btn">
+            <h3>{{ studySet.title }}</h3>
+            <h1>{{ headerBreadcrumb }}</h1>
+            <!-- <button @click="downloadSet" class="save-btn">
                 Save
             </button>
-            <!-- <button @click="downloadSet" class="change-btn">
+            <button  class="change-btn">
                 Change
             </button> -->
         </div>
@@ -193,6 +194,7 @@ defineExpose({
 
 .header-section {
     display: flex;
+    flex-direction: column;
     align-items: center;
     margin-bottom: 20px;
 }
