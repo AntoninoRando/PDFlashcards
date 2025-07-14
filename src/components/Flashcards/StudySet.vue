@@ -112,6 +112,10 @@ const updateCards = (flashcardObj: any) => {
         return;
     }
 
+    if (props.studySet) {
+        props.studySet.studiedCards = (props.studySet.studiedCards || 0) + 1;
+    }
+
     console.log(`Update cards; current cards: ${n}`);
     scheduler.value.resetCards();
     scheduler.value.addMoreFlashcards(props.flashcards);
