@@ -141,6 +141,12 @@ onUnmounted(() => {
 </script>
 
 <template>
+    <!-- Full Screen Video Background -->
+    <video autoplay muted loop id="video-bg">
+        <source src="./bg.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
     <div class="app-container">
         <!-- Logo Banner -->
         <div class="logo-banner" :class="{ 'hidden': isScrolled }" @mousemove="handleMouseMove">
@@ -183,6 +189,17 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* Full Screen Video Background */
+#video-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    z-index: -1;
+}
+
 .pointing-border {
     border: 5px solid rgb(255, 0, 0) !important;
     border-radius: 8px !important;
@@ -191,6 +208,7 @@ onUnmounted(() => {
 }
 
 .app-container {
+    position: relative;
     min-height: 100vh;
     width: 100vw;
     font-family: 'Inter', 'Segoe UI', sans-serif;
@@ -203,7 +221,8 @@ onUnmounted(() => {
     position: relative;
     width: 100%;
     height: 120px;
-    background: linear-gradient(135deg, #edf6f9 0%, #edf6f9 100%);
+    background: linear-gradient(135deg, rgba(237, 246, 249, 0.9) 0%, rgba(237, 246, 249, 0.9) 100%);
+    backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -275,7 +294,8 @@ onUnmounted(() => {
 .navbar {
     width: 100%;
     height: 25px;
-    background-color: #000000;
+    background-color: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
     color: #ffffff;
     display: flex;
     align-items: center;
@@ -314,7 +334,7 @@ onUnmounted(() => {
 }
 
 .nav-btn:hover {
-    background-color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.9);
     color: #000000;
     border-color: #ffffff;
     transform: translateY(-2px);
@@ -338,12 +358,24 @@ onUnmounted(() => {
     min-height: calc(100vh - 180px);
 }
 
+/* PDF Preview Component Shadows */
+.pdf-section :deep(.pdf-preview),
+.pdf-section :deep(canvas),
+.pdf-section :deep(.pdf-page),
+.pdf-section :deep(.pdf-container) {
+    box-shadow: 
+        0 20px 25px -5px rgba(0, 0, 0, 0.1),
+        0 10px 10px -5px rgba(0, 0, 0, 0.04),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+}
+
 .pdf-section {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 2rem;
+    left: 2rem;
+    right: 2rem;
+    bottom: 2rem;
     padding: 1.5rem;
     box-sizing: border-box;
     overflow: auto;
@@ -381,7 +413,8 @@ onUnmounted(() => {
     color: #6b7280;
     text-align: center;
     padding: 2rem;
-    background-color: #fefefe;
+    background-color: rgba(254, 254, 254, 0.95);
+    backdrop-filter: blur(10px);
     border: 1px dashed #d1d5db;
     border-radius: 12px;
     margin-top: 1rem;
@@ -417,7 +450,10 @@ onUnmounted(() => {
     }
 
     .pdf-section {
-        border-bottom: 1px solid #e5e7eb;
+        top: 1rem;
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
     }
 
     .navbar-buttons {
