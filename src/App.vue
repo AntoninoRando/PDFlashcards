@@ -30,6 +30,7 @@ const studySet = ref<IStudySet | null>(null)
 const pdfCache = reactive<Record<string, string>>({})
 const isScrolled = ref<boolean>(false)
 const mousePosition = ref({ x: 0, y: 0 })
+const cardRevealed = ref<boolean>(false)
 
 // Refs
 const studySetComponent = ref(null)
@@ -57,6 +58,11 @@ function showPage(flashcard: Flashcard | null) {
 
     pageToShow.value = pageRefNum
     console.log(`Showing page ${pageToShow.value}`)
+    cardRevealed.value = true
+}
+
+function cardHidden() {
+    cardRevealed.value = false
 }
 
 function loadStudySet(newStudySet: IStudySet) {
@@ -157,17 +163,17 @@ onUnmounted(() => {
         </nav>
 
         <div class="content-wrapper" :class="{ 'pointing': isPointing }">
-            <div class=" row">
-                <div class="pdf-section column"><!--:class="{ 'pointing-border': isPointing }">-->
+            <div class="single-column">
+                <div v-if="studySet" class="pdf-section">
                     <PDFUploader @file-selected="addToCache" />
-                    <PDFPreview v-if="studySet?.resources?.length" ref="PDF" :pageToShow="pageToShow"
+                    <PDFPreview v-show="cardRevealed" ref="PDF" :pageToShow="pageToShow"
                         :pdf-url="pdfCache[studySet.resources[0].trim()]" />
                 </div>
 
-                <div class="flashcards-section column" :class="{ 'pointing-border': isPointing }">
+                <div class="flashcard-wrapper" :class="{ revealed: cardRevealed }">
                     <FileParser v-if="!studySet" @setUploaded="loadStudySet" />
-                    <StudySet ref="studySetComponent" v-else @reveal="showPage" :flashcards="studySet.flashcards"
-                        :title="studySet.title" :resources="studySet.resources" />
+                    <StudySet ref="studySetComponent" v-else @reveal="showPage" @hide="cardHidden"
+                        :flashcards="studySet.flashcards" :title="studySet.title" :resources="studySet.resources" />
                 </div>
             </div>
         </div>
@@ -324,32 +330,38 @@ onUnmounted(() => {
     padding-top: 60px;
 }
 
-.row {
-    display: flex;
+.single-column {
+    position: relative;
+    width: 100%;
     min-height: calc(100vh - 180px);
-    width: 100vw;
-    margin: 0;
-    padding: 0;
-}
-
-.column {
-    width: 50vw;
-    display: flex;
-    flex-direction: column;
-    border-radius: 0;
-    overflow: auto;
-    transition: all 0.3s ease;
 }
 
 .pdf-section {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     padding: 1.5rem;
     box-sizing: border-box;
-    border-right: 1px solid #e5e7eb;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
 }
 
-.flashcards-section {
-    padding: 1.5rem;
-    box-sizing: border-box;
+.flashcard-wrapper {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.5s ease;
+    z-index: 10;
+}
+
+.flashcard-wrapper.revealed {
+    top: auto;
+    bottom: 20px;
+    transform: translateX(-50%);
 }
 
 .divider {
@@ -398,18 +410,11 @@ onUnmounted(() => {
         padding-top: 50px;
     }
 
-    .row {
-        flex-direction: column;
+    .single-column {
         min-height: calc(100vh - 130px);
     }
 
-    .column {
-        width: 100vw;
-        min-height: 50vh;
-    }
-
     .pdf-section {
-        border-right: none;
         border-bottom: 1px solid #e5e7eb;
     }
 
