@@ -1,6 +1,6 @@
 <template>
     <div class="all-container">
-        <div class="header-section">
+        <div class="header-section" v-if="!showingFlashcard">
             <h2>{{ studySet.title }}</h2><h1>{{ headerBreadcrumb }}</h1>
             <button @click="downloadSet" class="save-btn">
                 Save
@@ -53,6 +53,10 @@ const currentFlashcardObject = ref<InstanceType<typeof Flashcard> | null>(null);
 
 const headerBreadcrumb = computed(() => {
     return studyCard.value?.headers?.join(' / ') ?? '';
+});
+
+const showingFlashcard = computed(() => {
+    return currentFlashcardObject.value?.isRevealed() ?? false;
 });
 
 // Methods
