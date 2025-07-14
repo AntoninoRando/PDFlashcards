@@ -297,13 +297,13 @@ onUnmounted(() => {
 /* Sticky Navbar */
 .navbar {
     width: 100%;
-    height: 25px;
-    background-color: rgba(0, 0, 0, 0.9);
-    backdrop-filter: blur(10px);
+    height: 60px;
+    background: linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%);
     color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
+    backdrop-filter: blur(6px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     z-index: 1000;
     transition: all 0.3s ease;
@@ -324,25 +324,24 @@ onUnmounted(() => {
 }
 
 .nav-btn {
-    background-color: transparent;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: #ffffff;
-    border: none;
     padding: 0.75rem 2rem;
     font-size: 1em;
-    font-weight: bolder;
+    font-weight: 600;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .nav-btn:hover {
-    background-color: rgba(255, 255, 255, 0.9);
-    color: #000000;
-    border-color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Content */

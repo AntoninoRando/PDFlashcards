@@ -63,9 +63,26 @@ function parseFileContent() {
     <div class="p-6 max-w-3xl mx-auto">
         <h1 class="text-2xl font-bold mb-4">Text File Parser</h1>
 
-        <div class="mb-6">
+        <div class="mb-6 space-y-2">
+            <label for="file-input" class="upload-btn">Select Flashcards</label>
             <input type="file" id="file-input" accept=".txt" @change="handleFileUpload"
-                class="border rounded py-2 px-3 w-full bg-gray-50" />
+                class="hidden" />
         </div>
     </div>
 </template>
+
+<style scoped>
+.upload-btn {
+    display: inline-block;
+    background-color: #4f46e5;
+    color: white;
+    padding: 0.5rem 1.25rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.upload-btn:hover {
+    background-color: #4338ca;
+}
+</style>
