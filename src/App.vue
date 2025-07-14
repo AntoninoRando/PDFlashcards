@@ -131,6 +131,13 @@ function highlightPointing(command: string) {
 
 const isPointing = computed(() => gestureRecognizer.value?.pointing || false)
 
+const totalCards = computed(() => studySet.value?.flashcards.length || 0)
+const studiedCards = computed(() => studySet.value?.studiedCards || 0)
+const progressPercent = computed(() => {
+    if (!totalCards.value) return 0
+    return (studiedCards.value / totalCards.value) * 100
+})
+
 onMounted(() => {
     // let vid = document.getElementById("video-bg");
     // vid.playbackRate = 0.3;
@@ -171,6 +178,10 @@ onUnmounted(() => {
                 <VoiceRecognizer class="nav-btn" @command-recognized="commandRecognized" />
             </div>
         </nav>
+        <div v-if="studySet" class="progress-container">
+            <div class="progress-bar" :style="{ width: progressPercent + '%' }"></div>
+            <div class="progress-label">{{ studiedCards }}/{{ totalCards }}</div>
+        </div>
 
         <div class="content-wrapper" :class="{ 'pointing': isPointing }">
             <div class="single-column">
@@ -319,6 +330,37 @@ onUnmounted(() => {
     gap: 2rem;
 }
 
+.progress-container {
+    position: relative;
+    width: 100%;
+    height: 20px;
+    background-color: #e5e7eb;
+    margin-top: 4px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: rgb(180, 0, 0);
+    transition: width 0.3s ease;
+}
+
+.progress-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #000;
+    pointer-events: none;
+}
+
 .nav-btn {
     background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -461,6 +503,9 @@ onUnmounted(() => {
     .nav-btn {
         padding: 0.5rem 1.5rem;
         font-size: 0.9rem;
+    }
+    .progress-container {
+        height: 16px;
     }
 }
 

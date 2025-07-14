@@ -32,6 +32,7 @@ export interface IStudySet {
     resources: string[];
     aliases: IAlias[];
     headers: IHeader[];
+    studiedCards: number;
 }
 
 interface LineDescriptor {
@@ -54,7 +55,8 @@ export function parseStudyset(lines: string[]): IStudySet | null {
         flashcards: [],
         resources: [],
         aliases: [],
-        headers: []
+        headers: [],
+        studiedCards: 0
     };
 
     try {
