@@ -1,10 +1,17 @@
+import { Header } from "@/commands/allCommands/Header";
 import { CommandsFactory } from "@/commands/CommandsFactory";
+
+interface IHeader {
+    line: number;
+    header: Header;
+}
 
 export interface IStudySet {
     title: string;
     flashcards: any[];
     resources: string[];
     aliases: any[];
+    headers: IHeader[]
 }
 
 interface LineDescriptor {
@@ -27,6 +34,7 @@ export function parseStudyset(lines: string[]): IStudySet | null {
         flashcards: [],
         resources: [],
         aliases: [],
+        headers: []
     };
 
     try {
@@ -99,6 +107,8 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): void {
         const randomMinutes = Math.floor(Math.random() * 60); // 0-59 minutes
 
         const card = {
+            line: i,
+            headers: [],
             text: text,
             subParts: [],
             reviewedAt: new Date(
@@ -108,6 +118,18 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): void {
             interval: 0,
             learningPhase: true,
         };
+
+        let j = studySet.headers.length - 1;
+        let lastHeaderLevel;
+        while (j >= 0) {
+            const iHeader = studySet.headers[j];
+            if (lastHeaderLevel && lastHeaderLevel <= iHeader.header.num) break;
+            
+            j--;
+            card.headers.push(iHeader.header.text)
+            lastHeaderLevel = iHeader.header.num;
+        }
+
         if (command) {
             card.subParts.push({ ...command.toJson(), subParts: [] });
         }
@@ -146,6 +168,17 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): void {
             console.error(`[studySet] Unrecognized command at line: "${line}"`);
             return null;
         }
+
+        if (command instanceof Header) {
+            command.text = studySet.flashcards[studySet.flashcards.length - 1].text || 'NO HEADER TEXT';
+            studySet.headers.push({
+                line: i,
+                header: command
+            });
+            return;
+        }
+
+        
         subParts.push({ ...command.toJson(), subParts: [] });
     }
 }

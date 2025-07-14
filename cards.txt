@@ -1,10 +1,428 @@
 [Title]
-Big Data Computing
+Security in Software Applications
 
 [Resources]
-All.pdf
+AllSecurity.pdf
 
 [Cards]
-Example .. 1
-    + Extra
-    # tag
+
+Introduction
+    ^ 1
+Virus .. 5
+    # def
+Worm .. 5
+    # def
+Functionality vs. Security .. 29
+Flaw vs. Vulnerability .. 34
+Where flaw and vulnerabilities may be introduced .. 35-36
+Security in software development life cycle .. 41-42, 59
+19 deadly sins of software security .. 214
+Classification of software security errors .. 215
+
+
+
+Security Concepts
+    ^ 1
+Relation between software and security .. 44
+Security scheme .. 45-47
+CIA ..48-50
+    # def
+AAAA .. 51-52
+Threats vs. Security Requirements .. 53
+Countermeasures .. 54-58
+The context of software security .. 72-75
+Bug .. 75
+    # def
+Vulnerability .. 75, 81
+    # def
+Exploit .. 75, 82
+    # def
+Malware .. 75
+    # def
+Threat .. 82
+    # def
+Mechanism to enforce SW security .. 78
+Takeaways about security .. 79-80
+Protection against Exploit vs. against Threat vs. against Vulnerability .. 83
+
+
+
+Buffer Overflow ^ 1
+	\recap
+		.. 142-144
+The essence of the problem .. 91
+	+ Solution to the problem
+		.. 92
+Problems caused by the buffer overflow .. 93-94
+How memory management is handled in C/C++ .. 95
+Processes memory layout .. 96
+Stack overflow .. 97-102
+Heap overflow .. 102
+gets function .. 103
+	+ What it does
+	+ Why it's bad
+	+ Alternative
+strcopy function .. 104
+	+ What it does
+	+ Why it's bad
+	+ Alternative
+		\page 104, 110, 157
+Advantages of a programming language with "security" provisions .. 115
+Format string attack .. 153, 126-128
+	+ What originates this problem
+		\page 147-149, 159
+	\example A code vulnerable to a format string attack and its correct version
+		\page 150-152
+	\example A case study: fingered 1.4.3
+		\page 160-165
+	+ definition
+		\page 154
+	+ Which C functions uses string format
+		\page 156, 158
+	+ How to prevent it
+		\page 166
+Dynamic countermeasures to buffer overflow .. 129-134, 139-141
+	+ The problems with each countermeasure
+	\page 132
+Dangerous C system calls .. 135
+	+ Solution
+		\page 136-138
+Code injection .. 167
+	+ Defenses
+		\page 168, 177-185
+	\example
+		\page 170-175
+	+ Shell metachars that can cause a code injection
+		\page 176
+Kind of defenses against buffer overflow .. 257
+	+ Pros and cons of each defense
+		\page 258-276
+Stack guard .. 278-290
+Buffer overflow in Java or C# .. 649-650
+Buffer overflow with scant in C .. 676-678
+
+
+
+Input Validation ^ 1
+	\recap
+		\page 211-213
+Attacks that exploit the lack of input validation .. 187
+	\example
+		\page 189-190
+Where command injection arise .. 191
+	+ Countermeasures
+SQL injection .. 193-199
+	+ Where this vulnerability may arise
+	+ How does this attack work
+		\page 297-301
+	+ Solutions and countermeasures
+		\page 200-203, 206, 302-304
+	+ Database command injection
+		\page 204
+	+ Function call injection
+		\page 
+Blind SQL injection .. 451-452
+Common theme to many injection attacks .. 199
+File name injection .. 208-209
+
+
+
+Code Analysis ^ 1
+Types of code analysis .. 219
+TP, True positive .. 220
+TN, True negative .. 220
+FP, False positive .. 220
+FN, False negative .. 220
+FPR, False positive rate .. 220
+TPR, True positive rate .. 220
+ROC (Receiver Operating Characteristic) curve .. 221
+Precision / Positive predittive value .. 222
+Recall / Sensitivity / Soundness / Find rate .. 222
+F-score / Harmonic mean .. 222
+Discrimination rate .. 222
+Static analysis .. 224
+	+ Pros and cons
+(Some) Static analysis approaches .. 225-236
+Dynamic analysis 'fundamental issue' .. 238
+Functional testing for security .. 239
+Web application scanners .. 240
+Fuzzing .. 241-244
+Hybrid analysis .. 248
+Operational testing .. 252
+Program analysis .. 306-409
+
+Fuzzy Testing ^ 2
+	\recap(.. 824)
+Test suite .. 796
+	# def
+Test oracle .. 796
+	# def
+Code coverage .. 797
+	# def
+	+( .. 798) Perverse effect of coverage criteria
+Annotations .. 799
+Difficulties of security testing .. 800
+Negative test cases .. 801, 803
+	\example(.. 802) iOS goto fail SSL bug
+Fuzzing (Fuzz testing) .. 804-805
+	+ History
+	# def
+Simple fuzzing .. 806
+	# def
+	+(.. 807) Pros and cons
+Fuzzing web apps .. 808
+Smarter fuzzing .. 809
+	+(.. 810) Mutation-based
+	+(.. 811) Generation-based
+		+(.. 812) Pros and cons
+	+(.. 822-824) Evolutionary
+	+(.. 814-821) Whitebox
+CVEs suggests for fuzzing file formats .. 813
+
+Program Verification ^ 2
+Program verification .. 827
+	# def
+	+(.. 828-829) What is needed
+	+(.. 830) How to specify what is wanted
+	+(.. 831) How to verify
+Complication for program verification .. 832-840, 842
+Program verification using VCGen .. 826, 841, 843-84
+Verification condition generation .. 846-847
+State-of-art in program verification .. 848-851
+JML .. 826, 852-863
+Verifying the verifiers .. 864-869
+Verifying a type checker .. 870
+Verifying a compiler .. 871
+??? .. 872-921
+
+
+
+Design Principles ^ 1
+What is design .. 490, 501
+Security principles .. 411-415, 418-421, 463
+	\example Using credit cards on internet
+		\page 416-417
+	\example Counterexample
+		\page 422-423
+Principle of least privilege .. 424-430
+	+ Compartmentalize
+		\page 429-430, 432-436
+	\example
+		\page 431
+Minimize attack surface .. 437-440
+Use secure defaults .. 440
+Fall securely .. 441, 443
+	\example
+		\page 442, 444-449
+Promote privacy .. 450
+It's hard to keep secrets .. 453
+Use community resources .. 454-455
+Principle of psychological acceptance .. 456
+Don't mix data and code .. 457
+Clearly assign responsibilities .. 458
+Identify your assumptions .. 459
+Be reluctant to trust .. 460, 462
+	\example
+		\page 461, 69-71
+Saltzer and Schroeder design principles .. 492-495
+Analysis approaches .. 496-498
+Microsoft STRIDE approach .. 499
+CERT attack modeling .. 500
+
+
+
+Race Condition ^ 1
+Requirements for race condition .. 465, 468
+	\example
+		\page 466-467
+How to fix race conditions .. 469
+	+ Java synchronized keyword
+	\example
+		\page 471-473
+Database race condition .. 474
+	\example
+		\page 475
+Effects of race conditions .. 476
+	\example
+		\page 477-479
+Why does the race conditions problem arise .. 480-488
+
+
+
+Security Engineering ^ 1
+Software engineering .. 503
+	# def
+Current vs. Traditional software engineering .. 504
+Motivation of software engineering .. 505-506
+Essential components for building secure software .. 507-508
+SDL .. 509-518, 522-527
+Microsoft trustworthy computing SDLC .. 519-521, 528-530
+Objective of secure software development	.. 532
+Process models .. 533-535
+SDLC, Software development life cycle .. 536-539
+CMM, Capability maturity models .. 540-550
+Security engineering process .. 551-554
+SSE-CMM .. 555-556, 562
+Process areas .. 557-560
+Capability levels .. 560-561
+Process improvement .. 563
+SSAM .. 564-573
+TSP .. 574-580
+Software security .. 582-584
+Trinity of trouble .. 585
+Security problems in software .. 586
+Pillars in software security .. 587-594
+RMF, Risk management framework .. 595-610
+ARA, Architettura risk analysis .. 611-616
+Software penetration testing .. 617-623
+
+Testing ^ 2
+(Some) Kind of testing .. 781
+	+ What are each testing type used for
+		.. 782-785, 787-794
+	+(.. 786)	Disadvantages of each testing type
+
+
+
+Language-Based Security ^ 1
+Objective of language-based security .. 668
+Which security features can a programming language guarantee? .. 625-626, 655-656
+Safety vs. Security .. 627
+	+ General definition of safety
+		\page 635
+Safe programming language .. 628-631, 666
+	+ Abstraction
+		\page 631-634
+Unsafe vs. Safe languages .. 636
+Dimensions and levels of safety .. 637-648
+How to break type safety .. 651-652
+	+ Typing breaks in C, Java, C#
+		\page 663-665
+How to know a type system is sound .. 653-654
+Safe arithmetic .. 657
+Thread safety .. 658-662
+Types .. 669-670
+	\example Type-correct program
+		\page 671-672
+	+ Why types
+		\page 673-674
+	+ What types can do
+		\page 702
+	\recap
+		\page 681, 701
+Safe [program] .. 675
+	# def
+Type-safe [language] .. 675
+	# def
+Type-casting in C .. 678-679
+Absent, weak, and strong typing .. 680
+Mini-C .. 682-683
+Semantics of type-safety .. 684-700
+Soundness of the type system .. 725, 728
+	# def
+Completeness of the type system .. 725
+	# def
+	\example Counterexample
+		\page 726-728
+
+
+
+Information Flow ^ 1
+	\example Motivation
+		\page 704-711, 713-714, 716-717
+	\recap
+		\page 736
+Type-based information flow .. 712
+Indirect vs. Direct flows .. 715
+Hdden channels .. 718
+Challenges of information flow .. 719
+Types of information flow .. 720-724
+Termination-insensitive and Termination-sensitive .. 729
+	# def
+While-rule for termination-sensitive non-interference .. 730
+Bell-La Paluda .. 731
+Other notions of secure information flow .. 732
+The problem with secure information flow .. 733
+Declassification .. 734
+Information flow in practice .. 735
+
+
+
+Java Programming Rules ^ 1
+	\note(.. 739) Motivation
+	\recap(.. 779) Aliasing
+Security features of Java .. 738
+Java programming rules .. 742-751, 753-757
+	\example(.. 752) Inner class
+		.. 752
+Aliasing problem .. 760-761
+	+(.. 762) Desirable things about aliasing
+	+(.. 763) Undesirable things about aliasing
+Alias control .. 766-771
+Immutability .. 771, 775-779
+	+(.. 772-774) Advantages
+
+
+
+Program obfuscation
+    ^ 1
+	\recap(.. 978)
+Reverse engineering .. 923
+	+(.. 924-929) Legality concerns
+	+(.. 925) EULA
+	\example(.. 929-931)
+	+(.. 932) What problems this causes
+Reasons to apply obfuscation .. 933
+What is obfuscation .. 934, 936
+Potential application domains .. 935
+Code complexity .. 937
+	# def
+Quality of obfuscation .. 938
+Goals and current results .. 939
+Taxonomy of obfuscations .. 940-946
+Opaque predicates .. 947-953
+Obfuscatory strength evaluation through reverse engineering .. 954
+Program slicing .. 955-965
+Cryptography and obfuscation .. 966-967
+Securing computation .. 968
+FHE, Fully homomorphic encryption .. 969
+FE, Functional encryption .. 970
+MPC, Multi-party computation .. 971
+Randomized encodings (RE) and garbling .. 972
+Perfect obfuscator .. 973
+Encryption vs. Obfuscation .. 974
+Problem with the VBB definition .. 975
+iO, Indistinguishability obfuscation .. 976-977 
+
+
+
+Smart Contracts: 979-1241 ^ 1
+
+
+
+Exercises ^ 1
+Spot the security flaws ^ 2
+EX 1 .. 38-39
+    @ 37
+EX 2 .. 106
+	@ 105
+EX 3 .. 108-109
+	@ 107
+EX 4 .. 112
+	@ 111
+EX 5 .. 114
+	@ 113
+EX 6 .. 117
+	@ 116
+EX 7 .. 119
+	@ 118
+EX 8 .. 121
+	@ 120
+EX 9 .. 123
+	@ 122
+EX 10 .. 125
+	@ 124
+EX 11 .. 741
+	@ 740
+EX 12 .. 765
+	@ 764

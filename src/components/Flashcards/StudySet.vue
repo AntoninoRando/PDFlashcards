@@ -1,7 +1,7 @@
 <template>
     <div class="all-container">
         <div class="header-section">
-            <h1>{{ title }}</h1>
+            <h2>{{ studySet.title }}</h2><h1>{{ headerBreadcrumb }}</h1>
             <button @click="downloadSet" class="save-btn">
                 Save
             </button>
@@ -27,15 +27,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import FlashcardsScheduler from '@/flashcardsScheduler';
 import Flashcard from './Flashcard.vue';
 
 // Define props
 interface Props {
-    title: string;
     flashcards: any[];
     resources: string[];
+    studySet: any;
 }
 
 const props = defineProps<Props>();
@@ -50,6 +50,10 @@ const emit = defineEmits<{
 const scheduler = ref(new FlashcardsScheduler());
 const studyCard = ref<any>(null);
 const currentFlashcardObject = ref<InstanceType<typeof Flashcard> | null>(null);
+
+const headerBreadcrumb = computed(() => {
+    return studyCard.value?.headers?.join(' / ') ?? '';
+});
 
 // Methods
 const revealCurrent = () => {
@@ -118,7 +122,7 @@ const downloadSet = () => {
     }
 
     // Format flashcards data as text
-    let content = `[Title]\n${props.title}\n\n`;
+    let content = `[Title]\n${props.studySet.title}\n\n`;
 
     content += `[Resources]\n`;
     props.resources.forEach((resource: string) => {
@@ -146,7 +150,7 @@ const downloadSet = () => {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
 
-    const filename = `${props.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_flashcards.txt`;
+    const filename = `${props.studySet.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_flashcards.txt`;
     link.href = url;
     link.download = filename;
 

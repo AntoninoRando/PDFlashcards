@@ -28,10 +28,10 @@ export class CommandsFactory {
             case '@':
             case 'auto_reveal':
                 return new AutoReveal();
-            case 'h1':
-            case 'example':
-            case 'recap':
-                return new Header(1);
+            case '^':
+                return new Header(commandArgument || 1);
+            default:
+                return null;
         }
     }
 }

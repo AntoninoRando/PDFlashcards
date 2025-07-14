@@ -132,6 +132,8 @@ function highlightPointing(command: string) {
 const isPointing = computed(() => gestureRecognizer.value?.pointing || false)
 
 onMounted(() => {
+    // let vid = document.getElementById("video-bg");
+    // vid.playbackRate = 0.3;
     window.addEventListener('scroll', handleScroll)
 })
 
@@ -142,10 +144,10 @@ onUnmounted(() => {
 
 <template>
     <!-- Full Screen Video Background -->
-    <video autoplay muted loop id="video-bg">
+    <!-- <video autoplay muted loop id="video-bg">
         <source src="./bg.mp4" type="video/mp4">
         Your browser does not support the video tag.
-    </video>
+    </video> -->
 
     <div class="app-container">
         <!-- Logo Banner -->
@@ -181,7 +183,9 @@ onUnmounted(() => {
                 <div class="flashcard-wrapper" :class="{ revealed: cardRevealed }">
                     <FileParser v-if="!studySet" @setUploaded="loadStudySet" />
                     <StudySet ref="studySetComponent" v-else @reveal="showPage" @hide="cardHidden"
-                        :flashcards="studySet.flashcards" :title="studySet.title" :resources="studySet.resources" />
+                        :flashcards="studySet.flashcards"
+                        :resources="studySet.resources"
+                        :studySet="studySet"/>
                 </div>
             </div>
         </div>
