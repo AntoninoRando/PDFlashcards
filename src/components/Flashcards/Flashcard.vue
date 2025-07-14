@@ -137,14 +137,18 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point })
 
 .flashcard-button {
     height: 100%;
-    background-image: linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%);
-    border-color: rgba(0, 0, 0, 0.7);
-    border-width: 1px;
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     font-size: 15px;
     font-family: "JetBrains Mono", monospace;
     font-optical-sizing: auto;
     font-weight: 300;
     font-style: normal;
+    color: #000;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
 }
 
 .aliases {
@@ -152,10 +156,11 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point })
     width: 20%;
     align-content: center;
     text-align: center;
-    background-color: rgba(0, 0, 0, 0.05);
-    border-color: rgba(0, 0, 0, 0.3);
-    border-width: 1px;
-    border-radius: 3px 0px 0px 3px;
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 12px 0px 0px 12px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .revealed-button {
