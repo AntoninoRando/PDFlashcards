@@ -80,9 +80,22 @@ const reveal = (flashcard: any) => {
 
 const updateCards = (flashcardObj: any) => {
     console.log(JSON.stringify(flashcardObj));
-    const { flashcard, hiding } = flashcardObj;
+    const { flashcard, recall } = flashcardObj;
 
-    if (!flashcard || hiding) return;
+    if (!flashcard || recall === 'hide') return;
+
+    const grades: Record<string, number> = {
+        'forgot': 0,
+        'bad': 1,
+        'not bad': 2,
+        'ok': 3,
+    };
+
+    const res = FlashcardsScheduler.nextInterval(grades[recall] ?? 0, flashcard.interval, flashcard.ease);
+    flashcard.interval = res.interval;
+    flashcard.ease = res.ease;
+    flashcard.learningPhase = false;
+    flashcard.reviewedAt = new Date(Date.now() + flashcard.interval * 24 * 60 * 60 * 1000);
 
     const n = props.flashcards.filter((f: any) => f !== undefined).length;
     if (n === 0) {

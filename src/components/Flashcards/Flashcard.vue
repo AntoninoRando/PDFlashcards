@@ -4,7 +4,7 @@ import { createApp, ref, computed, onMounted } from 'vue'
 
 const emit = defineEmits<{
   reveal: [flashcard: any]
-  hide: [payload: { flashcard: any; hiding: boolean }]
+  hide: [payload: { flashcard: any; recall: string }]
 }>()
 
 const props = defineProps<{
@@ -37,13 +37,13 @@ function reveal() {
   emit('reveal', props.flashcard)
 }
 
-function hide(fromAction = false) {
+function hide(recall = 'hide') {
   hidingRecallOptions.value = true
   setTimeout(() => {
     revealed.value = false
     hidingRecallOptions.value = false
     props.flashcard.reviewedAt = new Date()
-    emit('hide', { flashcard: props.flashcard, hiding: !fromAction })
+    emit('hide', { flashcard: props.flashcard, recall })
   }, 300)
 }
 
@@ -100,7 +100,7 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point })
             <div ref="subparts" id="subparts"></div>
         </div>
         <RecallOptions v-else ref="recallOptions" class="buttons-container" :class="{ hiding: hidingRecallOptions }"
-            @optionSelected="option => hide(option !== 'hide')" />
+            @optionSelected="option => hide(option)" />
     </div>
 </template>
 
