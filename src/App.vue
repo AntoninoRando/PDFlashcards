@@ -14,6 +14,8 @@ interface Flashcard {
     pageRef: number;
     reviewedAt: Date;
     ease: number;
+    interval: number;
+    learningPhase: boolean;
     subParts: any[];
     [key: string]: any;
 }

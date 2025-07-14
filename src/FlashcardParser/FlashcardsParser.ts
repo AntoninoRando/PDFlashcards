@@ -105,6 +105,8 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): void {
                 now.getTime() - randomHours * 60 * 60 * 1000 - randomMinutes * 60 * 1000
             ),
             ease: 230,
+            interval: 0,
+            learningPhase: true,
         };
         if (command) {
             card.subParts.push({ ...command.toJson(), subParts: [] });
