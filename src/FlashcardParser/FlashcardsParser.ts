@@ -136,7 +136,7 @@ function parseCategory(
 
 function parseRecallData(recallString: string): { reviewedAt: Date | null, ease: number, interval: number, learningPhase: boolean } | null {
     try {
-        // Expected format: "2025-01-15T10:30:00.000Z, 230, 1, false"
+        // Expected format: "2025-01-15T10:30:00.000Z, 5, 1.0, false"
         const parts = recallString.split(',').map(part => part.trim());
         
         if (parts.length !== 4) {
@@ -145,7 +145,7 @@ function parseRecallData(recallString: string): { reviewedAt: Date | null, ease:
         }
 
         const reviewedAt = new Date(parts[0]);
-        const ease = parseInt(parts[1]);
+        const ease = parseFloat(parts[1]);
         const interval = parseFloat(parts[2]);
         const learningPhase = parts[3].toLowerCase() === 'true';
 
@@ -154,8 +154,8 @@ function parseRecallData(recallString: string): { reviewedAt: Date | null, ease:
             console.error(`[parseRecallData] Invalid date: ${parts[0]}`);
             return null;
         }
-        if (isNaN(ease) || ease < 130) {
-            console.error(`[parseRecallData] Invalid ease: ${parts[1]}`);
+        if (isNaN(ease) || ease < 1 || ease > 10) {
+            console.error(`[parseRecallData] Invalid difficulty: ${parts[1]}`);
             return null;
         }
         if (isNaN(interval) || interval < 0) {
@@ -232,8 +232,9 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): boolea
             text: text,
             subParts: [],
             reviewedAt: null,
-            ease: 230,
-            interval: 0,
+            // FSRS initial difficulty and stability
+            ease: 5,
+            interval: 0.5,
             learningPhase: true,
             nextReviewAt: new Date(), // Default to now, will be updated if recall data follows
         };
