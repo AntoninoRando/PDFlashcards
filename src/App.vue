@@ -166,7 +166,7 @@ onUnmounted(() => {
       <div class="logo-container">
         <img src="@/assets/WebLogo.svg" alt="Logo" class="logo" />
       </div>
-      
+
       <nav class="navbar" :class="{ 'sticky': isScrolled }">
         <div class="navbar-buttons">
           <button class="nav-btn">PDF</button>
@@ -234,8 +234,9 @@ onUnmounted(() => {
 /* Logo Banner */
 .logo-banner {
   position: relative;
-  width: 100%;
+  width: calc(100% - 2rem);
   height: 120px;
+  margin: 1rem;
   background: linear-gradient(135deg, rgba(237, 246, 249, 0.9) 0%, rgba(237, 246, 249, 0.9) 100%);
   backdrop-filter: blur(10px);
   display: flex;
@@ -246,12 +247,14 @@ onUnmounted(() => {
   transform: translateY(0);
   opacity: 1;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
 }
 
 .logo-banner.hidden {
   transform: translateY(-100%);
   opacity: 0;
   height: 0;
+  margin: 0;
 }
 
 .dots-pattern {
@@ -268,6 +271,7 @@ onUnmounted(() => {
   transition: opacity 0.3s ease;
   --mouse-x: 0px;
   --mouse-y: 0px;
+  border-radius: 16px;
 }
 
 .dots-pattern::before {
@@ -286,6 +290,7 @@ onUnmounted(() => {
   transition: opacity 0.2s ease;
   -webkit-mask: radial-gradient(circle 120px at var(--mouse-x) var(--mouse-y), black 0%, black 50%, transparent 70%);
   mask: radial-gradient(circle 120px at var(--mouse-x) var(--mouse-y), black 0%, black 50%, transparent 70%);
+  border-radius: 16px;
 }
 
 .logo-banner:hover .dots-pattern::before {
@@ -332,11 +337,11 @@ onUnmounted(() => {
 
 .progress-container {
   position: relative;
-  width: 100%;
-  height: 20px;
-  background-color: #e5e7eb;
-  margin-top: 4px;
-  border-radius: 10px;
+  width: calc(100% - 2rem);
+  height: 3px;
+  background-color: transparent;
+  margin: 0 1rem;
+  border-radius: 2px;
   overflow: hidden;
 }
 
@@ -348,16 +353,11 @@ onUnmounted(() => {
 
 .progress-label {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: -20px;
   right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #000;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
   pointer-events: none;
 }
 
@@ -472,6 +472,8 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .logo-banner {
     height: 80px;
+    margin: 0.5rem;
+    width: calc(100% - 1rem);
   }
 
   .logo {
@@ -507,7 +509,9 @@ onUnmounted(() => {
   }
 
   .progress-container {
-    height: 16px;
+    height: 2px;
+    margin: 0 0.5rem;
+    width: calc(100% - 1rem);
   }
 }
 

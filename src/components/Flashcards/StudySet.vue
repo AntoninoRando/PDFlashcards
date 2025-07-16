@@ -178,6 +178,9 @@ const point = (what: string) => {
 
 const handleKeydown = (event: KeyboardEvent) => {
   switch (event.key) {
+    case ' ':
+      revealCurrent();
+      break;
     case '0':
       hideCurrent('hide');
       break;
