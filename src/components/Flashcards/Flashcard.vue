@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import RecallOptions from './RecallOptions.vue'
-import { createApp, ref, computed, onMounted } from 'vue'
+import { createApp, ref, computed, onMounted, watch } from 'vue'
 
 const emit = defineEmits<{
   reveal: [flashcard: any]
@@ -67,26 +67,37 @@ function point(what: string) {
   recallOptions.value?.point(what)
 }
 
-onMounted(() => {
-  const subpartsElement = subparts.value as HTMLElement
-  console.log(`[Flashcard] Parsing subparts: ${JSON.stringify(props.flashcard)}`)
-  props.flashcard.subParts.forEach((sub: any) => {
-    if (!sub.vueComponent) return
+const toUnmount = [];
 
-    console.log(`[Flashcard] Adding Vue component for subpart ${sub.name}`)
+function showSubparts() {
+    toUnmount.forEach((app) => app.unmount());
+    const subpartsElement = subparts.value as HTMLElement
+    subpartsElement.innerHTML = '';
+    console.log(`[Flashcard] Parsing subparts: ${JSON.stringify(props.flashcard)}`)
+    props.flashcard.subParts.forEach((sub: any) => {
+        if (!sub.vueComponent) return
 
-    const componentContainer = document.createElement('div')
-    componentContainer.className = 'subpart-container'
-    componentContainer.id = `subpart-${sub.name || Math.random().toString(36)}`
+        console.log(`[Flashcard] Adding Vue component for subpart ${sub.name}`)
 
-    subpartsElement.appendChild(componentContainer)
+        const componentContainer = document.createElement('div')
+        componentContainer.className = 'subpart-container'
+        componentContainer.id = `subpart-${sub.name || Math.random().toString(36)}`
 
-    const app = createApp(sub.vueComponent, { config: sub })
-    app.mount(componentContainer)
-  })
+        subpartsElement.appendChild(componentContainer)
+
+        const app = createApp(sub.vueComponent, { config: sub })
+        toUnmount.push(app);
+        app.mount(componentContainer)
+    })
+}
+
+watch(revealed, async (oldV, newV) => {
+    showSubparts();
 })
 
-defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point })
+onMounted(showSubparts)
+
+defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSubparts })
 </script>
 
 <template>
@@ -97,10 +108,10 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point })
                 :style="`width: ${flashcardSize}; border-radius: ${flashcardsBorders};`">
                 {{ flashcard.text }}
             </button>
-            <div ref="subparts" id="subparts"></div>
         </div>
         <RecallOptions v-else ref="recallOptions" class="buttons-container" :class="{ hiding: hidingRecallOptions }"
             @optionSelected="option => hide(option)" />
+        <div ref="subparts" id="subparts"></div>
     </div>
 </template>
 
@@ -138,9 +149,9 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point })
 .flashcard-button {
     height: 100%;
     background: rgba(255, 255, 255, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.4);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     font-size: 15px;
     font-family: "JetBrains Mono", monospace;
     font-optical-sizing: auto;

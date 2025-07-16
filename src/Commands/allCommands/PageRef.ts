@@ -1,8 +1,12 @@
+import VuePagRef from "../allCommandsComponent/VuePagRef.vue";
+
 export class PageRef {
   public pageRef: number;
   public allPageRefs: number[];
+  public pagesString: string;
 
-  constructor(pageRef: number | string) {
+  constructor(pageRef: string) {
+    this.pagesString = pageRef;
     this.allPageRefs = this.parsePageRefs(pageRef?.toString() || '0');
     this.pageRef = this.allPageRefs[0] || 0;
   }
@@ -37,9 +41,10 @@ export class PageRef {
   public toJson(): IPageRef {
     return {
       name: "pageref",
-      vueComponent: null,
+      vueComponent: VuePagRef,
       ref: this.pageRef,
       allRefs: this.allPageRefs,
+      pagesString: this.pagesString
     };
   }
 }
@@ -48,5 +53,6 @@ export interface IPageRef {
   name: string;
   vueComponent: any;
   ref: number;
-  allRefs: number[]
+  allRefs: number[];
+  pagesString: string;
 }

@@ -62,7 +62,10 @@ defineExpose({
 .revealed-button {
   height: 100%;
   width: 20%;
-  background-color: rgb(231, 231, 231);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 1;
   border-color: rgb(255, 255, 255);
   border-width: 1px 0px 1px 1px;
   transition: all 0.2s ease;

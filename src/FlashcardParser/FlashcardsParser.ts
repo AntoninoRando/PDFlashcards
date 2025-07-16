@@ -1,6 +1,8 @@
 import { Header } from "@/commands/allCommands/Header";
 import { CommandsFactory } from "@/commands/CommandsFactory";
 
+const commentSymbol: string = '//'
+
 interface IHeader {
     line: number;
     header: Header;
@@ -87,7 +89,14 @@ export function parseStudyset(lines: string[]): IStudySet | null {
             }
         }
 
-        return studySet;
+        // Return a copy of studySet excluding flashcards with text starting with //
+        const filteredStudySet: IStudySet = {
+          ...studySet,
+          flashcards: studySet.flashcards.filter(
+            (card) => !card.text.trim().startsWith(commentSymbol)
+          ),
+        };
+        return filteredStudySet;
     } catch (error) {
         console.error(`[parseStudySet] ERROR: ${error}`);
         return null;
@@ -148,9 +157,10 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): boolea
             headers: [],
             text: text,
             subParts: [],
-            reviewedAt: new Date(
-                now.getTime() - randomHours * 60 * 60 * 1000 - randomMinutes * 60 * 1000
-            ),
+            // reviewedAt: new Date(
+            //     now.getTime() - randomHours * 60 * 60 * 1000 - randomMinutes * 60 * 1000
+            // ),
+            reviewedAt: null,
             ease: 230,
             interval: 0,
             learningPhase: true,
