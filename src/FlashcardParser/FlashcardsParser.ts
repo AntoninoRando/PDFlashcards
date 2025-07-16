@@ -13,7 +13,7 @@ interface IFlashcard {
     headers: string[];
     text: string;
     subParts: ISubPart[];
-    reviewedAt: Date;
+    reviewedAt: Date | null;
     ease: number;
     interval: number;
     learningPhase: boolean;
@@ -35,6 +35,7 @@ export interface IStudySet {
     aliases: IAlias[];
     headers: IHeader[];
     studiedCards: number;
+    originalLines: string[];
 }
 
 interface LineDescriptor {
@@ -52,17 +53,19 @@ const categories = {
 } as const;
 
 export function parseStudyset(lines: string[]): IStudySet | null {
+    const original = lines.filter((l) => l.trim() !== "");
     const studySet: IStudySet = {
         title: "",
         flashcards: [],
         resources: [],
         aliases: [],
         headers: [],
-        studiedCards: 0
+        studiedCards: 0,
+        originalLines: [...original]
     };
 
     try {
-        lines = lines.filter((l) => l.trim() !== "");
+        lines = [...original];
         const categoriesValues = Object.values(categories);
         let category = "";
 

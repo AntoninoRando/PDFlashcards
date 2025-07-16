@@ -3,12 +3,9 @@
         <div class="header-section" v-if="!showingFlashcard">
             <h3>{{ studySet.title }}</h3>
             <h1>{{ headerBreadcrumb }}</h1>
-            <!-- <button @click="downloadSet" class="save-btn">
+            <button @click="downloadSet" class="save-btn">
                 Save
             </button>
-            <button  class="change-btn">
-                Change
-            </button> -->
         </div>
         <div class="cards-section">
             <div class="cards-section-row">
@@ -125,36 +122,25 @@ const updateCards = (flashcardObj: any) => {
 };
 
 const downloadSet = () => {
-    if (!props.flashcards || props.flashcards.length === 0) {
-        alert('No flashcards to download!');
+    if (!props.studySet || !props.studySet.originalLines) {
+        alert('No study set to save!');
         return;
     }
 
-    // Format flashcards data as text
-    let content = `[Title]\n${props.studySet.title}\n\n`;
+    const lines: string[] = [...props.studySet.originalLines];
+    const cardsSorted = [...props.flashcards].sort((a: any, b: any) => b.line - a.line);
 
-    content += `[Resources]\n`;
-    props.resources.forEach((resource: string) => {
-        content += `${resource}\n`;
-    });
-    content += '\n';
+    for (let i = 0; i < cardsSorted.length; i++) {
+        const card = cardsSorted[i];
+        if (!card.reviewedAt) continue;
 
-    content += `[Cards]\n`;
-    props.flashcards.forEach((card: any, index: number) => {
-        content += `${card.frontText} .. ${card.pageRef}\n\t\\reviewedAt ${card.reviewedAt}\n`;
-        if (card.alias) {
-            card.alias.forEach((alias: string) => {
-                content += `\t\\alias ${alias}\n`;
-            });
-        }
-        if (card.tag) {
-            card.tag.forEach((tag: string) => {
-                content += `\t\\tag ${tag}\n`;
-            });
-        }
-    });
+        const nextLine = i === 0 ? lines.length : cardsSorted[i - 1].line;
+        const command = `\t*** ${new Date(card.reviewedAt).toISOString()}, ${card.ease}, ${card.interval}, ${card.learningPhase}`;
+        lines.splice(nextLine, 0, command);
+    }
 
-    // Create and download the file
+    const content = lines.join('\n');
+
     const blob = new Blob([content], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');

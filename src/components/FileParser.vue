@@ -47,7 +47,7 @@ function parseFileContent() {
     return
   }
 
-  const lines = fileContent.value.split('\n').filter((l) => l.trim() !== '')
+  const lines = fileContent.value.split('\n')
   console.log('Start studyset parsing')
   const studyset = parseStudyset(lines)
   if (studyset == null) {
