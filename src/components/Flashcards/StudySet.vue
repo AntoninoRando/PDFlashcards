@@ -85,7 +85,7 @@ const reveal = (flashcard: any) => {
 };
 
 const updateCards = (flashcardObj: any) => {
-    console.log(JSON.stringify(flashcardObj));
+    console.log(`update after card: ${JSON.stringify(flashcardObj)}`);
     const { flashcard, recall } = flashcardObj;
 
     if (!flashcard || recall === 'hide') return;
@@ -97,11 +97,25 @@ const updateCards = (flashcardObj: any) => {
         'ok': 3,
     };
 
-    const res = FlashcardsScheduler.nextInterval(grades[recall] ?? 0, flashcard.interval, flashcard.ease);
-    flashcard.interval = res.interval;
-    flashcard.ease = res.ease;
-    flashcard.learningPhase = false;
-    flashcard.reviewedAt = new Date(Date.now() + flashcard.interval * 24 * 60 * 60 * 1000);
+    const retrievalSuccess = grades[recall] ?? 0;
+
+    // Find the original flashcard in props.flashcards to update it directly
+    const originalFlashcard = props.flashcards.find((card: any) =>
+        card.text === flashcard.text && card.line === flashcard.line
+    );
+
+    if (!originalFlashcard) {
+        console.error("Could not find original flashcard to update");
+        return;
+    }
+
+    // Use the scheduler's updateFlashcardAfterReview method on the original flashcard
+    scheduler.value.updateFlashcardAfterReview(originalFlashcard, retrievalSuccess);
+
+    // Update learning phase status
+    originalFlashcard.learningPhase = originalFlashcard.interval < 1;
+
+    console.log(`Card updated: reviewedAt=${originalFlashcard.reviewedAt}, nextReviewAt=${originalFlashcard.nextReviewAt}, interval=${originalFlashcard.interval}, ease=${originalFlashcard.ease}`);
 
     const n = props.flashcards.filter((f: any) => f !== undefined).length;
     if (n === 0) {
@@ -114,11 +128,22 @@ const updateCards = (flashcardObj: any) => {
     }
 
     console.log(`Update cards; current cards: ${n}`);
+
+    // Reset and repopulate scheduler with updated flashcards
     scheduler.value.resetCards();
     scheduler.value.addMoreFlashcards(props.flashcards);
-    scheduler.value.sortCards();
-    studyCard.value = scheduler.value.flashcards[0];
-    emit('hide', flashcard);
+
+    // Get next due card using scheduler's scheduling method
+    const dueCards = scheduler.value.scheduleFlashcards();
+    studyCard.value = dueCards.length > 0 ? dueCards[0] : null;
+
+    if (studyCard.value) {
+        console.log(`Next card: ${studyCard.value.text}, due: ${studyCard.value.nextReviewAt}`);
+    } else {
+        console.log("No more cards due for review");
+    }
+
+    emit('hide', originalFlashcard);
 };
 
 const downloadSet = () => {
@@ -128,15 +153,33 @@ const downloadSet = () => {
     }
 
     const lines: string[] = [...props.studySet.originalLines];
-    const cardsSorted = [...props.flashcards].sort((a: any, b: any) => b.line - a.line);
+
+    // Debug: Log all flashcards and their reviewedAt status
+    console.log('All flashcards:');
+    props.flashcards.forEach((card: any, index: number) => {
+        console.log(`Card ${index}: "${card.text}" - reviewedAt: ${card.reviewedAt} - interval: ${card.interval} - ease: ${card.ease}`);
+    });
+
+    // Filter cards that have been reviewed (have reviewedAt set)
+    const reviewedCards = props.flashcards.filter((card: any) => card.reviewedAt !== null);
+    console.log(`Found ${reviewedCards.length} reviewed cards to save out of ${props.flashcards.length} total cards`);
+
+    if (reviewedCards.length === 0) {
+        alert('No reviewed cards to save! Make sure you have studied some cards first.');
+        return;
+    }
+
+    // Sort by line number in descending order to avoid index shifting issues
+    const cardsSorted = [...reviewedCards].sort((a: any, b: any) => b.line - a.line);
 
     for (let i = 0; i < cardsSorted.length; i++) {
         const card = cardsSorted[i];
-        if (!card.reviewedAt) continue;
+        console.log(`Saving card: "${card.text}" - reviewedAt: ${card.reviewedAt} - line: ${card.line}`);
 
-        const nextLine = i === 0 ? lines.length : cardsSorted[i - 1].line;
-        const command = `\t*** ${new Date(card.reviewedAt).toISOString()}, ${card.ease}, ${card.interval}, ${card.learningPhase}`;
-        lines.splice(nextLine, 0, command);
+        // Insert the save command after the card line
+        const insertIndex = card.line + 1;
+        const command = `\t*** ${card.reviewedAt.toISOString()}, ${card.ease}, ${card.interval}, ${card.learningPhase}`;
+        lines.splice(insertIndex, 0, command);
     }
 
     const content = lines.join('\n');
@@ -156,15 +199,21 @@ const downloadSet = () => {
 };
 
 const point = (what: string) => {
-    currentFlashcardObject.value.point(what);
+    currentFlashcardObject.value?.point(what);
 }
 
 // Initialize scheduler on mount
 onMounted(() => {
     if (props.flashcards && props.flashcards.length > 0) {
+        scheduler.value.resetCards();
         scheduler.value.addMoreFlashcards(props.flashcards);
-        scheduler.value.sortCards();
-        studyCard.value = scheduler.value.flashcards[0];
+
+        // Get the first due card
+        const dueCards = scheduler.value.scheduleFlashcards();
+        studyCard.value = dueCards.length > 0 ? dueCards[0] : null;
+
+        console.log(`Initialized with ${props.flashcards.length} flashcards`);
+        console.log(`First card: ${studyCard.value?.text || 'None'}`);
     }
 });
 

@@ -17,6 +17,7 @@ interface IFlashcard {
     ease: number;
     interval: number;
     learningPhase: boolean;
+    nextReviewAt: Date;
 }
 
 interface ISubPart {
@@ -133,9 +134,83 @@ function parseCategory(
     return true;
 }
 
+function parseRecallData(recallString: string): { reviewedAt: Date | null, ease: number, interval: number, learningPhase: boolean } | null {
+    try {
+        // Expected format: "2025-01-15T10:30:00.000Z, 230, 1, false"
+        const parts = recallString.split(',').map(part => part.trim());
+        
+        if (parts.length !== 4) {
+            console.error(`[parseRecallData] Invalid recall data format: expected 4 parts, got ${parts.length}`);
+            return null;
+        }
+
+        const reviewedAt = new Date(parts[0]);
+        const ease = parseInt(parts[1]);
+        const interval = parseFloat(parts[2]);
+        const learningPhase = parts[3].toLowerCase() === 'true';
+
+        // Validate parsed data
+        if (isNaN(reviewedAt.getTime())) {
+            console.error(`[parseRecallData] Invalid date: ${parts[0]}`);
+            return null;
+        }
+        if (isNaN(ease) || ease < 130) {
+            console.error(`[parseRecallData] Invalid ease: ${parts[1]}`);
+            return null;
+        }
+        if (isNaN(interval) || interval < 0) {
+            console.error(`[parseRecallData] Invalid interval: ${parts[2]}`);
+            return null;
+        }
+
+        console.log(`[parseRecallData] Parsed recall data: reviewedAt=${reviewedAt.toISOString()}, ease=${ease}, interval=${interval}, learningPhase=${learningPhase}`);
+        
+        return {
+            reviewedAt,
+            ease,
+            interval,
+            learningPhase
+        };
+    } catch (error) {
+        console.error(`[parseRecallData] Error parsing recall data: ${error}`);
+        return null;
+    }
+}
+
 function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): boolean {
     const { trimmedLine: line, index: i, tabs } = lineDescriptor;
     console.log(`[studySet] Reached Line: ${line}; Tabs ${tabs}`);
+    
+    // Check if this is a recall data command
+    if (tabs === 1 && line.startsWith("***") && studySet.flashcards.length > 0) {
+        const recallDataString = line.substring(3).trim(); // Remove "***" prefix
+        const recallData = parseRecallData(recallDataString);
+        
+        if (recallData) {
+            // Apply recall data to the last flashcard
+            const lastCard = studySet.flashcards[studySet.flashcards.length - 1];
+            lastCard.reviewedAt = recallData.reviewedAt;
+            lastCard.ease = recallData.ease;
+            lastCard.interval = recallData.interval;
+            lastCard.learningPhase = recallData.learningPhase;
+            
+            // Calculate nextReviewAt based on reviewedAt and interval
+            if (lastCard.reviewedAt) {
+                lastCard.nextReviewAt = new Date(
+                    lastCard.reviewedAt.getTime() + recallData.interval * 24 * 60 * 60 * 1000
+                );
+            }
+            
+            console.log(`[studySet] Applied recall data to card: "${lastCard.text}"`);
+            console.log(`[studySet] - reviewedAt: ${lastCard.reviewedAt?.toISOString()}`);
+            console.log(`[studySet] - nextReviewAt: ${lastCard.nextReviewAt?.toISOString()}`);
+            console.log(`[studySet] - ease: ${lastCard.ease}, interval: ${lastCard.interval}, learningPhase: ${lastCard.learningPhase}`);
+        } else {
+            console.error(`[studySet] Failed to parse recall data: "${recallDataString}"`);
+        }
+        
+        return true;
+    }
     
     // New card
     if (tabs === 0) {
@@ -151,22 +226,16 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): boolea
             text = line;
         }
 
-        const now = new Date();
-        const randomHours = Math.floor(Math.random() * 24); // 0-23 hours
-        const randomMinutes = Math.floor(Math.random() * 60); // 0-59 minutes
-
         const card: IFlashcard = {
             line: i,
             headers: [],
             text: text,
             subParts: [],
-            // reviewedAt: new Date(
-            //     now.getTime() - randomHours * 60 * 60 * 1000 - randomMinutes * 60 * 1000
-            // ),
             reviewedAt: null,
             ease: 230,
             interval: 0,
             learningPhase: true,
+            nextReviewAt: new Date(), // Default to now, will be updated if recall data follows
         };
 
         // Fix header parsing logic - reverse the order and correct the level comparison
