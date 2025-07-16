@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import FlashcardsScheduler from '@/flashcardsScheduler';
 import Flashcard from './Flashcard.vue';
 
@@ -176,8 +176,29 @@ const point = (what: string) => {
   currentFlashcardObject.value?.point(what);
 }
 
+const handleKeydown = (event: KeyboardEvent) => {
+  switch (event.key) {
+    case '0':
+      hideCurrent('hide');
+      break;
+    case '1':
+      hideCurrent('forgot');
+      break;
+    case '2':
+      hideCurrent('bad');
+      break;
+    case '3':
+      hideCurrent('not bad');
+      break;
+    case '4':
+      hideCurrent('ok');
+      break;
+  }
+};
+
 // Initialize scheduler on mount
 onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
   if (props.flashcards && props.flashcards.length > 0) {
     scheduler.value.resetCards();
     scheduler.value.addMoreFlashcards(props.flashcards);
@@ -189,6 +210,10 @@ onMounted(() => {
     console.log(`Initialized with ${props.flashcards.length} flashcards`);
     console.log(`First card: ${studyCard.value?.text || 'None'}`);
   }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown);
 });
 
 // Expose methods to parent component
