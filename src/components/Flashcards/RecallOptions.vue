@@ -1,7 +1,7 @@
 <template>
-  <div>
+  <div class="all-buttons">
     <button class="revealed-button" :class="{ pressed: pressedButton === 'hide', pointed: pointedButton === 'hide' }"
-      style="border-radius: 7px 0px 0px 7px" @click="() => chooseRecallOption('hide')">
+      @click="() => chooseRecallOption('hide')">
       Hide
     </button>
     <button class="revealed-button" :class="{
@@ -19,7 +19,7 @@
       🙂 Fine
     </button>
     <button class="revealed-button" :class="{ pressed: pressedButton === 'ok', pointed: pointedButton === 'ok' }"
-      style="border-radius: 0px 7px 7px 0px; border-width: 1px 1px 1px 1px" @click="() => chooseRecallOption('ok')">
+      @click="() => chooseRecallOption('ok')">
       👍🏼 Ok
     </button>
   </div>
@@ -59,29 +59,56 @@ defineExpose({
 <style scoped>
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
 
+.all-buttons {
+  display: flex;
+  flex-direction: row;
+  column-gap: 20px;
+}
+
 .revealed-button {
-  height: 100%;
-  width: 20%;
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  opacity: 1;
-  border-color: rgb(255, 255, 255);
-  border-width: 1px 0px 1px 1px;
+  height: 100px;
+  width: 100px;
   transition: all 0.2s ease;
+
+
+  align-items: center;
+  appearance: none;
+  background-color: #FCFCFD;
+  border-radius: 4px;
+  border-width: 0;
+  box-shadow: rgba(45, 35, 66, 0.4) 0 2px 4px, rgba(45, 35, 66, 0.3) 0 7px 13px -3px, #D6D6E7 0 -3px 0 inset;
+  box-sizing: border-box;
+  color: #36395A;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: "JetBrains Mono", monospace;
+  justify-content: center;
+  line-height: 1;
+  list-style: none;
+  overflow: hidden;
+  padding-left: 16px;
+  padding-right: 16px;
+  position: relative;
+  text-align: left;
+  text-decoration: none;
+  transition: box-shadow .15s, transform .15s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  white-space: nowrap;
+  will-change: box-shadow, transform;
+  font-size: 13px;
 }
 
 .revealed-button:hover {
   border-color: rgb(180, 0, 0) !important;
   border-width: 3px !important;
   transition: all 0.2s ease;
-  transform: translateY(-1px);
 }
 
 .revealed-button.pressed {
-  background-color: #4caf50;
+  background-color: rgb(180, 0, 0);
   color: white;
-  border-color: #45a049;
   transform: scale(1.05);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   z-index: 10;
