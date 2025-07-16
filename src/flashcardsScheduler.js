@@ -3,9 +3,10 @@ export default class FlashcardsScheduler {
     this.flashcards = [];
     this.initialLearningPhaseFixedSteps = ["30m", "2h", "2d"];
     this.easyIntervalOnExitingLearningMode = "4d";
-    this.exponentialPhaseStartingEase = 230; // Percentage
-    this.easyBonus = 130; // Percentage
-    this.intervalMultiplier = 100; // Percentage
+    // Default difficulty used by the Free Spaced Repetition Scheduler (FSRS)
+    // Difficulty is scaled between 1 and 10. 5 represents a medium difficulty.
+    this.defaultDifficulty = 5;
+    // Maximum allowed interval expressed in days
     this.maximumIntervals = 1825; // Days
   }
 
@@ -18,7 +19,8 @@ export default class FlashcardsScheduler {
     const defaultFlashcard = {
       reviewedAt: null,
       nextReviewAt: new Date(),
-      ease: this.exponentialPhaseStartingEase,
+      // 'ease' is used to keep track of FSRS difficulty
+      ease: this.defaultDifficulty,
       interval: 0,
       retrievalSuccess: null,
       reviewCount: 0,
@@ -51,6 +53,7 @@ export default class FlashcardsScheduler {
   // Update flashcard after review
   updateFlashcardAfterReview(flashcard, retrievalSuccess) {
     const now = new Date();
+    const lastReview = flashcard.reviewedAt;
     flashcard.reviewedAt = now;
     flashcard.retrievalSuccess = retrievalSuccess;
     flashcard.reviewCount = (flashcard.reviewCount || 0) + 1;
@@ -59,7 +62,8 @@ export default class FlashcardsScheduler {
     const result = FlashcardsScheduler.nextInterval(
       retrievalSuccess,
       flashcard.interval || 0,
-      flashcard.ease || this.exponentialPhaseStartingEase
+      flashcard.ease ?? this.defaultDifficulty,
+      lastReview
     );
 
     flashcard.interval = result.interval;
@@ -181,38 +185,68 @@ export default class FlashcardsScheduler {
     return Math.random() * 0.1 + 0.95; // Random noise between 0.95 and 1.05
   }
 
-  static nextInterval(retrievalSuccess, currentInterval = 0, ease = 250) {
-    const minEase = 130;
-    let newEase = ease;
-    let interval = currentInterval;
+  static nextInterval(
+    retrievalSuccess,
+    currentStability = 0,
+    difficulty = 5,
+    lastReviewDate = null
+  ) {
+    // Implementation of a simplified Free Spaced Repetition Scheduler (FSRS)
+    // https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm
+    const now = new Date();
+    const elapsedDays = lastReviewDate
+      ? (now.getTime() - lastReviewDate.getTime()) / (1000 * 60 * 60 * 24)
+      : 0;
 
-    if (retrievalSuccess === 0) {
-      // Again/Failed - reset to 1 day, decrease ease significantly
-      interval = 1;
-      newEase = Math.max(minEase, ease - 20);
-    } else if (retrievalSuccess === 1) {
-      // Hard - increase slightly, decrease ease
-      interval = Math.max(1, currentInterval * 1.2);
-      newEase = Math.max(minEase, ease - 15);
-    } else if (retrievalSuccess === 2) {
-      // Good - normal interval based on ease
-      interval = Math.max(
-        1,
-        currentInterval === 0 ? 1 : currentInterval * (ease / 100)
-      );
-    } else if (retrievalSuccess === 3) {
-      // Easy - longer interval, increase ease
-      newEase = ease + 15;
-      interval = Math.max(
-        1,
-        currentInterval === 0 ? 4 : currentInterval * (ease / 100) * 1.3
-      );
+    const retrievability = currentStability
+      ? Math.exp(Math.log(0.9) * (elapsedDays / currentStability))
+      : 0;
+
+    // weights tuned roughly according to the public implementation
+    const AGAIN_DIFFICULTY_DELTA = 0.8;
+    const HARD_DIFFICULTY_DELTA = 0.4;
+    const GOOD_DIFFICULTY_DELTA = -0.1;
+    const EASY_DIFFICULTY_DELTA = -0.2;
+
+    const HARD_FACTOR = 1.2;
+    const GOOD_FACTOR = 1.8;
+    const EASY_FACTOR = 2.5;
+
+    let newDifficulty = difficulty;
+    let newStability = currentStability;
+
+    switch (retrievalSuccess) {
+      case 0: // Again
+        newDifficulty = Math.min(10, difficulty + AGAIN_DIFFICULTY_DELTA);
+        newStability = 0.5; // restart learning
+        break;
+      case 1: // Hard
+        newDifficulty = Math.min(10, difficulty + HARD_DIFFICULTY_DELTA);
+        newStability =
+          currentStability *
+          (1 + HARD_FACTOR * (10 - difficulty) * (1 - retrievability));
+        break;
+      case 2: // Good
+        newDifficulty = Math.max(1, difficulty + GOOD_DIFFICULTY_DELTA);
+        newStability =
+          currentStability *
+          (1 + GOOD_FACTOR * (10 - difficulty) * (1 - retrievability));
+        break;
+      case 3: // Easy
+        newDifficulty = Math.max(1, difficulty + EASY_DIFFICULTY_DELTA);
+        newStability =
+          currentStability *
+          (1 + EASY_FACTOR * (10 - difficulty) * (1 - retrievability));
+        break;
     }
 
-    // Apply noise and constraints
-    interval = interval * FlashcardsScheduler.intervalNoise();
-    interval = Math.min(Math.round(interval), 1825);
+    newStability = Math.min(
+      Math.max(newStability * FlashcardsScheduler.intervalNoise(), 0.5),
+      1825
+    );
 
-    return { interval, ease: newEase };
+    const interval = Math.round(newStability);
+
+    return { interval, ease: newDifficulty, stability: newStability };
   }
 }
