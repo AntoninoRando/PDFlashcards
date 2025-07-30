@@ -59,7 +59,6 @@ function showPage(flashcard: Flashcard | null) {
   }
 
   pageToShow.value = pageRefNum
-  console.log(`Showing page ${pageToShow.value}`)
   cardRevealed.value = true
 }
 
@@ -79,7 +78,6 @@ function addToCache(item: FileUploadItem) {
   }
 
   pdfCache[item.file.name] = item.url
-  console.log(`Added to cache: ${item.file.name}; ${item.url}`)
 }
 
 function handleScroll() {
@@ -96,7 +94,7 @@ function handleMouseMove(event: MouseEvent) {
 }
 
 function commandRecognized(command: string) {
-  console.log('Executing action for command ' + command)
+  console.log(`[commands] Execute '${command}'`)
   command = command.toLowerCase().trim()
 
   if (command == 'show') {
@@ -124,9 +122,9 @@ function commandRecognized(command: string) {
   }
 }
 
-function highlightPointing(command: string) {
-  console.log('Passing over: ' + command);
-  studySetComponent.value.point(command);
+function highlightPointing(what: string) {
+  console.log(`[gestures] Passing over '${what}'`);
+  studySetComponent.value.point(what);
 }
 
 const isPointing = computed(() => gestureRecognizer.value?.pointing || false)

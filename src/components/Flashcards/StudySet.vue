@@ -59,7 +59,6 @@ const reveal = (flashcard: any) => {
 };
 
 const updateCards = (flashcardObj: any) => {
-  console.log(`update after card: ${JSON.stringify(flashcardObj)}`);
   const { flashcard, recall } = flashcardObj;
 
   if (!flashcard || recall === 'hide') return;
@@ -85,11 +84,15 @@ const updateCards = (flashcardObj: any) => {
 
   // Use the scheduler's updateFlashcardAfterReview method on the original flashcard
   scheduler.value.updateFlashcardAfterReview(originalFlashcard, retrievalSuccess);
-
   // Update learning phase status
   originalFlashcard.learningPhase = originalFlashcard.interval < 1;
 
-  console.log(`Card updated: reviewedAt=${originalFlashcard.reviewedAt}, nextReviewAt=${originalFlashcard.nextReviewAt}, interval=${originalFlashcard.interval}, ease=${originalFlashcard.ease}`);
+  console.log(
+    'Card updated:\n' +
+    `\t-reviewedAt=${originalFlashcard.reviewedAt};\n` +
+    `\t-nextReviewAt=${originalFlashcard.nextReviewAt};\n` +
+    `\t-interval=${originalFlashcard.interval};\n`+
+    `\t-ease=${originalFlashcard.ease},`);
 
   const n = props.flashcards.filter((f: any) => f !== undefined).length;
   if (n === 0) {
@@ -100,8 +103,6 @@ const updateCards = (flashcardObj: any) => {
   if (props.studySet) {
     props.studySet.studiedCards = (props.studySet.studiedCards || 0) + 1;
   }
-
-  console.log(`Update cards; current cards: ${n}`);
 
   // Reset and repopulate scheduler with updated flashcards
   scheduler.value.resetCards();

@@ -73,11 +73,8 @@ function showSubparts() {
   toUnmount.forEach((app) => app.unmount());
   const subpartsElement = subparts.value as HTMLElement
   subpartsElement.innerHTML = '';
-  console.log(`[Flashcard] Parsing subparts: ${JSON.stringify(props.flashcard)}`)
   props.flashcard.subParts.forEach((sub: any) => {
     if (!sub.vueComponent) return
-
-    console.log(`[Flashcard] Adding Vue component for subpart ${sub.name}`)
 
     const componentContainer = document.createElement('div')
     componentContainer.className = 'subpart-container'
@@ -167,21 +164,20 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
   color: #36395A;
   cursor: pointer;
   display: inline-flex;
-  font-family: "JetBrains Mono", monospace;
   justify-content: center;
-  line-height: 1;
+  line-height: 1.5;
   list-style: none;
   overflow: hidden;
   padding-left: 16px;
   padding-right: 16px;
   position: relative;
-  text-align: left;
+  text-align: center;
   text-decoration: none;
   transition: box-shadow .15s, transform .15s;
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
-  white-space: nowrap;
+  white-space: pre-wrap;
   will-change: box-shadow, transform;
 }
 

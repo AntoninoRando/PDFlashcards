@@ -133,17 +133,19 @@ export default class FlashcardsScheduler {
   // Sort all cards for display/debugging purposes
   sortCards() {
     const n = this.flashcards.filter((f) => f !== undefined).length;
-    console.log(`Sorting ${n} flashcard(s) by priority`);
+    console.log(`[scheuduler] Sorting ${n} flashcard(s) by priority`);
 
     this.flashcards = this.prioritizeFlashcards(this.flashcards);
 
     if (n > 0) {
-      console.log(`First flashcard:
-        - frontText: ${this.flashcards[0].text};
-        - reviewedAt: ${this.flashcards[0].reviewedAt};
-        - nextReviewAt: ${this.flashcards[0].nextReviewAt};
-        - retrievalSuccess: ${this.flashcards[0].retrievalSuccess};
-        - interval: ${this.flashcards[0].interval} days`);
+      console.log(
+        "[scheduler] First flashcard:\n" +
+          `\t- frontText: ${this.flashcards[0].text};\n` +
+          `\t- reviewedAt: ${this.flashcards[0].reviewedAt};\n` +
+          `\t- nextReviewAt: ${this.flashcards[0].nextReviewAt};\n` +
+          `\t- retrievalSuccess: ${this.flashcards[0].retrievalSuccess};\n` +
+          `\t- interval: ${this.flashcards[0].interval} days.`
+      );
     }
   }
 

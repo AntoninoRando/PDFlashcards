@@ -81,7 +81,7 @@ export function parseStudyset(lines: string[]): IStudySet | null {
             // Check if this is a section header
             if (categoriesValues.includes(lineDescriptor.trimmedLine as any)) {
                 console.log(
-                    `[studySet] Reached SECTION '${lineDescriptor.trimmedLine}'`
+                    `[parser] Reached SECTION '${lineDescriptor.trimmedLine}'`
                 );
                 category = lineDescriptor.trimmedLine;
             } else {
@@ -102,7 +102,7 @@ export function parseStudyset(lines: string[]): IStudySet | null {
         };
         return filteredStudySet;
     } catch (error) {
-        console.error(`[parseStudySet] ERROR: ${error}`);
+        console.error(`[parser] ERROR: ${error}`);
         return null;
     }
 }
@@ -115,18 +115,18 @@ function parseCategory(
     const { trimmedLine } = lineDescriptor;
     
     if (category === categories.title) {
-        console.log(`[studySet] Reading title '${trimmedLine}'`);
+        console.log(`[parser] Reading title '${trimmedLine}'`);
         studySet.title = trimmedLine;
         return true;
     } else if (category === categories.resources) {
-        console.log(`[studySet] Reading resource '${trimmedLine}'`);
+        console.log(`[parser] Reading resource '${trimmedLine}'`);
         studySet.resources.push(trimmedLine);
         return true;
     } else if (category === categories.cards) {
         return parseCards(lineDescriptor, studySet);
     } else if (category === categories.aliases) {
         // Handle aliases parsing if needed
-        console.log(`[studySet] Reading alias '${trimmedLine}'`);
+        console.log(`[parser] Reading alias '${trimmedLine}'`);
         // Add alias parsing logic here
         return true;
     }
@@ -140,7 +140,7 @@ function parseRecallData(recallString: string): { reviewedAt: Date | null, ease:
         const parts = recallString.split(',').map(part => part.trim());
         
         if (parts.length !== 4) {
-            console.error(`[parseRecallData] Invalid recall data format: expected 4 parts, got ${parts.length}`);
+            console.error(`[parser] Invalid recall data format: expected 4 parts, got ${parts.length}`);
             return null;
         }
 
@@ -151,19 +151,19 @@ function parseRecallData(recallString: string): { reviewedAt: Date | null, ease:
 
         // Validate parsed data
         if (isNaN(reviewedAt.getTime())) {
-            console.error(`[parseRecallData] Invalid date: ${parts[0]}`);
+            console.error(`[parser] Invalid date: ${parts[0]}`);
             return null;
         }
         if (isNaN(ease) || ease < 1 || ease > 10) {
-            console.error(`[parseRecallData] Invalid difficulty: ${parts[1]}`);
+            console.error(`[parser] Invalid difficulty: ${parts[1]}`);
             return null;
         }
         if (isNaN(interval) || interval < 0) {
-            console.error(`[parseRecallData] Invalid interval: ${parts[2]}`);
+            console.error(`[parser] Invalid interval: ${parts[2]}`);
             return null;
         }
 
-        console.log(`[parseRecallData] Parsed recall data: reviewedAt=${reviewedAt.toISOString()}, ease=${ease}, interval=${interval}, learningPhase=${learningPhase}`);
+        console.log(`[parser] Parsed recall data: reviewedAt=${reviewedAt.toISOString()}, ease=${ease}, interval=${interval}, learningPhase=${learningPhase}`);
         
         return {
             reviewedAt,
@@ -172,14 +172,14 @@ function parseRecallData(recallString: string): { reviewedAt: Date | null, ease:
             learningPhase
         };
     } catch (error) {
-        console.error(`[parseRecallData] Error parsing recall data: ${error}`);
+        console.error(`[parser] Error parsing recall data: ${error}`);
         return null;
     }
 }
 
 function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): boolean {
     const { trimmedLine: line, index: i, tabs } = lineDescriptor;
-    console.log(`[studySet] Reached Line: ${line}; Tabs ${tabs}`);
+    console.log(`[parser] Reached Line: ${line}; Tabs ${tabs}`);
     
     // Check if this is a recall data command
     if (tabs === 1 && line.startsWith("***") && studySet.flashcards.length > 0) {
@@ -201,10 +201,18 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): boolea
                 );
             }
             
-            console.log(`[studySet] Applied recall data to card: "${lastCard.text}"`);
-            console.log(`[studySet] - reviewedAt: ${lastCard.reviewedAt?.toISOString()}`);
-            console.log(`[studySet] - nextReviewAt: ${lastCard.nextReviewAt?.toISOString()}`);
-            console.log(`[studySet] - ease: ${lastCard.ease}, interval: ${lastCard.interval}, learningPhase: ${lastCard.learningPhase}`);
+            console.log(
+              `[parser] Applied recall data to card: "${lastCard.text}"`
+            );
+            console.log(
+              `[parser] - reviewedAt: ${lastCard.reviewedAt?.toISOString()}`
+            );
+            console.log(
+              `[parser] - nextReviewAt: ${lastCard.nextReviewAt?.toISOString()}`
+            );
+            console.log(
+              `[parser] - ease: ${lastCard.ease}, interval: ${lastCard.interval}, learningPhase: ${lastCard.learningPhase}`
+            );
         } else {
             console.error(`[studySet] Failed to parse recall data: "${recallDataString}"`);
         }

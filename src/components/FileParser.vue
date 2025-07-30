@@ -48,12 +48,12 @@ function parseFileContent() {
   }
 
   const lines = fileContent.value.split('\n')
-  console.log('Start studyset parsing')
+  console.log('[parser] Start parsing')
   const studyset = parseStudyset(lines)
   if (studyset == null) {
-    console.error('Parse failed')
+    console.error('[parser] Fail')
   } else {
-    console.log('Parse succeded')
+    console.log('[parser] Success')
     emit('setUploaded', studyset)
   }
 }
