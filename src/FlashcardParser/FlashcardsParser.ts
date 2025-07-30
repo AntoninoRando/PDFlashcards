@@ -1,4 +1,4 @@
-import { Header } from "@/commands/allCommands/Header";
+import { Header } from "@/commands/all/Header";
 import { CommandsFactory } from "@/commands/CommandsFactory";
 
 const commentSymbol: string = '//'

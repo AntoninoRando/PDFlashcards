@@ -1,8 +1,8 @@
-import { Header } from "./allCommands/Header";
-import { PageRef } from "./allCommands/PageRef";
-import { Remember } from "./allCommands/Remember";
-import { Tag } from "./allCommands/Tag";
-import { AutoReveal } from "./allCommands/AutoReveal";
+import { Header } from "./all/Header";
+import { PageRef } from "./all/PageRef";
+import { Remember } from "./all/Remember";
+import { Tag } from "./all/Tag";
+import { AutoReveal } from "./all/AutoReveal";
 
 export class CommandsFactory {
     static Make(commandNameOrShortcut: string, commandArgument: string | null) {

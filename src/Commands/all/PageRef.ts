@@ -1,4 +1,4 @@
-import VuePagRef from "../allCommandsComponent/VuePagRef.vue";
+import VuePagRef from "../components/VuePagRef.vue";
 
 export class PageRef {
   public pageRef: number;

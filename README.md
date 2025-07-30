@@ -2,7 +2,11 @@
 
 A study web app oriented towards flashcards, but with a twist: _flashcards have no back text!_ Instead, each flashcard references one or more pages of a PDF resource, which is a replecament for a text. In this way, there is no need to paste from the study resources in order to create flashcards.
 
-# Scheduling Algorithm
+## Further Documentation
+
+Look inside the [`doc`](/doc) directory.
+
+## Scheduling Algorithm
 
 The scheduling of [Flashcards](src/components/Flashcards/Flashcard.vue) is handled by these files:
 - [`flashcardsScheduler.js`](src/flashcardsScheduler.js): implements the scheduling logic;
