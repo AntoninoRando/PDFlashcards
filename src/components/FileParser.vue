@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { parseStudyset, IStudySet } from '@/FlashcardParser/FlashcardsParser'
 
 const emit = defineEmits<{
-  setUploaded: [studySet: IStudySet]
+  setUploaded: [studySet: IStudySet, content: string]
 }>()
 
 const fileContent = ref('')
@@ -54,7 +54,7 @@ function parseFileContent() {
     console.error('[parser] Fail')
   } else {
     console.log('[parser] Success')
-    emit('setUploaded', studyset)
+    emit('setUploaded', studyset, fileContent.value)
   }
 }
 </script>
