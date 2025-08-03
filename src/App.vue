@@ -6,7 +6,8 @@ import FileParser from './components/FileParser.vue'
 import PDFUploader from './components/PDFUploader.vue'
 import GestureRecognizer from './components/GestureRecognizer/GestureRecognizer.vue'
 import VoiceRecognizer from './components/VoiceRecognizer/VoiceRecognizer.vue'
-import { IStudySet } from './FlashcardParser/FlashcardsParser'
+import TextEditor from './components/TextEditor.vue'
+import { IStudySet, parseStudyset } from './FlashcardParser/FlashcardsParser'
 
 // Define types
 interface Flashcard {
@@ -33,6 +34,8 @@ const pdfCache = reactive<Record<string, string>>({})
 const isScrolled = ref<boolean>(false)
 const mousePosition = ref({ x: 0, y: 0 })
 const cardRevealed = ref<boolean>(false)
+const uploadedText = ref<string>('')
+const editorVisible = ref<boolean>(false)
 
 // Refs
 const studySetComponent = ref(null)
@@ -66,9 +69,28 @@ function cardHidden() {
   cardRevealed.value = false
 }
 
-function loadStudySet(newStudySet: IStudySet) {
+function loadStudySet(newStudySet: IStudySet, content: string) {
   studySet.value = newStudySet
+  uploadedText.value = content
   console.info(`Loaded study set: ${JSON.stringify(newStudySet, null, 2)}`)
+}
+
+function openEditor() {
+  editorVisible.value = true
+}
+
+function closeEditor() {
+  editorVisible.value = false
+}
+
+function saveEdited(content: string) {
+  uploadedText.value = content
+  const lines = content.split('\n')
+  const newSet = parseStudyset(lines)
+  if (newSet) {
+    studySet.value = newSet
+  }
+  editorVisible.value = false
 }
 
 function addToCache(item: FileUploadItem) {
@@ -169,6 +191,7 @@ onUnmounted(() => {
         <div class="navbar-buttons">
           <button class="nav-btn">PDF</button>
           <button class="nav-btn">Studysets</button>
+          <button class="nav-btn" v-if="studySet" @click="openEditor">Edit</button>
           <GestureRecognizer ref="gestureRecognizer" class=" nav-btn" @command-recognized="commandRecognized"
             @pointing-changed="highlightPointing" />
           <VoiceRecognizer class="nav-btn" @command-recognized="commandRecognized" />
@@ -198,6 +221,7 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+    <TextEditor v-if="editorVisible" :model-value="uploadedText" @close="closeEditor" @save="saveEdited" />
   </div>
 </template>
 
