@@ -1,4 +1,4 @@
-import VueTag from "../allCommandsComponent/VueTag.vue";
+import VueTag from "../components/VueTag.vue";
 
 export class Tag {
     public tag: string;
