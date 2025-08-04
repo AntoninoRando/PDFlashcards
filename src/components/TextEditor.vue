@@ -4,24 +4,52 @@ import { ref, watch } from 'vue'
 const props = defineProps<{ modelValue: string }>()
 const emit = defineEmits(['close', 'save'])
 
-const content = ref(props.modelValue)
+function parseBlocks(text: string): string[] {
+  const lines = text.split(/\r?\n/)
+  const result: string[] = []
+  let current: string[] = []
+
+  lines.forEach((line) => {
+    if (/^\S/.test(line)) {
+      if (current.length) {
+        result.push(current.join('\n'))
+        current = []
+      }
+    }
+    current.push(line)
+  })
+
+  if (current.length) {
+    result.push(current.join('\n'))
+  }
+
+  return result
+}
+
+const blocks = ref<string[]>(parseBlocks(props.modelValue))
 
 watch(
   () => props.modelValue,
   (val) => {
-    content.value = val
+    blocks.value = parseBlocks(val)
   }
 )
 
 function save() {
-  emit('save', content.value)
+  const content = blocks.value.join('\n')
+  emit('save', content)
 }
 </script>
 
 <template>
   <div class="editor-overlay">
     <div class="editor-modal">
-      <textarea v-model="content" class="editor-textarea"></textarea>
+      <div class="blocks-container">
+        <div class="block-row" v-for="(block, index) in blocks" :key="index">
+          <div class="block-index">{{ index + 1 }}</div>
+          <textarea v-model="blocks[index]" class="block-textarea"></textarea>
+        </div>
+      </div>
       <div class="editor-actions">
         <button class="nav-btn" @click="emit('close')">Close</button>
         <button class="nav-btn" @click="save">Save</button>
@@ -53,11 +81,33 @@ function save() {
   flex-direction: column;
 }
 
-.editor-textarea {
+.blocks-container {
   flex: 1;
-  width: 100%;
-  resize: none;
-  margin-bottom: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.block-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.block-index {
+  width: 2rem;
+  text-align: center;
+  padding: 0.25rem;
+  background: #f0f0f0;
+  margin-right: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.block-textarea {
+  flex: 1;
+  resize: vertical;
+  min-height: 3rem;
 }
 
 .editor-actions {
