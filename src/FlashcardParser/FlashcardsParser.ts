@@ -1,5 +1,5 @@
-import { Header } from "@/commands/all/Header";
-import { CommandsFactory } from "@/commands/CommandsFactory";
+import { Header } from "@/Commands/all/Header";
+import { CommandsFactory } from "@/Commands/CommandsFactory";
 
 const commentSymbol: string = '//'
 
@@ -18,6 +18,7 @@ interface IFlashcard {
     interval: number;
     learningPhase: boolean;
     nextReviewAt: Date;
+    alias?: string[];
 }
 
 interface ISubPart {
@@ -223,13 +224,12 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): boolea
     // New card
     if (tabs === 0) {
         let text: string;
-        let command: any;
+        let pageArg: string | null = null;
 
         const pageSplit = line.split("..");
         if (pageSplit.length > 1) {
             text = pageSplit.slice(0, -1).join("..").trim();
-            const commandArgument = pageSplit[pageSplit.length - 1];
-            command = CommandsFactory.Make("..", commandArgument);
+            pageArg = pageSplit[pageSplit.length - 1];
         } else {
             text = line;
         }
@@ -263,8 +263,11 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): boolea
             j--;
         }
 
-        if (command) {
-            card.subParts.push({ ...command.toJson(), subParts: [] });
+        if (pageArg !== null) {
+            const command = CommandsFactory.Make("..", pageArg, card);
+            if (command) {
+                card.subParts.push({ ...command.toJson(), subParts: [] });
+            }
         }
         studySet.flashcards.push(card);
         return true;
@@ -293,15 +296,16 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): boolea
             subParts = lastSubPart.subParts;
         }
 
-        let command: any;
         const commandSeparator = line.indexOf(" ");
-        if (commandSeparator === -1) {
-            command = CommandsFactory.Make(line, null);
-        } else {
-            const commandName = line.slice(0, commandSeparator).trim();
-            const argument = line.slice(commandSeparator).trim();
-            command = CommandsFactory.Make(commandName, argument);
+        const commandName = commandSeparator === -1 ? line.trim() : line.slice(0, commandSeparator).trim();
+        const argument = commandSeparator === -1 ? null : line.slice(commandSeparator).trim();
+
+        if (commandName === 'alias') {
+            CommandsFactory.Make(commandName, argument, studySet.flashcards[studySet.flashcards.length - 1]);
+            return true;
         }
+
+        const command = CommandsFactory.Make(commandName, argument, null);
 
         if (!command) {
             console.error(`[studySet] Unrecognized command at line: "${line}"`);
