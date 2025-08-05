@@ -1,4 +1,33 @@
+export interface Flashcard {
+  text?: string;
+  line?: number;
+  headers?: string[];
+  reviewedAt: Date | null;
+  nextReviewAt: Date | null;
+  ease: number;
+  interval: number;
+  retrievalSuccess: number | null;
+  reviewCount: number;
+  learningPhase?: boolean;
+  [key: string]: any;
+}
+
+export interface CardStats {
+  total: number;
+  new: number;
+  learning: number;
+  review: number;
+  overdue: number;
+  badRecall: number;
+}
+
 export default class FlashcardsScheduler {
+  flashcards: Flashcard[];
+  initialLearningPhaseFixedSteps: string[];
+  easyIntervalOnExitingLearningMode: string;
+  defaultDifficulty: number;
+  maximumIntervals: number;
+
   constructor() {
     this.flashcards = [];
     this.initialLearningPhaseFixedSteps = ["30m", "2h", "2d"];
@@ -10,13 +39,13 @@ export default class FlashcardsScheduler {
     this.maximumIntervals = 1825; // Days
   }
 
-  resetCards() {
+  resetCards(): void {
     this.flashcards = [];
   }
 
-  addFlashcard(flashcard) {
+  addFlashcard(flashcard: Partial<Flashcard>): void {
     // Initialize new flashcard with default values if not present
-    const defaultFlashcard = {
+    const defaultFlashcard: Flashcard = {
       reviewedAt: null,
       nextReviewAt: new Date(),
       // 'ease' is used to keep track of FSRS difficulty
@@ -29,14 +58,14 @@ export default class FlashcardsScheduler {
     this.flashcards.push(defaultFlashcard);
   }
 
-  addMoreFlashcards(flashcards) {
+  addMoreFlashcards(flashcards: Partial<Flashcard>[]): void {
     flashcards.forEach((flashcard) => this.addFlashcard(flashcard));
   }
 
   // Parse time strings like '30m', '2h', '2d' into milliseconds
-  parseTimeString(timeStr) {
+  parseTimeString(timeStr: string): number {
     const unit = timeStr.slice(-1);
-    const value = parseInt(timeStr.slice(0, -1));
+    const value = parseInt(timeStr.slice(0, -1), 10);
 
     switch (unit) {
       case "m":
@@ -51,7 +80,10 @@ export default class FlashcardsScheduler {
   }
 
   // Update flashcard after review
-  updateFlashcardAfterReview(flashcard, retrievalSuccess) {
+  updateFlashcardAfterReview(
+    flashcard: Flashcard,
+    retrievalSuccess: number
+  ): Flashcard {
     const now = new Date();
     const lastReview = flashcard.reviewedAt;
     flashcard.reviewedAt = now;
@@ -79,7 +111,7 @@ export default class FlashcardsScheduler {
   }
 
   // Get flashcards that are due for review
-  scheduleFlashcards() {
+  scheduleFlashcards(): Flashcard[] {
     const now = new Date();
     const dueFlashcards = this.flashcards.filter((flashcard) => {
       // Cards without nextReviewAt or with nextReviewAt <= now are due
@@ -91,7 +123,7 @@ export default class FlashcardsScheduler {
   }
 
   // Prioritize flashcards based on recall performance
-  prioritizeFlashcards(flashcards) {
+  prioritizeFlashcards(flashcards: Flashcard[]): Flashcard[] {
     const now = new Date();
 
     return flashcards.sort((a, b) => {
@@ -104,8 +136,8 @@ export default class FlashcardsScheduler {
 
       // Priority 2: Among bad recalls, sort by how overdue they are
       if (aBadRecall && bBadRecall) {
-        const aOverdue = a.nextReviewAt ? now - a.nextReviewAt : 0;
-        const bOverdue = b.nextReviewAt ? now - b.nextReviewAt : 0;
+        const aOverdue = a.nextReviewAt ? now.getTime() - a.nextReviewAt.getTime() : 0;
+        const bOverdue = b.nextReviewAt ? now.getTime() - b.nextReviewAt.getTime() : 0;
         return bOverdue - aOverdue; // More overdue first
       }
 
@@ -118,7 +150,9 @@ export default class FlashcardsScheduler {
 
       // Priority 4: Among reviewed cards, sort by next review time
       if (aReviewed && bReviewed) {
-        return (a.nextReviewAt || 0) - (b.nextReviewAt || 0);
+        return (
+          (a.nextReviewAt?.getTime() ?? 0) - (b.nextReviewAt?.getTime() ?? 0)
+        );
       }
 
       // Priority 5: New cards (never reviewed) - add some randomness
@@ -131,7 +165,7 @@ export default class FlashcardsScheduler {
   }
 
   // Sort all cards for display/debugging purposes
-  sortCards() {
+  sortCards(): void {
     const n = this.flashcards.filter((f) => f !== undefined).length;
     console.log(`[scheuduler] Sorting ${n} flashcard(s) by priority`);
 
@@ -150,8 +184,8 @@ export default class FlashcardsScheduler {
   }
 
   // Get statistics about card distribution
-  getCardStats() {
-    const stats = {
+  getCardStats(): CardStats {
+    const stats: CardStats = {
       total: this.flashcards.length,
       new: 0,
       learning: 0,
@@ -183,16 +217,16 @@ export default class FlashcardsScheduler {
     return stats;
   }
 
-  static intervalNoise() {
+  static intervalNoise(): number {
     return Math.random() * 0.1 + 0.95; // Random noise between 0.95 and 1.05
   }
 
   static nextInterval(
-    retrievalSuccess,
+    retrievalSuccess: number,
     currentStability = 0,
     difficulty = 5,
-    lastReviewDate = null
-  ) {
+    lastReviewDate: Date | null = null
+  ): { interval: number; ease: number; stability: number } {
     // Implementation of a simplified Free Spaced Repetition Scheduler (FSRS)
     // https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm
     const now = new Date();
@@ -252,3 +286,4 @@ export default class FlashcardsScheduler {
     return { interval, ease: newDifficulty, stability: newStability };
   }
 }
+
