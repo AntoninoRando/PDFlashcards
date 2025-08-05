@@ -5,11 +5,11 @@ import { Tag } from "./all/Tag";
 import { AutoReveal } from "./all/AutoReveal";
 
 export class CommandsFactory {
-    static Make(commandNameOrShortcut: string, commandArgument: string | null) {
+    static Make(commandNameOrShortcut: string, commandArgument: string | null, lineObject: any = null) {
         if (commandNameOrShortcut[0] === '\\') {
             commandNameOrShortcut = commandNameOrShortcut.slice(1);
         }
-        
+
         let p = commandNameOrShortcut.indexOf('(');
         if (p !== -1) {
             commandNameOrShortcut = commandNameOrShortcut.slice(0, p);
@@ -28,6 +28,14 @@ export class CommandsFactory {
             case '@':
             case 'auto_reveal':
                 return new AutoReveal();
+            case 'alias':
+                if (lineObject) {
+                    if (!lineObject.alias) {
+                        lineObject.alias = [];
+                    }
+                    lineObject.alias.push(commandArgument || "");
+                }
+                return null;
             case '^':
                 return new Header(commandArgument || 1);
             default:
