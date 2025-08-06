@@ -242,18 +242,24 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): boolea
         return true;
     }
     
-    // New card
+    // New card or header line
     if (tabs === 0) {
-        let text: string;
-        let pageArg: string | null = null;
-
         const pageSplit = line.split("..");
-        if (pageSplit.length > 1) {
-            text = pageSplit.slice(0, -1).join("..").trim();
-            pageArg = pageSplit[pageSplit.length - 1];
-        } else {
-            text = line;
+
+        // If there's no page reference, treat the line as a header
+        if (pageSplit.length <= 1) {
+            const headerMatch = line.match(/^(#+)\s*(.*)$/);
+            if (headerMatch) {
+                const level = headerMatch[1].length;
+                const headerText = headerMatch[2].trim();
+                const header = new Header(level, headerText);
+                studySet.headers.push({ line: i, header });
+            }
+            return true;
         }
+
+        const text = pageSplit.slice(0, -1).join("..").trim();
+        const pageArg = pageSplit[pageSplit.length - 1];
 
         const card: IFlashcard = {
             line: i,
@@ -271,14 +277,14 @@ function parseCards(lineDescriptor: LineDescriptor, studySet: IStudySet): boolea
         // Fix header parsing logic - reverse the order and correct the level comparison
         let j = studySet.headers.length - 1;
         let lastHeaderLevel: number | undefined;
-        
+
         while (j >= 0) {
             const iHeader = studySet.headers[j];
             // If we have a last header level and current header level is greater or equal, break
             if (lastHeaderLevel !== undefined && iHeader.header.num >= lastHeaderLevel) {
                 break;
             }
-            
+
             card.headers.unshift(iHeader.header.text); // Add to beginning to maintain order
             lastHeaderLevel = iHeader.header.num;
             j--;

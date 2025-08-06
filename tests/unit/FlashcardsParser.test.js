@@ -62,3 +62,11 @@ test('flashcard with aliased PageRef selects correct resource', () => {
   assert.equal(chosen, 'r2.pdf');
   assert.equal(component.ref, 2);
 });
+
+test('headers are not parsed as flashcards', () => {
+  const lines = `[Title]\nSet\n[Cards]\n# Header\nCard1 .. 1\n# Another\nCard2 .. 2`.split('\n');
+  const study = parseStudyset(lines);
+  assert.equal(study.flashcards.length, 2);
+  assert.deepEqual(study.flashcards[0].headers, ['Header']);
+  assert.deepEqual(study.flashcards[1].headers, ['Another']);
+});
