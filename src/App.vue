@@ -31,6 +31,7 @@ interface FileUploadItem {
 const pageToShow = ref<number>(1)
 const studySet = ref<IStudySet | null>(null)
 const pdfCache = reactive<Record<string, string>>({})
+const pdfToShow = ref<string>('')
 const isScrolled = ref<boolean>(false)
 const mousePosition = ref({ x: 0, y: 0 })
 const cardRevealed = ref<boolean>(false)
@@ -48,20 +49,25 @@ function showPage(flashcard: Flashcard | null) {
     return
   }
 
-  let pageRefNum = null;
+  let pageRefNum: number | null = null
+  let resourceAlias = studySet.value?.defaultResource || ''
   for (let component of (flashcard.subParts || [])) {
     if (component.name == 'pageref') {
-      pageRefNum = component.ref;
-      break;
+      pageRefNum = component.ref
+      if (component.resourceAlias) {
+        resourceAlias = component.resourceAlias
+      }
+      break
     }
   }
 
-  if (!pageRefNum) {
-    console.error('Revealed card has no page')
+  if (!pageRefNum || !resourceAlias) {
+    console.error('Revealed card has no page or resource')
     return
   }
 
   pageToShow.value = pageRefNum
+  pdfToShow.value = studySet.value?.resources[resourceAlias] || ''
   cardRevealed.value = true
 }
 
@@ -72,6 +78,7 @@ function cardHidden() {
 function loadStudySet(newStudySet: IStudySet, content: string) {
   studySet.value = newStudySet
   uploadedText.value = content
+  pdfToShow.value = newStudySet.resources[newStudySet.defaultResource] || ''
   console.info(`Loaded study set: ${JSON.stringify(newStudySet, null, 2)}`)
 }
 
@@ -211,7 +218,7 @@ onUnmounted(() => {
         <div v-if="studySet" class="pdf-section">
           <PDFUploader @file-selected="addToCache" />
           <PDFPreview v-show="cardRevealed" ref="PDF" :pageToShow="pageToShow"
-            :pdf-url="pdfCache[studySet.resources[0].trim()]" />
+            :pdf-url="pdfCache[pdfToShow]" />
         </div>
 
         <div class="flashcard-wrapper" :class="{ revealed: cardRevealed }">

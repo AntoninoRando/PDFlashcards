@@ -6,7 +6,7 @@ import Flashcard from './Flashcard.vue';
 // Define props
 interface Props {
   flashcards: any[];
-  resources: string[];
+  resources: Record<string, string>;
   studySet: any;
 }
 
