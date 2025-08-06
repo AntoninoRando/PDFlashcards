@@ -7,7 +7,6 @@ const emit = defineEmits<{
 }>()
 
 const fileContent = ref('')
-const resources = ref<string[]>([])
 const title = ref('')
 const flashcards = ref<any[]>([])
 const error = ref<string | null>(null)
@@ -20,7 +19,6 @@ function handleFileUpload(event: Event) {
   error.value = null
   fileContent.value = ''
   flashcards.value = []
-  resources.value = []
   title.value = ''
 
   const reader = new FileReader()

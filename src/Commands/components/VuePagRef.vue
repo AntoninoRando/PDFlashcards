@@ -14,7 +14,9 @@ const props = defineProps<Props>();
 const pages = ref<string>('');
 
 const configureFromJson = (settings: IPageRef) => {
-    pages.value = settings.pagesString || '';
+    pages.value = settings.resourceAlias
+        ? `${settings.resourceAlias}:${settings.pagesString || ''}`
+        : (settings.pagesString || '');
 };
 
 onMounted(() => {

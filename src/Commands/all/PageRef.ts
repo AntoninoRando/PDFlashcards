@@ -4,10 +4,21 @@ export class PageRef {
   public pageRef: number;
   public allPageRefs: number[];
   public pagesString: string;
+  public resourceAlias?: string;
 
   constructor(pageRef: string) {
-    this.pagesString = pageRef;
-    this.allPageRefs = this.parsePageRefs(pageRef?.toString() || '0');
+    let alias: string | undefined;
+    let pageString = pageRef;
+
+    const idx = pageRef.indexOf(':');
+    if (idx !== -1) {
+      alias = pageRef.slice(0, idx).trim();
+      pageString = pageRef.slice(idx + 1).trim();
+    }
+
+    this.pagesString = pageString;
+    this.resourceAlias = alias;
+    this.allPageRefs = this.parsePageRefs(pageString?.toString() || '0');
     this.pageRef = this.allPageRefs[0] || 0;
   }
 
@@ -44,7 +55,8 @@ export class PageRef {
       vueComponent: VuePagRef,
       ref: this.pageRef,
       allRefs: this.allPageRefs,
-      pagesString: this.pagesString
+      pagesString: this.pagesString,
+      resourceAlias: this.resourceAlias
     };
   }
 }
@@ -55,4 +67,5 @@ export interface IPageRef {
   ref: number;
   allRefs: number[];
   pagesString: string;
+  resourceAlias?: string;
 }

@@ -33,7 +33,8 @@ interface IAlias {
 export interface IStudySet {
     title: string;
     flashcards: IFlashcard[];
-    resources: string[];
+    resources: Record<string, string>;
+    defaultResource: string;
     aliases: IAlias[];
     headers: IHeader[];
     studiedCards: number;
@@ -59,7 +60,8 @@ export function parseStudyset(lines: string[]): IStudySet | null {
     const studySet: IStudySet = {
         title: "",
         flashcards: [],
-        resources: [],
+        resources: {},
+        defaultResource: "",
         aliases: [],
         headers: [],
         studiedCards: 0,
@@ -121,7 +123,26 @@ function parseCategory(
         return true;
     } else if (category === categories.resources) {
         console.log(`[parser] Reading resource '${trimmedLine}'`);
-        studySet.resources.push(trimmedLine);
+        const idx = trimmedLine.indexOf(':');
+        let alias: string;
+        let resource: string;
+
+        if (idx !== -1) {
+            alias = trimmedLine.slice(0, idx).trim();
+            resource = trimmedLine.slice(idx + 1).trim();
+        } else {
+            alias = trimmedLine.trim();
+            resource = alias;
+        }
+
+        if (!alias) {
+            return true;
+        }
+
+        studySet.resources[alias] = resource;
+        if (!studySet.defaultResource) {
+            studySet.defaultResource = alias;
+        }
         return true;
     } else if (category === categories.cards) {
         return parseCards(lineDescriptor, studySet);
