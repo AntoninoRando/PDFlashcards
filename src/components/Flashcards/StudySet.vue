@@ -151,9 +151,15 @@ const downloadSet = () => {
     const card = cardsSorted[i];
     console.log(`Saving card: "${card.text}" - reviewedAt: ${card.reviewedAt} - line: ${card.line}`);
 
-    // Insert the save command after the card line
+    // Insert or replace the save command after the card line
     const insertIndex = card.line + 1;
     const command = `\t*** ${card.reviewedAt.toISOString()}, ${card.ease}, ${card.interval}, ${card.learningPhase}`;
+
+    // Remove any existing recall data lines for this card
+    while (insertIndex < lines.length && lines[insertIndex].trimStart().startsWith('***')) {
+      lines.splice(insertIndex, 1);
+    }
+
     lines.splice(insertIndex, 0, command);
   }
 
