@@ -22,6 +22,7 @@ const emit = defineEmits<{
 const scheduler = ref(new FlashcardsScheduler());
 const studyCard = ref<any>(null);
 const currentFlashcardObject = ref<InstanceType<typeof Flashcard> | null>(null);
+const reviewHistory = ref<{ index: number; snapshot: any }[]>([]);
 
 const headerBreadcrumb = computed(() => {
   return studyCard.value?.headers?.join(' / ') ?? '';
@@ -73,14 +74,18 @@ const updateCards = (flashcardObj: any) => {
   const retrievalSuccess = grades[recall] ?? 0;
 
   // Find the original flashcard in props.flashcards to update it directly
-  const originalFlashcard = props.flashcards.find((card: any) =>
-    card.text === flashcard.text && card.line === flashcard.line
+  const index = props.flashcards.findIndex(
+    (card: any) => card.text === flashcard.text && card.line === flashcard.line
   );
+  const originalFlashcard = props.flashcards[index];
 
   if (!originalFlashcard) {
     console.error("Could not find original flashcard to update");
     return;
   }
+
+  const snapshot = JSON.parse(JSON.stringify(originalFlashcard));
+  reviewHistory.value.push({ index, snapshot });
 
   // Use the scheduler's updateFlashcardAfterReview method on the original flashcard
   scheduler.value.updateFlashcardAfterReview(originalFlashcard, retrievalSuccess);
@@ -183,6 +188,27 @@ const point = (what: string) => {
   currentFlashcardObject.value?.point(what);
 }
 
+const undoLastReview = () => {
+  const last = reviewHistory.value.pop();
+  if (!last) return;
+
+  const { index, snapshot } = last;
+  const originalFlashcard = props.flashcards[index];
+  if (!originalFlashcard) return;
+
+  if (snapshot.reviewedAt) snapshot.reviewedAt = new Date(snapshot.reviewedAt);
+  if (snapshot.nextReviewAt) snapshot.nextReviewAt = new Date(snapshot.nextReviewAt);
+  Object.assign(originalFlashcard, snapshot);
+
+  if (props.studySet) {
+    props.studySet.studiedCards = Math.max((props.studySet.studiedCards || 1) - 1, 0);
+  }
+
+  scheduler.value.resetCards();
+  scheduler.value.addMoreFlashcards(props.flashcards);
+  studyCard.value = originalFlashcard;
+};
+
 const handleKeydown = (event: KeyboardEvent) => {
   switch (event.key) {
     case ' ':
@@ -239,9 +265,14 @@ defineExpose({
     <div class="header-section" v-if="!showingFlashcard">
       <h3>{{ studySet.title }}</h3>
       <h1>{{ headerBreadcrumb }}</h1>
-      <button @click="downloadSet" class="save-btn">
-        Save
-      </button>
+      <div class="header-buttons">
+        <button @click="undoLastReview" class="back-btn" :disabled="reviewHistory.length === 0">
+          Back
+        </button>
+        <button @click="downloadSet" class="save-btn">
+          Save
+        </button>
+      </div>
     </div>
     <div class="cards-section">
       <div class="cards-section-row">
@@ -271,6 +302,17 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   margin-bottom: 20px;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.back-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .flashcards-container {
