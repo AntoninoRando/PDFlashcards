@@ -1,4 +1,4 @@
-import VueRemember from "../components/VueRemember.vue";
+import VueRemember from "../Components/VueRemember.vue";
 
 // Test your Remember class
 export class Remember {

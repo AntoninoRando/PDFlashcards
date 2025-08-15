@@ -19,6 +19,8 @@ GFS .. Google File System
 HDFS .. Hadoop Distributed File System
 
 [Cards]
+Introduction
+	^ 1
 Cloud Computing .. n:1
 	# def
 	+ What this term refers to (broadly)

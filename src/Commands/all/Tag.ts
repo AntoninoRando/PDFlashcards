@@ -1,4 +1,4 @@
-import VueTag from "../components/VueTag.vue";
+import VueTag from "../Components/VueTag.vue";
 
 export class Tag {
     public static symbol: string = '#';

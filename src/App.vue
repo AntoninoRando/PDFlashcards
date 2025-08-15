@@ -8,20 +8,7 @@ import GestureRecognizer from './components/GestureRecognizer/GestureRecognizer.
 import VoiceRecognizer from './components/VoiceRecognizer/VoiceRecognizer.vue'
 import TextEditor from './components/TextEditor.vue'
 import { parseStudyset } from './FlashcardParser/StudySetParser'
-import { IStudySet } from './FlashcardParser/Types/Types'
-
-// Define types
-interface Flashcard {
-  frontText: string;
-  pageRef: number;
-  reviewedAt: Date;
-  ease: number;
-  interval: number;
-  learningPhase: boolean;
-  subParts: any[];
-  [key: string]: any;
-}
-
+import { IFlashcard, IStudySet } from './FlashcardParser/Types/Types'
 
 interface FileUploadItem {
   file: File;
@@ -38,14 +25,13 @@ const mousePosition = ref({ x: 0, y: 0 })
 const cardRevealed = ref<boolean>(false)
 const uploadedText = ref<string>('')
 const editorVisible = ref<boolean>(false)
-const resourceAliasMap = ref<Map<string, string>>(new Map<string, string>())
 
 // Refs
 const studySetComponent = ref(null)
 const gestureRecognizer = ref(null)
 
 // Methods
-function showPage(flashcard: Flashcard | null) {
+function showPage(flashcard: IFlashcard | null) {
   if (!flashcard) {
     console.error('Revealed nothing')
     return
@@ -53,7 +39,7 @@ function showPage(flashcard: Flashcard | null) {
 
   let pageRefNum: number | null = null
   let resourceAlias = studySet.value?.defaultResource || ''
-  for (let component of (flashcard.subParts || [])) {
+  for (let component of (flashcard.lineDescriptor.subParts || [])) {
     if (component.name == 'pageref') {
       pageRefNum = component.ref
       if (component.resourceAlias) {
@@ -64,7 +50,7 @@ function showPage(flashcard: Flashcard | null) {
   }
 
   if (!pageRefNum || !resourceAlias) {
-    console.error('Revealed card has no page or resource')
+    console.error('Revealed card has no page or resource ' + JSON.stringify(flashcard))
     return
   }
 
@@ -72,6 +58,7 @@ function showPage(flashcard: Flashcard | null) {
     `[showPage]\n\t-Page: ${pageRefNum};`+
     `\n\t-Pdf: ${studySet.value?.resources[resourceAlias] || ''}` +
     `\n\t-ResourceAlias: ${resourceAlias}`)
+    
   pageToShow.value = pageRefNum
   pdfToShow.value = studySet.value?.resources[resourceAlias] || ''
   cardRevealed.value = true
@@ -206,8 +193,8 @@ onUnmounted(() => {
           <button class="nav-btn">PDF</button>
           <button class="nav-btn">Studysets</button>
           <button class="nav-btn" v-if="studySet" @click="openEditor">Edit</button>
-          <GestureRecognizer ref="gestureRecognizer" class=" nav-btn" @command-recognized="commandRecognized"
-            @pointing-changed="highlightPointing" />
+          <!-- <GestureRecognizer ref="gestureRecognizer" class=" nav-btn" @command-recognized="commandRecognized"
+            @pointing-changed="highlightPointing" /> -->
           <VoiceRecognizer class="nav-btn" @command-recognized="commandRecognized" />
         </div>
       </nav>

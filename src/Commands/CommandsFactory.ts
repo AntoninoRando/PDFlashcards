@@ -1,9 +1,9 @@
-import { Header } from "./all/Header";
-import { PageRef } from "./all/PageRef";
-import { Remember } from "./all/Remember";
-import { Tag } from "./all/Tag";
-import { AutoReveal } from "./all/AutoReveal";
-import { Alias } from "./all/Alias";
+import { Header } from "./All/Header";
+import { PageRef } from "./All/PageRef";
+import { Remember } from "./All/Remember";
+import { Tag } from "./All/Tag";
+import { AutoReveal } from "./All/AutoReveal";
+import { Alias } from "./All/Alias";
 import { LineDescriptor, IStudySet } from "@/FlashcardParser/Types/Types";
 
 export class CommandsFactory {

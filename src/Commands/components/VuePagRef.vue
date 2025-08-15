@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { IPageRef } from '../all/PageRef';
+import { IPageRef } from '../All/PageRef';
 
 interface Props {
     config: any;
