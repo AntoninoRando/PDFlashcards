@@ -1,6 +1,8 @@
 import VuePagRef from "../components/VuePagRef.vue";
 
 export class PageRef {
+  public static symbol: string = '..';
+  
   public pageRef: number;
   public allPageRefs: number[];
   public pagesString: string;

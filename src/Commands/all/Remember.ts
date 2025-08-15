@@ -2,6 +2,7 @@ import VueRemember from "../components/VueRemember.vue";
 
 // Test your Remember class
 export class Remember {
+    public static symbol: string = '+';
     public what: string;
 
     constructor(what: string) {

@@ -1,0 +1,254 @@
+[Title]
+Cloud Computing
+
+[Resources]
+Notes.pdf
+	\alias n
+
+[Acronyms]
+CSP .. Cloud Service Provider
+IPC .. Inter-process communication
+RPC .. Remote Procedure Call
+SOA .. Service Oriented Architecture
+SOAP .. Simple Object Access Protocol
+REST .. Representational State Transfer
+AM .. Autonomic Manager
+K8s .. Kubernetes
+HPA .. Horizontal Pod Autoscaling
+GFS .. Google File System
+HDFS .. Hadoop Distributed File System
+
+[Cards]
+Cloud Computing .. n:1
+	# def
+	+ What this term refers to (broadly)
+	+ NIST definition
+(Just the list) The essential characteristics of Cloud Computing identified by the NIST .. n:1-2
+NIST identifies as an essential characteristic of CC the "On-demand self service". What it means? .. n:1
+NIST identifies as an essential characteristic of CC the "Broad network access". What it means? .. n:2
+NIST identifies as an essential characteristic of CC the "Resource pooling". What it means? .. n:2
+NIST identifies as an essential characteristic of CC the "Rapid elasticity". What it means? .. n:2
+NIST identifies as an essential characteristic of CC the "Measured service". What it means? .. n:2
+Multi-Tenancy .. n:2
+	# def
+Elasticity .. n:2
+	# def
+Resiliency .. n:2
+	# def
+(Just the list) The primary service models identified by the NIST .. n:2-3
+NIST identifies as a primary service model "Software as a Service (SaaS)". What it means? .. n:2-3
+NIST identifies as a primary service model "Platform as a Service (PaaS)". What it means? .. n:3
+NIST identifies as a primary service model "Infrastructure as a Service (IaaS)". What it means? .. n:3
+How serivce models contribute to the separation of responsibilities .. n:3
+What are the responsibilities of the cloud provider .. n:3-4
+What are the responsibilities of the cloud customer .. n:4
+(Just the list) The deployment models identified by the NIST .. n:4
+NIST identifies as a deployment model "Private cloud". What it means? .. n:4
+NIST identifies as a deployment model "Community cloud". What it means? .. n:4
+NIST identifies as a deployment model "Public cloud". What it means? .. n:4
+NIST identifies as a deployment model "Hybrid cloud". What it means? .. n:5
+Cloud roles .. n:5
+	# def
+(Just the list) The primary cloud roles .. n:5-7
+The role of the "Cloud Service Provider (CSP)" .. n:5
+The responsibilities of the "Cloud Service Provider (CSP)" .. n:5-6
+The role of the "Cloud Consumer" .. n:6
+The responsibilities of the "Cloud Consumer" .. n:6
+The role of the "Cloud Broker" .. n:6
+The responsibilities of the "Cloud Broker" .. n:6
+The role of the "Cloud Auditor" .. n:6
+The responsibilities of the "Cloud Auditor" .. n:7
+The role of the "Cloud Carrier" .. n:7
+The responsibilities of the "Cloud Carrier" .. n:7
+
+Distributed System .. n:7
+	# def
+	+ Definition that focuses on unified usage and aggregation of distributeds resources
+	+ Definition that focuses on the networked nature and communication among processes by passing messages
+Distributed Computing .. n:8
+	# def
+
+Architectural styles .. n:8
+(Just the list) Software architectural styles .. n:9-10
+Client/Server software architecture .. n:9-10
+	+ Thin-client model
+	+ Fat-client model
+Peer-to-peer architecture .. n:10
+Inter-process communication (IPC) .. n:11
+	# def
+
+What is IPC used for .. n:10
+(Just the list) The most relevant model of IPC and model of communication .. n:11
+
+(Just the list) Technologies for distributed computing .. n:11
+Remote Procedure Call (RPC) .. n:11-12
+Distributed Objects .. n:12-13
+Service Oriented Architecture (SOA) .. n:14-15
+Major roles within SOA .. n:14
+In SOA, how services can be coordinated and managed? .. n:15
+Web Services - a SOA implementation .. n:15-16
+Representational State Transfer (REST) .. n:16
+
+Microservices .. n:16-19
+The monolithic architecture problem .. n:17
+Challenges of Micro-services .. n:18
+Benefits of micro-service architecture .. n:19-20
+Drawbacks of the Micro-service architecture .. n:20
+Micro-services vs. Service oriented architectures .. n:20
+	+ High level similarities
+	+ The list of the differences
+"Communication mechanisms" differences in micro-services vs. SOA .. n:20-21
+"Data handling" differences in micro-services vs. SOA .. n:21
+"Size of the services" differences in micro-services vs. SOA .. n:21
+Architectural differences of micro-services vs. SOA .. n:21
+
+
+
+Virtualization
+	^ 1
+Layered structure of a computer system .. n:21-22
+Privileged/Non-privileged instructions .. n:22
+(Type I and II) Hypervisor .. n:22-23
+Properties that a virtual machine manager must satisfies .. n:23
+(Just the list) Characteristics of virtualization environments .. n:23
+"Increased security" characteristic of virtualization environments .. n:23
+"Managed execution" characteristic of virtualization environments .. n:23-24
+"Portability" characteristic of virtualization environments .. n:24
+	# def
+Full virtualization .. n:24-25
+Binary translation .. n:24-25
+Hardware assisted virtualization .. n:25
+Paravirtualization .. n:26
+	# def
+	+ How it works
+
+
+
+Autonomic Computing
+	^ 1
+Autonomic computing system .. n:26
+	# def
+AM, Autonomic Manager .. n:26
+	# def
+(Just the list) Roles and functions of an autonomic manager .. n:26-27
+AM "Monitoring" .. n:27, n:29-30
+AM "Analysis" .. n:27
+AM "Planning" .. n:27, n:30
+AM "Execution" .. n:27
+MAPE-K .. n:27-28
+The 4 self- properties .. n:28
+AM configuration policies .. n:29
+Degree of autonomicity .. n:30-31
+
+
+
+Automation and Orchestration
+	^ 1
+Autonomic computing .. n:31
+	# def
+Automation .. n:31
+	# def
+IT Operation Automation: how .. n:31
+IT Operation Automation: what .. n:31
+IT Operation Automation: benefits .. n:31-32
+Ansible (practical example of automation) .. n:32-33
+
+Orchestration
+	^ 2
+Automation .. n:33
+	# def
+Orchestration .. n:34
+	# def
+Container orchestration .. n:34
+
+
+
+Kubernetes (K8s)
+	^ 1
+What is Kubernetes .. n:34
+What it means to manage containerized workload? .. n:34
+K8s objects .. n:35
+Pods .. n:35
+K8s nodes .. n:35-36
+K8s cluster .. n:36
+(Just the list) K8s Control Plane components .. n:36-37
+kube-apiserver .. n:36
+etcd .. n:36
+kube-scheduler .. n:36 
+kube-controller-manager .. n:36
+cloud-control-manager .. n:37
+Controllers .. n:37
+Scheduler .. n:37
+K8s node components .. n:37
+
+Autoscaling
+	^ 1
+Autoscaling .. n:38
+	# def
+Types of scaling .. n:38
+(Just the list) Autoscaling algorithms .. n:38
+Threshold-based autoscaling algorithm .. n:38
+Model-based autoscaling algorithms .. n:38
+Proactive autoscaling algorithms .. n:38
+
+Threshold based autoscaling algorithms
+	^ 2
+Triggering actions .. n:38-39
+Sizing scaling steps .. n:39
+Autoscaling in AWS (main steps) .. n:39-40
+	+ Dynamic scaling mechanisms
+	+ Scaling adjustment types
+	+ Aggregated metrics
+Autoscaling in Kubernetes .. n:40
+	+ Horizontal Pod Autoscaling
+	+ HPA Controller algorithm
+Advanced autoscaling techniques .. n:41-42
+
+Testing Scalability
+	^ 1
+Testing scalability concepts and approach .. n:43-44
+Reproducing user behavior in tests .. n:44
+Testing configurations .. n:44
+Metrics for scalability testing .. n:44-45
+Settings threshold values .. n:45
+Testing availability .. n:45
+Common mistakes .. n:45-46
+Testing repetition and statistical relevance .. n:46
+
+
+
+Cloud Storage
+	^ 1
+The different forms of data storage in cloud systems .. n:46
+The importance of atomicity in cloud storage systems .. n:46-47
+Types of atomicity .. n:47
+Storage models .. n:47
+Google File System (GFS) .. n:47-48
+Hadoop Distributed File System (HDFS) .. n:48-50
+
+
+
+NoSQL Databases
+	^ 1
+OLTP .. n:50-51
+BigTable .. n:51-52
+Dynamo .. n:52-53
+
+Amazon S3 .. n:53-54
+
+
+Exam Questions
+	^ 1
+	# Must-Know
+Google bigtable
+Soa vs. Micro-services (x4)
+Docker storage Types (x2)
+GFS writing protocol
+4 self properties + example for self configuration
+Self-properties
+Pipeline in HDFS
+K8's pods scheduling
+K8's nodes
+Dynamo partitioning algorithm and replication (x2)
+Cloud broker
+Bind vs. Volume in docker

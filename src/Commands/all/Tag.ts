@@ -1,6 +1,8 @@
 import VueTag from "../components/VueTag.vue";
 
 export class Tag {
+    public static symbol: string = '#';
+
     public tag: string;
 
     constructor(tag: string) {

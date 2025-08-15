@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { parseStudyset, IStudySet } from '@/FlashcardParser/FlashcardsParser'
+import { parseStudyset, IStudySet } from '@/FlashcardParser/StudySetParser'
 
 const emit = defineEmits<{
   setUploaded: [studySet: IStudySet, content: string]

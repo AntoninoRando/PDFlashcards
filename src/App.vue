@@ -7,7 +7,8 @@ import PDFUploader from './components/PDFUploader.vue'
 import GestureRecognizer from './components/GestureRecognizer/GestureRecognizer.vue'
 import VoiceRecognizer from './components/VoiceRecognizer/VoiceRecognizer.vue'
 import TextEditor from './components/TextEditor.vue'
-import { IStudySet, parseStudyset } from './FlashcardParser/FlashcardsParser'
+import { parseStudyset } from './FlashcardParser/StudySetParser'
+import { IStudySet } from './FlashcardParser/Types/Types'
 
 // Define types
 interface Flashcard {
@@ -37,6 +38,7 @@ const mousePosition = ref({ x: 0, y: 0 })
 const cardRevealed = ref<boolean>(false)
 const uploadedText = ref<string>('')
 const editorVisible = ref<boolean>(false)
+const resourceAliasMap = ref<Map<string, string>>(new Map<string, string>())
 
 // Refs
 const studySetComponent = ref(null)
@@ -66,6 +68,10 @@ function showPage(flashcard: Flashcard | null) {
     return
   }
 
+  console.log(
+    `[showPage]\n\t-Page: ${pageRefNum};`+
+    `\n\t-Pdf: ${studySet.value?.resources[resourceAlias] || ''}` +
+    `\n\t-ResourceAlias: ${resourceAlias}`)
   pageToShow.value = pageRefNum
   pdfToShow.value = studySet.value?.resources[resourceAlias] || ''
   cardRevealed.value = true
@@ -79,7 +85,8 @@ function loadStudySet(newStudySet: IStudySet, content: string) {
   studySet.value = newStudySet
   uploadedText.value = content
   pdfToShow.value = newStudySet.resources[newStudySet.defaultResource] || ''
-  console.info(`Loaded study set: ${JSON.stringify(newStudySet, null, 2)}`)
+ 
+  console.info(`[LoadStudySet] Success`);
 }
 
 function openEditor() {
@@ -107,6 +114,8 @@ function addToCache(item: FileUploadItem) {
   }
 
   pdfCache[item.file.name] = item.url
+  console.log(`[pdfCache] Added (${item.file.name}, ${item.url})`)
+
 }
 
 function handleScroll() {
@@ -176,13 +185,11 @@ onUnmounted(() => {
 })
 </script>
 
-<template>
-  <!-- Full Screen Video Background -->
-  <!-- <video autoplay muted loop id="video-bg">
-        <source src="./bg.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-    </video> -->
 
+
+
+
+<template>
   <div class="app-container">
     <!-- Logo Banner -->
     <div class="logo-banner" :class="{ 'hidden': isScrolled }" @mousemove="handleMouseMove">
@@ -206,19 +213,19 @@ onUnmounted(() => {
       </nav>
     </div>
 
+    
     <!-- Sticky Navbar -->
-
     <div v-if="studySet" class="progress-container">
       <div class="progress-bar" :style="{ width: progressPercent + '%' }"></div>
       <div class="progress-label">{{ studiedCards }}/{{ totalCards }}</div>
     </div>
+    
 
     <div class="content-wrapper" :class="{ 'pointing': isPointing }">
       <div class="single-column">
         <div v-if="studySet" class="pdf-section">
           <PDFUploader @file-selected="addToCache" />
-          <PDFPreview v-show="cardRevealed" ref="PDF" :pageToShow="pageToShow"
-            :pdf-url="pdfCache[pdfToShow]" />
+          <PDFPreview v-show="cardRevealed" ref="PDF" :pageToShow="pageToShow" :pdf-url="pdfCache[pdfToShow]" />
         </div>
 
         <div class="flashcard-wrapper" :class="{ revealed: cardRevealed }">
@@ -231,6 +238,10 @@ onUnmounted(() => {
     <TextEditor v-if="editorVisible" :model-value="uploadedText" @close="closeEditor" @save="saveEdited" />
   </div>
 </template>
+
+
+
+
 
 <style scoped>
 /* Full Screen Video Background */

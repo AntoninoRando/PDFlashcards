@@ -3,9 +3,16 @@ import { PageRef } from "./all/PageRef";
 import { Remember } from "./all/Remember";
 import { Tag } from "./all/Tag";
 import { AutoReveal } from "./all/AutoReveal";
+import { Alias } from "./all/Alias";
+import { LineDescriptor, IStudySet } from "@/FlashcardParser/Types/Types";
 
 export class CommandsFactory {
-    static Make(commandNameOrShortcut: string, commandArgument: string | null, lineObject: any = null) {
+    static Make(
+        lineDescriptor: LineDescriptor,
+        studySet: IStudySet,
+        commandNameOrShortcut: string,
+        commandArgument: string | null,
+    ) {
         if (commandNameOrShortcut[0] === '\\') {
             commandNameOrShortcut = commandNameOrShortcut.slice(1);
         }
@@ -16,30 +23,28 @@ export class CommandsFactory {
         }
 
         switch (commandNameOrShortcut) {
-            case '..':
+            case PageRef.symbol:
             case 'page':
                 return new PageRef(commandArgument);
-            case '+':
+            case Remember.symbol:
             case 'remember':
                 return new Remember(commandArgument);
-            case '#':
+            case Tag.symbol:
             case 'tag':
                 return new Tag(commandArgument || "");
-            case '@':
+            case AutoReveal.symbol:
             case 'auto_reveal':
                 return new AutoReveal();
+            case Alias.symbol:
             case 'alias':
-                if (lineObject) {
-                    if (!lineObject.alias) {
-                        lineObject.alias = [];
-                    }
-                    lineObject.alias.push(commandArgument || "");
-                }
-                return null;
-            case '^':
-                return new Header(commandArgument || 1);
+                const alias = new Alias(commandArgument, lineDescriptor, studySet);
+                return alias.isValid ? alias : null
+            case Header.symbol:
+            case 'header':
+                return new Header(lineDescriptor, studySet, commandArgument || 1);
             default:
-                return new PageRef(commandArgument || '');
+                console.log(`[MakeCommand] Unrecognized command ${commandNameOrShortcut}`)
+                return null;
         }
     }
 }
