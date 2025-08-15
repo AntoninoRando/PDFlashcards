@@ -117,7 +117,8 @@ const {
 .app-container {
   position: relative;
   min-height: 100vh;
-  width: 100vw;
+  width: 100%;
+  overflow-x: hidden;
   font-family: 'Inter', 'Segoe UI', sans-serif;
   display: flex;
   flex-direction: column;
@@ -227,12 +228,13 @@ const {
   gap: 2rem;
 }
 
+
 .progress-container {
   position: relative;
-  width: calc(100% - 2rem);
+  width: 100%;
   height: 3px;
   background-color: transparent;
-  margin: 0 1rem;
+  margin: 0;
   border-radius: 2px;
   overflow: hidden;
 }
@@ -246,7 +248,8 @@ const {
 .progress-label {
   position: absolute;
   top: -20px;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 0.75rem;
   font-weight: 500;
   color: #6b7280;
@@ -402,8 +405,8 @@ const {
 
   .progress-container {
     height: 2px;
-    margin: 0 0.5rem;
-    width: calc(100% - 1rem);
+    margin: 0;
+    width: 100%;
   }
 }
 
