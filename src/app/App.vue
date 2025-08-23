@@ -96,17 +96,6 @@ const {
 
 
 <style scoped>
-/* Full Screen Video Background */
-#video-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  object-fit: cover;
-  z-index: -1;
-}
-
 .pointing-border {
   border: 5px solid rgb(255, 0, 0) !important;
   border-radius: 8px !important;
@@ -117,7 +106,7 @@ const {
 .app-container {
   position: relative;
   min-height: 100vh;
-  width: 100vw;
+  width: 90vw;
   font-family: 'Inter', 'Segoe UI', sans-serif;
   display: flex;
   flex-direction: column;
@@ -191,6 +180,7 @@ const {
 
 .logo-container {
   position: relative;
+  margin-left: 25px;
   z-index: 2;
   display: flex;
   align-items: center;
