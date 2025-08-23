@@ -243,8 +243,8 @@ onMounted(() => {
     const dueCards = scheduler.value.scheduleFlashcards();
     studyCard.value = dueCards.length > 0 ? dueCards[0] : null;
 
-    console.log(`Initialized with ${props.flashcards.length} flashcards`);
-    console.log(`First card: ${studyCard.value?.text || 'None'}`);
+    console.log(`[studySet] Initialized with ${props.flashcards.length} flashcards`);
+    console.log(`[studySet] First card: ${studyCard.value?.text || 'None'}`);
   }
 });
 

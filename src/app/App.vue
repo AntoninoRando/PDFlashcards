@@ -26,7 +26,7 @@ const {
   openEditor,
   closeEditor,
   saveEdited,
-  addToCache,
+  addStudyResource,
   handleMouseMove,
   commandRecognized,
   highlightPointing,
@@ -75,8 +75,8 @@ const {
 
     <div class="content-wrapper" :class="{ 'pointing': isPointing }">
       <div class="single-column">
+          <PDFUploader @file-selected="addStudyResource" />
         <div v-if="studySet" class="pdf-section">
-          <PDFUploader @file-selected="addToCache" />
           <PDFPreview v-show="cardRevealed" ref="PDF" :pageToShow="pageToShow" :pdf-url="pdfCache[pdfToShow]" />
         </div>
 

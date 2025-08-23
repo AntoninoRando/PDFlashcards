@@ -88,14 +88,14 @@ export function useApp() {
     editorVisible.value = false;
   }
 
-  function addToCache(item: FileUploadItem) {
+  function addStudyResource(item: FileUploadItem) {
     if (!item.file?.name || !item.url) {
       console.error('Invalid file upload item:', item);
       return;
     }
 
     pdfCache[item.file.name] = item.url;
-    console.log(`[pdfCache] Added (${item.file.name}, ${item.url})`);
+    console.log(`[addStudyResource] Added (${item.file.name}, ${item.url})`);
   }
 
   function handleScroll() {
@@ -182,7 +182,7 @@ export function useApp() {
     openEditor,
     closeEditor,
     saveEdited,
-    addToCache,
+    addStudyResource,
     handleMouseMove,
     commandRecognized,
     highlightPointing,

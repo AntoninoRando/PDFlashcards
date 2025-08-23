@@ -1,14 +1,15 @@
 <script setup lang="ts">
+import { IFlashcard } from '@/FlashcardParser/Types/Types';
 import RecallOptions from './RecallOptions.vue'
 import { createApp, ref, computed, onMounted, watch } from 'vue'
 
 const emit = defineEmits<{
-  reveal: [flashcard: any]
+  reveal: [flashcard: IFlashcard]
   hide: [payload: { flashcard: any; recall: string }]
 }>()
 
 const props = defineProps<{
-  flashcard: any
+  flashcard: IFlashcard
 }>()
 
 const revealed = ref(false)
@@ -73,7 +74,7 @@ function showSubparts() {
   toUnmount.forEach((app) => app.unmount());
   const subpartsElement = subparts.value as HTMLElement
   subpartsElement.innerHTML = '';
-  props.flashcard.subParts.forEach((sub: any) => {
+  props.flashcard.lineDescriptor.subParts.forEach((sub: any) => {
     if (!sub.vueComponent) return
 
     const componentContainer = document.createElement('div')
