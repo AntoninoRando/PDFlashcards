@@ -6,6 +6,7 @@ import PDFUploader from '../components/PDFUploader.vue'
 import GestureRecognizer from '../components/GestureRecognizer/GestureRecognizer.vue'
 import VoiceRecognizer from '../components/VoiceRecognizer/VoiceRecognizer.vue'
 import TextEditor from '../components/TextEditor.vue'
+import ShuffleMenu from '../components/ShuffleMenu.vue'
 import { useApp } from './useApp'
 
 const {
@@ -35,6 +36,14 @@ const {
   studiedCards,
   progressPercent
 } = useApp()
+
+const shuffleOriginalOrder = () => {
+  studySetComponent.value?.shuffleFlashcards('original')
+}
+
+const shuffleRandomOrder = () => {
+  studySetComponent.value?.shuffleFlashcards('random')
+}
 </script>
 
 
@@ -88,6 +97,7 @@ const {
       </div>
     </div>
     <TextEditor v-if="editorVisible" :model-value="uploadedText" @close="closeEditor" @save="saveEdited" />
+    <ShuffleMenu v-if="studySet" @order-original="shuffleOriginalOrder" @order-random="shuffleRandomOrder" />
   </div>
 </template>
 

@@ -27,6 +27,7 @@ export default class FlashcardsScheduler {
   easyIntervalOnExitingLearningMode: string;
   defaultDifficulty: number;
   maximumIntervals: number;
+  randomizeNewCards: boolean;
 
   constructor() {
     this.flashcards = [];
@@ -37,6 +38,7 @@ export default class FlashcardsScheduler {
     this.defaultDifficulty = 5;
     // Maximum allowed interval expressed in days
     this.maximumIntervals = 1825; // Days
+    this.randomizeNewCards = true;
   }
 
   resetCards(): void {
@@ -155,9 +157,13 @@ export default class FlashcardsScheduler {
         );
       }
 
-      // Priority 5: New cards (never reviewed) - add some randomness
+      // Priority 5: New cards (never reviewed)
       if (!aReviewed && !bReviewed) {
-        return Math.random() - 0.5; // Random order for new cards
+        if (this.randomizeNewCards) {
+          return Math.random() - 0.5; // Random order for new cards
+        }
+        // Preserve original order using line numbers
+        return (a.line ?? 0) - (b.line ?? 0);
       }
 
       return 0;
