@@ -21,8 +21,7 @@ HDFS .. Hadoop Distributed File System
 [Cards]
 Introduction
 	^ 1
-Cloud Computing .. n:1
-	# def
+Cloud Computing ..(# def) n:1
 	+ What this term refers to (broadly)
 	+ NIST definition
 (Just the list) The essential characteristics of Cloud Computing identified by the NIST .. n:1-2
