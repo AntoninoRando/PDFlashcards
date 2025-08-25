@@ -188,6 +188,22 @@ const point = (what: string) => {
   currentFlashcardObject.value?.point(what);
 }
 
+const shuffleFlashcards = (mode: 'original' | 'random') => {
+  if (mode === 'original') {
+    scheduler.value.randomizeNewCards = false;
+    props.flashcards.sort((a: any, b: any) => (a.line ?? 0) - (b.line ?? 0));
+  } else {
+    scheduler.value.randomizeNewCards = true;
+    props.flashcards.sort(() => Math.random() - 0.5);
+  }
+
+  scheduler.value.resetCards();
+  scheduler.value.addMoreFlashcards(props.flashcards);
+
+  const dueCards = scheduler.value.scheduleFlashcards();
+  studyCard.value = dueCards.length > 0 ? dueCards[0] : null;
+};
+
 const undoLastReview = () => {
   const last = reviewHistory.value.pop();
   if (!last) return;
@@ -256,7 +272,8 @@ onUnmounted(() => {
 defineExpose({
   revealCurrent,
   hideCurrent,
-  point
+  point,
+  shuffleFlashcards
 });
 </script>
 
