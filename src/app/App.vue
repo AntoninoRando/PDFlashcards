@@ -85,8 +85,8 @@ const shuffleRandomOrder = () => {
     <div class="content-wrapper" :class="{ 'pointing': isPointing }">
       <div class="single-column">
           <PDFUploader @file-selected="addStudyResource" />
-        <div v-if="studySet" class="pdf-section">
-          <PDFPreview v-show="cardRevealed" ref="PDF" :pageToShow="pageToShow" :pdf-url="pdfCache[pdfToShow]" />
+        <div v-if="studySet && cardRevealed" class="pdf-section">
+          <PDFPreview ref="PDF" :pageToShow="pageToShow" :pdf-url="pdfCache[pdfToShow]" />
         </div>
 
         <div class="flashcard-wrapper" :class="{ revealed: cardRevealed }">
@@ -327,8 +327,12 @@ const shuffleRandomOrder = () => {
 
 .flashcard-wrapper.revealed {
   top: auto;
-  bottom: 20px;
+  bottom: -130px; /* leave a small strip visible */
   transform: translateX(-50%);
+}
+
+.flashcard-wrapper.revealed:hover {
+  bottom: 20px;
 }
 
 .divider {
