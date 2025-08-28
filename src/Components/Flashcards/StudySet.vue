@@ -16,7 +16,7 @@ import {
   IStudySet
 } from '@/FlashcardParser/Types/Types';
 import { updateCardsSchedule } from './StudySetMethods/UpdateCardsSchedule';
-import { SortModes } from '@/flashcardsScheduler';
+import { SortModes } from '@/FlashcardsScheduler';
 
 
 

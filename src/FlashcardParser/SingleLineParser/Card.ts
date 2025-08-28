@@ -1,6 +1,6 @@
 import { IFlashcard, IStudySet, LineDescriptor } from "../Types/Types";
-import { PageRef } from "@/commands/all/PageRef";
-import { Header } from "@/commands/all/Header";
+import { PageRef } from "@/Commands/All/PageRef";
+import { Header } from "@/Commands/All/Header";
 import { parseCommandLine } from "./Command";
 
 export function parseCardLine(

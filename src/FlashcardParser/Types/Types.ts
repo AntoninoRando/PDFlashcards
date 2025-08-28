@@ -1,4 +1,4 @@
-import FlashcardsScheduler from "@/flashcardsScheduler";
+import FlashcardsScheduler from "@/FlashcardsScheduler";
 import { Category } from "../CategoriesFinder";
 
 export interface IFlashcard {

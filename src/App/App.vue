@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import StudySet from '../components/Flashcards/StudySet.vue'
-import PDFPreview from '../components/PDFPreview.vue'
-import FileParser from '../components/FileParser.vue'
-import PDFUploader from '../components/PDFUploader.vue'
-import GestureRecognizer from '../components/GestureRecognizer/GestureRecognizer.vue'
-import VoiceRecognizer from '../components/VoiceRecognizer/VoiceRecognizer.vue'
-import TextEditor from '../components/TextEditor.vue'
-import ShuffleMenu from '../components/ShuffleMenu.vue'
-import { useApp } from './useApp'
-import { SortModes } from '@/flashcardsScheduler'
+import StudySet from '../Components/Flashcards/StudySet.vue'
+import PDFPreview from '../Components/PDFPreview.vue'
+import FileParser from '../Components/FileParser.vue'
+import PDFUploader from '../Components/PDFUploader.vue'
+import GestureRecognizer from '../Components/GestureRecognizer/GestureRecognizer.vue'
+import VoiceRecognizer from '../Components/VoiceRecognizer/VoiceRecognizer.vue'
+import TextEditor from '../Components/TextEditor.vue'
+import ShuffleMenu from '../Components/ShuffleMenu.vue'
+import { useApp } from './UseApp'
+import { SortModes } from '@/FlashcardsScheduler'
 
 const {
   pageToShow,
@@ -62,7 +62,7 @@ const shuffleLearnOrder = () => {
         '--mouse-y': mousePosition.y + 'px'
       }"></div>
       <div class="logo-container">
-        <img src="@/assets/WebLogo.svg" alt="Logo" class="logo" />
+        <img src="@/Assets/WebLogo.svg" alt="Logo" class="logo" />
       </div>
 
       <nav class="navbar" :class="{ 'sticky': isScrolled }">
