@@ -26,20 +26,19 @@
 </template>
 
 <script setup lang="ts">
+import { HideOption } from "@/FlashcardParser/Types/Types";
 import { ref } from "vue";
 
 // Define emits
 const emit = defineEmits<{
-  optionSelected: [option: string];
+  optionSelected: [option: HideOption];
 }>();
 
 // Reactive data
 const pressedButton = ref<string>(null);
 const pointedButton = ref<string>(null);
 
-enum RecallOptionLabel { 'hide', 'forgot', 'bad', 'not bad', 'ok' }
-
-const chooseRecallOption = (option: RecallOptionLabel) => {
+const chooseRecallOption = (option: HideOption) => {
   pressedButton.value = option;
   emit("optionSelected", option);
 };

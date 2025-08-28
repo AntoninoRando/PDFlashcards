@@ -8,6 +8,7 @@ import VoiceRecognizer from '../components/VoiceRecognizer/VoiceRecognizer.vue'
 import TextEditor from '../components/TextEditor.vue'
 import ShuffleMenu from '../components/ShuffleMenu.vue'
 import { useApp } from './useApp'
+import { SortModes } from '@/flashcardsScheduler'
 
 const {
   pageToShow,
@@ -38,11 +39,13 @@ const {
 } = useApp()
 
 const shuffleOriginalOrder = () => {
-  studySetComponent.value?.shuffleFlashcards('original')
+  studySetComponent.value?.shuffleFlashcards(SortModes.originalOrder)
 }
-
 const shuffleRandomOrder = () => {
-  studySetComponent.value?.shuffleFlashcards('random')
+  studySetComponent.value?.shuffleFlashcards(SortModes.random)
+}
+const shuffleLearnOrder = () => {
+  studySetComponent.value?.shuffleFlashcards(SortModes.learningPriority)
 }
 </script>
 
@@ -84,20 +87,39 @@ const shuffleRandomOrder = () => {
 
     <div class="content-wrapper" :class="{ 'pointing': isPointing }">
       <div class="single-column">
-          <PDFUploader @file-selected="addStudyResource" />
+          <PDFUploader
+            @file-selected="addStudyResource" />
         <div v-if="studySet && cardRevealed" class="pdf-section">
-          <PDFPreview ref="PDF" :pageToShow="pageToShow" :pdf-url="pdfCache[pdfToShow]" />
+          <PDFPreview ref="PDF"
+            :pageToShow="pageToShow"
+            :pdf-url="pdfCache[pdfToShow]" />
         </div>
 
         <div class="flashcard-wrapper" :class="{ revealed: cardRevealed }">
-          <FileParser v-if="!studySet" @setUploaded="loadStudySet" />
-          <StudySet ref="studySetComponent" v-else @reveal="showPage" @hide="cardHidden"
-            :flashcards="studySet.flashcards" :resources="studySet.resources" :studySet="studySet" />
+          <FileParser v-if="!studySet" 
+            @setUploaded="loadStudySet" />
+          <StudySet ref="studySetComponent" v-else 
+            @reveal="showPage"
+            @hide="cardHidden"
+            :studySet="studySet" />
         </div>
       </div>
     </div>
-    <TextEditor v-if="editorVisible" :model-value="uploadedText" @close="closeEditor" @save="saveEdited" />
-    <ShuffleMenu v-if="studySet" @order-original="shuffleOriginalOrder" @order-random="shuffleRandomOrder" />
+
+    <!-- The text editor that allows to modify the StudySet file directly in 
+    app. -->
+    <TextEditor v-if="editorVisible"
+      :model-value="uploadedText"
+      @close="closeEditor"
+      @save="saveEdited" />
+    
+    <!-- Wheel of options to manipulate the StudySet, e.g. by showing the cards
+    in order instead of "randomly". -->
+    <ShuffleMenu v-if="studySet"
+      @order-original="shuffleOriginalOrder"
+      @order-random="shuffleRandomOrder" 
+      @order-learn="shuffleLearnOrder"/>
+  
   </div>
 </template>
 

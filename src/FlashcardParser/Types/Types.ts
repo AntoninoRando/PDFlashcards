@@ -1,3 +1,4 @@
+import FlashcardsScheduler from "@/flashcardsScheduler";
 import { Category } from "../CategoriesFinder";
 
 export interface IFlashcard {
@@ -5,10 +6,12 @@ export interface IFlashcard {
     headers: string[];
     text: string;
     reviewedAt: Date | null;
+    nextReviewAt: Date;
     ease: number;
     interval: number;
+    retrievalSuccess: number | null;
+    reviewCount: number;
     learningPhase: boolean;
-    nextReviewAt: Date;
     alias?: string[];
 }
 
@@ -19,14 +22,16 @@ export interface ISubPart {
 
 export interface IStudySet {
     title: string;
-    flashcards: IFlashcard[];
     resources: Record<string, string>;
     defaultResource: string;
     aliases: Record<string, string>[];
+    flashcards: IFlashcard[];
+    scheduler: FlashcardsScheduler,
     headers: LineDescriptor[];
     studiedCards: number;
     originalLines: string[];
     linesDescriptors: LineDescriptor[];
+    history: any[];
 }
 export interface LineDescriptor {
     index: number;
@@ -38,4 +43,19 @@ export interface LineDescriptor {
     parent: LineDescriptor | null,
     isComment: boolean,
     subParts: ISubPart[];
+}
+
+export enum RecallOption {
+    forgot = 'forgot',
+    bad = 'bad',
+    notBad = 'not bad',
+    ok = 'ok'
+}
+
+export enum HideOption {
+    hide = 'hide',
+    forgot = 'forgot',
+    bad = 'bad',
+    notBad = 'not bad',
+    ok = 'ok'
 }

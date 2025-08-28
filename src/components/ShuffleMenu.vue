@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-
 const isOpen = ref(false);
 const toggleMenu = () => {
   isOpen.value = !isOpen.value;
 };
 </script>
-
 <template>
   <div class="menu-container">
     <button class="main-button" @click="toggleMenu" :class="{ 'open': isOpen }">
@@ -14,30 +12,24 @@ const toggleMenu = () => {
     </button>
     <transition name="wheel">
       <div v-if="isOpen" class="options-wheel">
-        <button 
-          class="option option-1" 
-          @click="$emit('order-original'); toggleMenu()"
-          title="Original Order"
-        >
-          Orig
+        <button class="option option-1" @click="$emit('order-original'); toggleMenu()" title="Original Order">
+          Order
         </button>
-        <button 
-          class="option option-2" 
-          @click="$emit('order-random'); toggleMenu()"
-          title="Random Order"
-        >
+        <button class="option option-2" @click="$emit('order-random'); toggleMenu()" title="Random Order">
           Rand
+        </button>
+        <button class="option option-3" @click="$emit('order-learn'); toggleMenu()" title="Original Order">
+          Default
         </button>
       </div>
     </transition>
   </div>
 </template>
-
 <style scoped>
 .menu-container {
   position: fixed;
-  bottom: 20px;
-  left: 20px;
+  bottom: 50px;
+  left: 100px;
 }
 
 .main-button {
@@ -111,6 +103,12 @@ const toggleMenu = () => {
   animation: slideIn2 0.4s ease-out;
 }
 
+.option-3 {
+  bottom: -24px;
+  right: -80px;
+  animation: slideIn3 0.4s ease-out;
+}
+
 /* Animations for wheel opening */
 @keyframes slideIn1 {
   from {
@@ -119,6 +117,7 @@ const toggleMenu = () => {
     opacity: 0;
     transform: scale(0);
   }
+
   to {
     bottom: -24px;
     left: -80px;
@@ -134,6 +133,7 @@ const toggleMenu = () => {
     opacity: 0;
     transform: scale(0);
   }
+
   to {
     bottom: 40px;
     left: -24px;
@@ -142,12 +142,30 @@ const toggleMenu = () => {
   }
 }
 
+@keyframes slideIn3 {
+  from {
+    bottom: -24px;
+    left: -24px;
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  to {
+    bottom: -24px;
+    right: -80px;
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Transition for the entire wheel */
-.wheel-enter-active, .wheel-leave-active {
+.wheel-enter-active,
+.wheel-leave-active {
   transition: opacity 0.3s ease;
 }
 
-.wheel-enter-from, .wheel-leave-to {
+.wheel-enter-from,
+.wheel-leave-to {
   opacity: 0;
 }
 
@@ -185,14 +203,19 @@ const toggleMenu = () => {
     height: 56px;
     font-size: 20px;
   }
-  
+
   .option {
     width: 44px;
     height: 44px;
     font-size: 11px;
   }
-  
+
   .option-1 {
     left: -72px;
   }
-}</style>
+
+  .option-3 {
+    right: -72px;
+  }
+}
+</style>

@@ -1,7 +1,6 @@
-import { CommandsFactory } from "@/Commands/CommandsFactory";
 import { IFlashcard, IStudySet, LineDescriptor } from "../Types/Types";
-import { PageRef } from "@/Commands/All/PageRef";
-import { Header } from "@/Commands/All/Header";
+import { PageRef } from "@/commands/all/PageRef";
+import { Header } from "@/commands/all/Header";
 import { parseCommandLine } from "./Command";
 
 export function parseCardLine(
@@ -21,11 +20,13 @@ export function parseCardLine(
 		lineDescriptor: lineDescriptor,
 		text: cardFront,
 		headers: [],
-		reviewedAt: null,
 		// FSRS initial difficulty and stability
 		ease: 5,
 		interval: 0.5,
 		learningPhase: true,
+		reviewedAt: null,
+		retrievalSuccess: 0,
+		reviewCount: 0,
 		nextReviewAt: new Date(), // Default to now, will be updated if recall data follows
 	};
 

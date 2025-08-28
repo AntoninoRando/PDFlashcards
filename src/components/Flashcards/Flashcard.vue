@@ -1,20 +1,36 @@
 <script setup lang="ts">
-import { IFlashcard } from '@/FlashcardParser/Types/Types';
+import { HideOption, IFlashcard } from '@/FlashcardParser/Types/Types';
 import RecallOptions from './RecallOptions.vue'
 import { createApp, ref, computed, onMounted, watch } from 'vue'
 
-const emit = defineEmits<{
-  reveal: [flashcard: IFlashcard]
-  hide: [payload: { flashcard: any; recall: string }]
-}>()
 
+//#region PROPS ----------------------------------------------------------------
 const props = defineProps<{
   flashcard: IFlashcard
 }>()
+//#endregion -------------------------------------------------------------------
 
+
+
+//#region EMITS ----------------------------------------------------------------
+const emit = defineEmits<{
+  reveal: [flashcard: IFlashcard]
+  hide: [payload: { flashcard: IFlashcard; recall: HideOption }]
+}>()
+//#endregion -------------------------------------------------------------------
+
+
+
+//#region REACTIVE DATA --------------------------------------------------------
 const revealed = ref(false)
 const hidingRecallOptions = ref(false)
+const recallOptions = ref<InstanceType<typeof RecallOptions> | null>(null)
+const subparts = ref<HTMLElement | null>(null)
+//#endregion -------------------------------------------------------------------
 
+
+
+//#region COMPUTED DATA --------------------------------------------------------
 const flashcardSize = computed(() => {
   if (props.flashcard.alias && props.flashcard.alias.length > 0) return '90%'
   return '100%'
@@ -25,10 +41,11 @@ const flashcardsBorders = computed(() => {
     return '0px 3px 3px 0px'
   return '3px'
 })
+//#endregion -------------------------------------------------------------------
 
-const recallOptions = ref<InstanceType<typeof RecallOptions> | null>(null)
-const subparts = ref<HTMLElement | null>(null)
 
+
+//#region METHODS --------------------------------------------------------------
 function isRevealed() {
   return revealed.value
 }
@@ -88,6 +105,9 @@ function showSubparts() {
     app.mount(componentContainer)
   })
 }
+//#endregion -------------------------------------------------------------------
+
+
 
 watch(revealed, async (oldV, newV) => {
   showSubparts();

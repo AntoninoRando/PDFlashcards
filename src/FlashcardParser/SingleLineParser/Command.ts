@@ -1,4 +1,4 @@
-import { CommandsFactory } from "@/Commands/CommandsFactory";
+import { CommandsFactory } from "@/commands/CommandsFactory";
 import {
     COMMAND_SEPARATOR,
     INLINE_SUBCOMMAND_START_SYMBOL,

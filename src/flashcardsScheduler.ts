@@ -1,16 +1,4 @@
-export interface Flashcard {
-  text?: string;
-  line?: number;
-  headers?: string[];
-  reviewedAt: Date | null;
-  nextReviewAt: Date | null;
-  ease: number;
-  interval: number;
-  retrievalSuccess: number | null;
-  reviewCount: number;
-  learningPhase?: boolean;
-  [key: string]: any;
-}
+import { IFlashcard } from "./FlashcardParser/Types/Types";
 
 export interface CardStats {
   total: number;
@@ -21,14 +9,30 @@ export interface CardStats {
   badRecall: number;
 }
 
+export enum SortModes {
+  learningPriority = 'learning priority', // Default
+  byDueDate = 'by due date',
+  random = 'random',
+  originalOrder= 'original order',
+}
+
 export default class FlashcardsScheduler {
-  flashcards: Flashcard[];
+  //#region PROPERTIES ---------------------------------------------------------
+  flashcards: IFlashcard[];
+  sortedFlashcards: IFlashcard[];
+
+  sortMode: SortModes = SortModes.learningPriority;
+  
+  /* --- Learning settings --- */
   initialLearningPhaseFixedSteps: string[];
   easyIntervalOnExitingLearningMode: string;
   defaultDifficulty: number;
   maximumIntervals: number;
-  randomizeNewCards: boolean;
+  //#endregion -----------------------------------------------------------------
+  
 
+
+  //#region CONSTRUCTORS -------------------------------------------------------
   constructor() {
     this.flashcards = [];
     this.initialLearningPhaseFixedSteps = ["30m", "2h", "2d"];
@@ -38,54 +42,68 @@ export default class FlashcardsScheduler {
     this.defaultDifficulty = 5;
     // Maximum allowed interval expressed in days
     this.maximumIntervals = 1825; // Days
-    this.randomizeNewCards = true;
   }
+  //#endregion -----------------------------------------------------------------
 
+
+
+  //#region METHODS ------------------------------------------------------------
+  /**
+   * Removes every cards from the scheduler.
+   */
   resetCards(): void {
     this.flashcards = [];
   }
 
-  addFlashcard(flashcard: Partial<Flashcard>): void {
-    // Initialize new flashcard with default values if not present
-    const defaultFlashcard: Flashcard = {
-      reviewedAt: null,
-      nextReviewAt: new Date(),
-      // 'ease' is used to keep track of FSRS difficulty
-      ease: this.defaultDifficulty,
-      interval: 0,
-      retrievalSuccess: null,
-      reviewCount: 0,
-      ...flashcard,
-    };
-    this.flashcards.push(defaultFlashcard);
+  /**
+   * 
+   * @param flashcard One or more flashcards to add to the scheduler.
+   */
+  addFlashcards(...flashcard: IFlashcard[]): void {
+    this.flashcards.push(...flashcard);
+    this.sort();
   }
 
-  addMoreFlashcards(flashcards: Partial<Flashcard>[]): void {
-    flashcards.forEach((flashcard) => this.addFlashcard(flashcard));
+  /**
+   * Returns the first card in the sorted list (i.e., the first card to study),
+   * or null if no cards are available.
+   */
+  getFirstCard(): IFlashcard | null {
+    console.log(`[scheduler] Getting first card from ${this.flashcards.length} sorted cards`);
+    return this.flashcards.length > 0 ? this.flashcards[0] : null;
   }
 
-  // Parse time strings like '30m', '2h', '2d' into milliseconds
-  parseTimeString(timeStr: string): number {
-    const unit = timeStr.slice(-1);
-    const value = parseInt(timeStr.slice(0, -1), 10);
+  /**
+   * 
+   * @param timeString A string representing a time duration, e.g. "30m", "2h", 
+   * "3d". This string should only contain a number followed by a SINGLE
+   * character representing the time unit: 'm' for minutes, 'h' for hours,
+   * @returns The time duration in milliseconds.
+   */
+  static parseTimeString(timeString: string): number {
+    const unit = timeString.slice(-1);
+    const value = parseInt(timeString.slice(0, -1), 10);
 
     switch (unit) {
-      case "m":
-        return value * 60 * 1000; // minutes to ms
-      case "h":
-        return value * 60 * 60 * 1000; // hours to ms
+      case "m": return value * 60 * 1000;
+      case "h": return value * 60 * 60 * 1000;
       case "d":
-        return value * 24 * 60 * 60 * 1000; // days to ms
-      default:
-        return value * 24 * 60 * 60 * 1000; // default to days
+      default: return value * 24 * 60 * 60 * 1000;
     }
   }
 
-  // Update flashcard after review
+  /**
+   * Updates a flashcard's scheduling data after a review session, then sorts
+   * the cards of this scheduler.
+   * @param flashcard The flashcard to update.
+   * @param retrievalSuccess An integer representing the recall quality:
+   * 0 = "forgot", 1 = "bad", 2 = "not bad", 3 = "ok".
+   * @returns The updated flashcard.
+   */
   updateFlashcardAfterReview(
-    flashcard: Flashcard,
+    flashcard: IFlashcard,
     retrievalSuccess: number
-  ): Flashcard {
+  ): IFlashcard {
     const now = new Date();
     const lastReview = flashcard.reviewedAt;
     flashcard.reviewedAt = now;
@@ -109,84 +127,14 @@ export default class FlashcardsScheduler {
     );
     flashcard.nextReviewAt = nextReviewTime;
 
+    this.sort();
+    console.log(`[scheduler] Updated card '${flashcard.text}' with:
+      retrievalSuccess=${retrievalSuccess}, 
+      nextReviewAt=${flashcard.nextReviewAt}, 
+      interval=${flashcard.interval}, 
+      ease=${flashcard.ease}`);
+
     return flashcard;
-  }
-
-  // Get flashcards that are due for review
-  scheduleFlashcards(): Flashcard[] {
-    const now = new Date();
-    const dueFlashcards = this.flashcards.filter((flashcard) => {
-      // Cards without nextReviewAt or with nextReviewAt <= now are due
-      return !flashcard.nextReviewAt || flashcard.nextReviewAt <= now;
-    });
-
-    // Sort by priority: bad recalls first, then by due time, then random for new cards
-    return this.prioritizeFlashcards(dueFlashcards);
-  }
-
-  // Prioritize flashcards based on recall performance
-  prioritizeFlashcards(flashcards: Flashcard[]): Flashcard[] {
-    const now = new Date();
-
-    return flashcards.sort((a, b) => {
-      // Priority 1: Cards with bad recall (retrievalSuccess 0 or 1) come first
-      const aBadRecall = a.retrievalSuccess !== null && a.retrievalSuccess <= 1;
-      const bBadRecall = b.retrievalSuccess !== null && b.retrievalSuccess <= 1;
-
-      if (aBadRecall && !bBadRecall) return -1;
-      if (!aBadRecall && bBadRecall) return 1;
-
-      // Priority 2: Among bad recalls, sort by how overdue they are
-      if (aBadRecall && bBadRecall) {
-        const aOverdue = a.nextReviewAt ? now.getTime() - a.nextReviewAt.getTime() : 0;
-        const bOverdue = b.nextReviewAt ? now.getTime() - b.nextReviewAt.getTime() : 0;
-        return bOverdue - aOverdue; // More overdue first
-      }
-
-      // Priority 3: Cards that have been reviewed before (but not badly)
-      const aReviewed = a.reviewedAt !== null;
-      const bReviewed = b.reviewedAt !== null;
-
-      if (aReviewed && !bReviewed) return -1;
-      if (!aReviewed && bReviewed) return 1;
-
-      // Priority 4: Among reviewed cards, sort by next review time
-      if (aReviewed && bReviewed) {
-        return (
-          (a.nextReviewAt?.getTime() ?? 0) - (b.nextReviewAt?.getTime() ?? 0)
-        );
-      }
-
-      // Priority 5: New cards (never reviewed)
-      if (!aReviewed && !bReviewed) {
-        if (this.randomizeNewCards) {
-          return Math.random() - 0.5; // Random order for new cards
-        }
-        // Preserve original order using line numbers
-        return (a.line ?? 0) - (b.line ?? 0);
-      }
-
-      return 0;
-    });
-  }
-
-  // Sort all cards for display/debugging purposes
-  sortCards(): void {
-    const n = this.flashcards.filter((f) => f !== undefined).length;
-    console.log(`[scheuduler] Sorting ${n} flashcard(s) by priority`);
-
-    this.flashcards = this.prioritizeFlashcards(this.flashcards);
-
-    if (n > 0) {
-      console.log(
-        "[scheduler] First flashcard:\n" +
-          `\t- frontText: ${this.flashcards[0].text};\n` +
-          `\t- reviewedAt: ${this.flashcards[0].reviewedAt};\n` +
-          `\t- nextReviewAt: ${this.flashcards[0].nextReviewAt};\n` +
-          `\t- retrievalSuccess: ${this.flashcards[0].retrievalSuccess};\n` +
-          `\t- interval: ${this.flashcards[0].interval} days.`
-      );
-    }
   }
 
   // Get statistics about card distribution
@@ -227,6 +175,15 @@ export default class FlashcardsScheduler {
     return Math.random() * 0.1 + 0.95; // Random noise between 0.95 and 1.05
   }
 
+  /**
+   * Calculate the next interval, ease, and stability for a flashcard based on
+   * the Free Spaced Repetition Scheduler (FSRS) algorithm.
+   * @param retrievalSuccess 
+   * @param currentStability 
+   * @param difficulty 
+   * @param lastReviewDate 
+   * @returns 
+   */
   static nextInterval(
     retrievalSuccess: number,
     currentStability = 0,
@@ -291,5 +248,72 @@ export default class FlashcardsScheduler {
 
     return { interval, ease: newDifficulty, stability: newStability };
   }
-}
 
+
+  sort(): IFlashcard | null {
+    switch (this.sortMode) {
+      case SortModes.byDueDate:
+        this.flashcards.sort((a, b) => {
+          const aTime = a.nextReviewAt ? a.nextReviewAt.getTime() : Infinity;
+          const bTime = b.nextReviewAt ? b.nextReviewAt.getTime() : Infinity;
+          return aTime - bTime;
+        });
+        break;
+      case SortModes.random:
+        this.flashcards.sort(() => Math.random() - 0.5);
+        break;
+      case SortModes.originalOrder:
+        this.flashcards.sort((a, b) => 
+          (a.lineDescriptor.index ?? 0) - (b.lineDescriptor.index ?? 0));
+        break;
+      case SortModes.learningPriority:
+      default:
+        this.sortFlashcardsBySchedule();
+        break;
+    }
+    return this.getFirstCard();
+  }
+
+
+  // Get flashcards that are due for review
+  sortFlashcardsBySchedule(): void {
+    const now = new Date();
+
+    this.flashcards.sort((a, b) => {
+      // Priority 1: Cards with bad recall (retrievalSuccess 0 or 1) come first
+      const aBadRecall = a.retrievalSuccess !== null && a.retrievalSuccess <= 1;
+      const bBadRecall = b.retrievalSuccess !== null && b.retrievalSuccess <= 1;
+
+      if (aBadRecall && !bBadRecall) return -1;
+      if (!aBadRecall && bBadRecall) return 1;
+
+      // Priority 2: Among bad recalls, sort by how overdue they are
+      if (aBadRecall && bBadRecall) {
+        const aOverdue = a.nextReviewAt ? now.getTime() - a.nextReviewAt.getTime() : 0;
+        const bOverdue = b.nextReviewAt ? now.getTime() - b.nextReviewAt.getTime() : 0;
+        return bOverdue - aOverdue; // More overdue first
+      }
+
+      // Priority 3: Cards that have been reviewed before (but not badly)
+      const aReviewed = a.reviewedAt !== null;
+      const bReviewed = b.reviewedAt !== null;
+
+      if (aReviewed && !bReviewed) return -1;
+      if (!aReviewed && bReviewed) return 1;
+
+      // Priority 4: Among reviewed cards, sort by next review time
+      if (aReviewed && bReviewed) {
+        return (
+          (a.nextReviewAt?.getTime() ?? 0) - (b.nextReviewAt?.getTime() ?? 0)
+        );
+      }
+
+      // Priority 5 - New cards (never reviewed): random order or original order
+      if (!aReviewed && !bReviewed) {
+        return Math.random() - 0.5;
+      }
+
+      return 0;
+    });
+  }
+}

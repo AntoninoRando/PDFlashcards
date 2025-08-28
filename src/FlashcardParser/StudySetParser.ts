@@ -12,6 +12,7 @@ import {
 import { parseCommandLine } from "./SingleLineParser/Command";
 import { parseAcronymLine } from "./SingleLineParser/Alias";
 import { parseResourceLine } from "./SingleLineParser/Resource";
+import FlashcardsScheduler from "@/flashcardsScheduler";
 
 export function parseStudyset(lines: string[]): IStudySet | null {
     const originalLines = lines;
@@ -26,7 +27,9 @@ export function parseStudyset(lines: string[]): IStudySet | null {
         headers: [],
         studiedCards: 0,
         originalLines: [...originalLines],
-        linesDescriptors: []
+        linesDescriptors: [],
+        scheduler: new FlashcardsScheduler(),
+        history: []
     };
 
     try {

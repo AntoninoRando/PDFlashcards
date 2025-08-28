@@ -1,271 +1,256 @@
 <script setup lang="ts">
+
+/*
+This is the component that handles the flashcards of a StudySet. This component
+uses a StudySet object as propr and shows flashcards and their recall options.
+This component emits a signal when a flashcard is revealed or hidden. In the 
+latter case, also a recall option is associated with the hide action.
+*/
+
+
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import FlashcardsScheduler from '@/flashcardsScheduler';
 import Flashcard from './Flashcard.vue';
+import { 
+  HideOption, 
+  IFlashcard, 
+  IStudySet
+} from '@/FlashcardParser/Types/Types';
+import { updateCardsSchedule } from './StudySetMethods/UpdateCardsSchedule';
+import { SortModes } from '@/flashcardsScheduler';
 
-// Define props
-interface Props {
-  flashcards: any[];
-  resources: Record<string, string>;
-  studySet: any;
-}
 
+
+//#region PROPS ----------------------------------------------------------------
+interface Props { studySet: IStudySet; }
 const props = defineProps<Props>();
+//#endregion -------------------------------------------------------------------
 
-// Define emits
-const emit = defineEmits<{
-  reveal: [flashcard: any];
-  hide: [flashcard: any];
-}>();
 
-// Reactive data
-const scheduler = ref(new FlashcardsScheduler());
-const studyCard = ref<any>(null);
-const currentFlashcardObject = ref<InstanceType<typeof Flashcard> | null>(null);
-const reviewHistory = ref<{ index: number; snapshot: any }[]>([]);
 
+//#region EMITS ----------------------------------------------------------------
+interface Emits {
+  /**
+   * Notifies that a flashcard of the StudySet has been revealed.
+   */
+  reveal: [flashcard: IFlashcard];
+  /**
+   * Notifies that a flashcard of the StudySet has been hidden, either via the
+   * hide option or a recall option.
+   */
+  hide: [flashcard: IFlashcard];
+}
+const emit = defineEmits<Emits>();
+//#endregion -------------------------------------------------------------------
+
+
+
+//#region REACTIVE DATA --------------------------------------------------------
+/**
+ * The current card that is being showed (or hidden).
+ */
+const studyCard = ref<IFlashcard>(null);
+/**
+ * The VUE COMPONENT instance of the current shown flashcard.
+ */
+const vueShownFlashcard = ref<InstanceType<typeof Flashcard> | null>(null);
+//#endregion -------------------------------------------------------------------
+
+
+
+//#region COMPUTED DATA --------------------------------------------------------
 const headerBreadcrumb = computed(() => {
   return studyCard.value?.headers?.join(' / ') ?? '';
 });
-
-const showingFlashcard = computed(() => {
-  return currentFlashcardObject.value?.isRevealed() ?? false;
+const isFlashcardRevealed = computed(() => {
+  return vueShownFlashcard.value?.isRevealed() ?? false;
 });
+//#endregion -------------------------------------------------------------------
 
-// Methods
+
+
+//#region METHODS --------------------------------------------------------------
 const revealCurrent = () => {
-  currentFlashcardObject.value?.reveal();
+  vueShownFlashcard.value?.reveal();
 };
 
-const hideCurrent = (recallType: string) => {
-  if (!currentFlashcardObject.value?.isRevealed()) {
+const hideCurrent = (recallType: HideOption) => {
+  if (!vueShownFlashcard.value) {
+    console.warn('[studySet] Flashcard to HIDE is "null"');
+    return;
+  }
+  if (!isFlashcardRevealed) {
+    console.warn('[studySet] Flashcard to HIDE is "already hidden"');
     return;
   }
 
+  console.log(`[studySet] Hiding card with recall: ${recallType}`);
   if (recallType === 'hide') {
-    currentFlashcardObject.value.hide();
+    vueShownFlashcard.value.hide();
   } else if (recallType === 'forgot') {
-    currentFlashcardObject.value.forgot();
+    vueShownFlashcard.value.forgot();
   } else if (recallType === 'bad') {
-    currentFlashcardObject.value.bad();
+    vueShownFlashcard.value.bad();
   } else if (recallType === 'not bad') {
-    currentFlashcardObject.value.notBad();
+    vueShownFlashcard.value.notBad();
   } else if (recallType === 'ok') {
-    currentFlashcardObject.value.ok();
+    vueShownFlashcard.value.ok();
   }
 };
 
-const reveal = (flashcard: any) => {
+const reveal = (flashcard: IFlashcard) => {
+  console.log(`[studySet] Card revealed: ${flashcard.text}`);
   emit('reveal', flashcard);
 };
 
-const updateCards = (flashcardObj: any) => {
+const updateCards = (flashcardObj: {
+  flashcard: IFlashcard,
+  recall: HideOption
+}) => {
   const { flashcard, recall } = flashcardObj;
-
-  if (!flashcard || recall === 'hide') return;
-
-  const grades: Record<string, number> = {
-    'forgot': 0,
-    'bad': 1,
-    'not bad': 2,
-    'ok': 3,
-  };
-
-  const retrievalSuccess = grades[recall] ?? 0;
-
-  // Find the original flashcard in props.flashcards to update it directly
-  const index = props.flashcards.findIndex(
-    (card: any) => card.text === flashcard.text && card.line === flashcard.line
-  );
-  const originalFlashcard = props.flashcards[index];
-
-  if (!originalFlashcard) {
-    console.error("Could not find original flashcard to update");
-    return;
-  }
-
-  const snapshot = JSON.parse(JSON.stringify(originalFlashcard));
-  reviewHistory.value.push({ index, snapshot });
-
-  // Use the scheduler's updateFlashcardAfterReview method on the original flashcard
-  scheduler.value.updateFlashcardAfterReview(originalFlashcard, retrievalSuccess);
-  // Update learning phase status
-  originalFlashcard.learningPhase = originalFlashcard.interval < 1;
-
-  console.log(
-    'Card updated:\n' +
-    `\t-reviewedAt=${originalFlashcard.reviewedAt};\n` +
-    `\t-nextReviewAt=${originalFlashcard.nextReviewAt};\n` +
-    `\t-interval=${originalFlashcard.interval};\n`+
-    `\t-ease=${originalFlashcard.ease},`);
-
-  const n = props.flashcards.filter((f: any) => f !== undefined).length;
-  if (n === 0) {
-    console.log("No cards to update");
-    return;
-  }
-
-  if (props.studySet) {
-    props.studySet.studiedCards = (props.studySet.studiedCards || 0) + 1;
-  }
-
-  // Reset and repopulate scheduler with updated flashcards
-  scheduler.value.resetCards();
-  scheduler.value.addMoreFlashcards(props.flashcards);
-
-  // Get next due card using scheduler's scheduling method
-  const dueCards = scheduler.value.scheduleFlashcards();
-  studyCard.value = dueCards.length > 0 ? dueCards[0] : null;
-
+  updateCardsSchedule(flashcard, recall, props.studySet);
+  
+  studyCard.value = props.studySet.scheduler.getFirstCard();
   if (studyCard.value) {
     console.log(`Next card: ${studyCard.value.text}, due: ${studyCard.value.nextReviewAt}`);
   } else {
-    console.log("No more cards due for review");
+    console.log(`[studySet] No more cards due for review`);
   }
-
-  emit('hide', originalFlashcard);
+  emit('hide', flashcard);
 };
 
-const downloadSet = () => {
-  if (!props.studySet || !props.studySet.originalLines) {
-    alert('No study set to save!');
-    return;
-  }
-
-  const lines: string[] = [...props.studySet.originalLines];
-
-  // Debug: Log all flashcards and their reviewedAt status
-  console.log('All flashcards:');
-  props.flashcards.forEach((card: any, index: number) => {
-    console.log(`Card ${index}: "${card.text}" - reviewedAt: ${card.reviewedAt} - interval: ${card.interval} - ease: ${card.ease}`);
-  });
-
-  // Filter cards that have been reviewed (have reviewedAt set)
-  const reviewedCards = props.flashcards.filter((card: any) => card.reviewedAt !== null);
-  console.log(`Found ${reviewedCards.length} reviewed cards to save out of ${props.flashcards.length} total cards`);
-
-  if (reviewedCards.length === 0) {
-    alert('No reviewed cards to save! Make sure you have studied some cards first.');
-    return;
-  }
-
-  // Sort by line number in descending order to avoid index shifting issues
-  const cardsSorted = [...reviewedCards].sort((a: any, b: any) => b.line - a.line);
-
-  for (let i = 0; i < cardsSorted.length; i++) {
-    const card = cardsSorted[i];
-    console.log(`Saving card: "${card.text}" - reviewedAt: ${card.reviewedAt} - line: ${card.line}`);
-
-    // Insert or replace the save command after the card line
-    const insertIndex = card.line + 1;
-    const command = `\t*** ${card.reviewedAt.toISOString()}, ${card.ease}, ${card.interval}, ${card.learningPhase}`;
-
-    // Remove any existing recall data lines for this card
-    while (insertIndex < lines.length && lines[insertIndex].trimStart().startsWith('***')) {
-      lines.splice(insertIndex, 1);
-    }
-
-    lines.splice(insertIndex, 0, command);
-  }
-
-  const content = lines.join('\n');
-
-  const blob = new Blob([content], { type: 'text/plain' });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-
-  const filename = `${props.studySet.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_flashcards.txt`;
-  link.href = url;
-  link.download = filename;
-
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
-};
-
-const point = (what: string) => {
-  currentFlashcardObject.value?.point(what);
-}
-
-const shuffleFlashcards = (mode: 'original' | 'random') => {
-  if (mode === 'original') {
-    scheduler.value.randomizeNewCards = false;
-    props.flashcards.sort((a: any, b: any) => (a.line ?? 0) - (b.line ?? 0));
-  } else {
-    scheduler.value.randomizeNewCards = true;
-    props.flashcards.sort(() => Math.random() - 0.5);
-  }
-
-  scheduler.value.resetCards();
-  scheduler.value.addMoreFlashcards(props.flashcards);
-
-  const dueCards = scheduler.value.scheduleFlashcards();
-  studyCard.value = dueCards.length > 0 ? dueCards[0] : null;
+const shuffleFlashcards = (mode: SortModes) => {
+  props.studySet.scheduler.sortMode = mode;
+  studyCard.value = props.studySet.scheduler.sort();
 };
 
 const undoLastReview = () => {
-  const last = reviewHistory.value.pop();
+  const last = props.studySet.history.pop();
   if (!last) return;
 
   const { index, snapshot } = last;
-  const originalFlashcard = props.flashcards[index];
+  const originalFlashcard = props.studySet.flashcards[index];
   if (!originalFlashcard) return;
 
-  if (snapshot.reviewedAt) snapshot.reviewedAt = new Date(snapshot.reviewedAt);
-  if (snapshot.nextReviewAt) snapshot.nextReviewAt = new Date(snapshot.nextReviewAt);
-  Object.assign(originalFlashcard, snapshot);
+  originalFlashcard.reviewedAt = snapshot.reviewedAt;
+  originalFlashcard.reviewedAt = snapshot.reviewedAt,
+  originalFlashcard.nextReviewAt= snapshot.nextReviewAt,
+  originalFlashcard.interval= snapshot.interval,
+  originalFlashcard.ease= snapshot.ease,
+  originalFlashcard.retrievalSuccess= snapshot.retrievalSuccess,
+  originalFlashcard.reviewCount= snapshot.reviewCount,
+  originalFlashcard.learningPhase= snapshot.learningPhase
 
-  if (props.studySet) {
-    props.studySet.studiedCards = Math.max((props.studySet.studiedCards || 1) - 1, 0);
-  }
-
-  scheduler.value.resetCards();
-  scheduler.value.addMoreFlashcards(props.flashcards);
+  /*
+    Note that here the first card of the studyset and the first card of the 
+    scheduler may differ.
+  */
+  props.studySet.scheduler.sort();
   studyCard.value = originalFlashcard;
 };
 
-const handleKeydown = (event: KeyboardEvent) => {
+const point = (what: string) => {
+  vueShownFlashcard.value?.point(what);
+}
+
+const downloadSet = () => {
+  // if (!props.studySet || !props.studySet.originalLines) {
+  //   alert('No study set to save!');
+  //   return;
+  // }
+
+  // const lines: string[] = [...props.studySet.originalLines];
+
+  // // Debug: Log all flashcards and their reviewedAt status
+  // console.log('All flashcards:');
+  // props.studySet.flashcards.forEach((card: any, index: number) => {
+  //   console.log(`Card ${index}: "${card.text}" - reviewedAt: ${card.reviewedAt} - interval: ${card.interval} - ease: ${card.ease}`);
+  // });
+
+  // // Filter cards that have been reviewed (have reviewedAt set)
+  // const reviewedCards = props.studySet.flashcards.filter((card: any) => card.reviewedAt !== null);
+  // console.log(`Found ${reviewedCards.length} reviewed cards to save out of ${props.studySet.flashcards.length} total cards`);
+
+  // if (reviewedCards.length === 0) {
+  //   alert('No reviewed cards to save! Make sure you have studied some cards first.');
+  //   return;
+  // }
+
+  // // Sort by line number in descending order to avoid index shifting issues
+  // const cardsSorted = [...reviewedCards].sort((a: any, b: any) => b.line - a.line);
+
+  // for (let i = 0; i < cardsSorted.length; i++) {
+  //   const card = cardsSorted[i];
+  //   console.log(`Saving card: "${card.text}" - reviewedAt: ${card.reviewedAt} - line: ${card.line}`);
+
+  //   // Insert or replace the save command after the card line
+  //   const insertIndex = card.line + 1;
+  //   const command = `\t*** ${card.reviewedAt.toISOString()}, ${card.ease}, ${card.interval}, ${card.learningPhase}`;
+
+  //   // Remove any existing recall data lines for this card
+  //   while (insertIndex < lines.length && lines[insertIndex].trimStart().startsWith('***')) {
+  //     lines.splice(insertIndex, 1);
+  //   }
+
+  //   lines.splice(insertIndex, 0, command);
+  // }
+
+  // const content = lines.join('\n');
+
+  // const blob = new Blob([content], { type: 'text/plain' });
+  // const url = window.URL.createObjectURL(blob);
+  // const link = document.createElement('a');
+
+  // const filename = `${props.studySet.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_flashcards.txt`;
+  // link.href = url;
+  // link.download = filename;
+
+  // document.body.appendChild(link);
+  // link.click();
+  // document.body.removeChild(link);
+  // window.URL.revokeObjectURL(url);
+};
+
+const hideCardWithKeyboard = (event: KeyboardEvent) => {
   switch (event.key) {
     case ' ':
       revealCurrent();
       break;
     case '0':
-      hideCurrent('hide');
+      hideCurrent(HideOption.hide);
       break;
     case '1':
-      hideCurrent('forgot');
+      hideCurrent(HideOption.forgot);
       break;
     case '2':
-      hideCurrent('bad');
+      hideCurrent(HideOption.bad);
       break;
     case '3':
-      hideCurrent('not bad');
+      hideCurrent(HideOption.notBad);
       break;
     case '4':
-      hideCurrent('ok');
+      hideCurrent(HideOption.ok);
       break;
   }
 };
+//#endregion -------------------------------------------------------------------
 
-// Initialize scheduler on mount
+
+
 onMounted(() => {
-  window.addEventListener('keydown', handleKeydown);
-  if (props.flashcards && props.flashcards.length > 0) {
-    scheduler.value.resetCards();
-    scheduler.value.addMoreFlashcards(props.flashcards);
+  window.addEventListener('keydown', hideCardWithKeyboard);
+  if (props.studySet.flashcards && props.studySet.flashcards.length > 0) {
+    props.studySet.scheduler.resetCards();
+    props.studySet.scheduler.addFlashcards(...props.studySet.flashcards);
 
-    // Get the first due card
-    const dueCards = scheduler.value.scheduleFlashcards();
-    studyCard.value = dueCards.length > 0 ? dueCards[0] : null;
+    studyCard.value = props.studySet.scheduler.sort();
 
-    console.log(`[studySet] Initialized with ${props.flashcards.length} flashcards`);
+    console.log(`[studySet] Initialized with ${props.studySet.flashcards.length} flashcards`);
     console.log(`[studySet] First card: ${studyCard.value?.text || 'None'}`);
   }
 });
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown);
+  window.removeEventListener('keydown', hideCardWithKeyboard);
 });
 
 // Expose methods to parent component
@@ -279,31 +264,26 @@ defineExpose({
 
 <template>
   <div class="all-container">
-    <div class="header-section" v-if="!showingFlashcard">
+    <div class="header-section" v-if="!isFlashcardRevealed">
       <h3>{{ studySet.title }}</h3>
       <h1>{{ headerBreadcrumb }}</h1>
+
       <div class="header-buttons">
-        <button @click="undoLastReview" class="back-btn" :disabled="reviewHistory.length === 0">
+        <button class="back-btn" @click="undoLastReview" :disabled="studySet.history.length === 0">
           Back
         </button>
-        <button @click="downloadSet" class="save-btn">
+        <button class="save-btn" @click="downloadSet">
           Save
         </button>
       </div>
+
     </div>
     <div class="cards-section">
       <div class="cards-section-row">
-        <Flashcard ref="currentFlashcardObject" v-if="studyCard !== null" class="main-flashcard" :flashcard="studyCard"
+        <Flashcard v-if="studyCard !== undefined && studyCard !== null" ref="vueShownFlashcard" 
+          class="main-flashcard" :flashcard="studyCard"
           @reveal="reveal" @hide="updateCards" />
       </div>
-      <!-- <div class="cards-section-row">
-                <h2>All cards</h2>
-                <div v-if="flashcards.length > 0" class="flashcards-container"
-                    style="overflow-y: scroll; height:400px;">
-                    <Flashcard v-for="(flashcard, index) in flashcards" :key="index" :flashcard="flashcard"
-                        @reveal="reveal" @hide="updateCards" />
-                </div>
-            </div> -->
     </div>
   </div>
 </template>

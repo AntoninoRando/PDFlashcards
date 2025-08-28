@@ -1,5 +1,5 @@
 import { LineDescriptor, IStudySet } from "../Types/Types";
-import { PageRef } from "@/Commands/All/PageRef";
+import { PageRef } from "@/commands/all/PageRef";
 
 export function parseAcronymLine(
     lineDescriptor: LineDescriptor,
