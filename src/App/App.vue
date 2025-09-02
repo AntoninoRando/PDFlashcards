@@ -324,6 +324,14 @@ const shuffleLearnOrder = () => {
   border-radius: 8px;
 }
 
+.pdf-section.blurred :deep(.pdf-preview),
+.pdf-section.blurred :deep(canvas),
+.pdf-section.blurred :deep(.pdf-page),
+.pdf-section.blurred :deep(.pdf-container) {
+  filter: blur(6px) brightness(0.95);
+  transition: filter 0.2s ease;
+}
+
 .pdf-section {
   position: absolute;
   height: 90vh;

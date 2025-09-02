@@ -61,6 +61,7 @@ function hide(recall = 'hide') {
     revealed.value = false
     hidingRecallOptions.value = false
     props.flashcard.reviewedAt = new Date()
+    pdfBlur(false)
     emit('hide', { flashcard: props.flashcard, recall })
   }, 300)
 }
@@ -149,6 +150,14 @@ watch(revealed, async (oldV, newV) => {
 
 onMounted(showSubparts)
 
+function pdfBlur(on: boolean) {
+  const sections = document.querySelectorAll('.pdf-section');
+  sections.forEach((el) => {
+    if (on) (el as HTMLElement).classList.add('blurred');
+    else (el as HTMLElement).classList.remove('blurred');
+  });
+}
+
 defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSubparts })
 </script>
 
@@ -162,6 +171,7 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
       </button>
     </div>
     <RecallOptions v-else ref="recallOptions" class="buttons-container" :class="{ hiding: hidingRecallOptions }"
+      @mouseenter="() => pdfBlur(true)" @mouseleave="() => pdfBlur(false)"
       @optionSelected="option => hide(option)" />
     <div ref="subparts" id="subparts"></div>
   </div>
