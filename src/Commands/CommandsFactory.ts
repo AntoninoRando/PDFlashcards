@@ -4,6 +4,8 @@ import { Remember } from "./All/Remember";
 import { Tag } from "./All/Tag";
 import { AutoReveal } from "./All/AutoReveal";
 import { Alias } from "./All/Alias";
+import { Recap } from "./All/Recap";
+import { Example } from "./All/Example";
 import { LineDescriptor, IStudySet } from "@/FlashcardParser/Types/Types";
 
 export class CommandsFactory {
@@ -42,6 +44,12 @@ export class CommandsFactory {
             case Header.symbol:
             case 'header':
                 return new Header(lineDescriptor, studySet, commandArgument || 1);
+            case 'recap':
+            case 'Recap':
+                return new Recap(lineDescriptor, commandArgument);
+            case 'example':
+            case 'Example':
+                return new Example(lineDescriptor, commandArgument);
             default:
                 console.log(`[MakeCommand] Unrecognized command ${commandNameOrShortcut}`)
                 return null;

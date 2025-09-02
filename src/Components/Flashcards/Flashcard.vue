@@ -91,19 +91,53 @@ function showSubparts() {
   toUnmount.forEach((app) => app.unmount());
   const subpartsElement = subparts.value as HTMLElement
   subpartsElement.innerHTML = '';
-  props.flashcard.lineDescriptor.subParts.forEach((sub: any) => {
-    if (!sub.vueComponent) return
 
-    const componentContainer = document.createElement('div')
-    componentContainer.className = 'subpart-container'
-    componentContainer.id = `subpart-${sub.name || Math.random().toString(36)}`
+  const cardLD: any = props.flashcard.lineDescriptor as any;
 
-    subpartsElement.appendChild(componentContainer)
+  const renderList = (list: any[]) => {
+    list.forEach((sub: any) => {
+      if (!sub || !sub.vueComponent) return;
+      const componentContainer = document.createElement('div')
+      componentContainer.className = 'subpart-container'
+      componentContainer.id = `subpart-${sub.name || Math.random().toString(36)}`
+      subpartsElement.appendChild(componentContainer)
+      const app = createApp(sub.vueComponent, { config: sub })
+      toUnmount.push(app);
+      app.mount(componentContainer)
+    })
+  }
 
-    const app = createApp(sub.vueComponent, { config: sub })
-    toUnmount.push(app);
-    app.mount(componentContainer)
-  })
+  // Group top-level subparts by their sourceIndex to maintain relation with child lines
+  const topSubparts: any[] = (cardLD.subParts || []) as any[];
+  const inlineOnCard = topSubparts.filter(sp => sp.sourceIndex === cardLD.index);
+  const groupedBySource: Record<number, any[]> = {};
+  const remainingTop: any[] = [];
+
+  topSubparts.forEach(sp => {
+    if (sp.sourceIndex === cardLD.index) return; // inline, handled separately
+    if (typeof sp.sourceIndex === 'number') {
+      if (!groupedBySource[sp.sourceIndex]) groupedBySource[sp.sourceIndex] = [];
+      groupedBySource[sp.sourceIndex].push(sp);
+    } else {
+      remainingTop.push(sp);
+    }
+  });
+
+  // 1) Render inline subparts attached directly to the card line
+  renderList(inlineOnCard);
+
+  // 2) For each immediate child line of the card, render its related top subparts then its own subparts
+  const children: any[] = (cardLD.tabbedUnder || []) as any[];
+  children.forEach(childLD => {
+    const relatedTop = groupedBySource[childLD.index] || [];
+    renderList(relatedTop);
+    renderList(childLD.subParts || []);
+    delete groupedBySource[childLD.index];
+  });
+
+  // 3) Render any remaining top subparts that were not matched to a child (fallback)
+  const leftovers: any[] = Object.values(groupedBySource).flat().concat(remainingTop);
+  renderList(leftovers);
 }
 //#endregion -------------------------------------------------------------------
 
