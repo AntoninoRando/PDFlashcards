@@ -16,6 +16,7 @@ import {
   IStudySet
 } from '@/FlashcardParser/Types/Types';
 import { updateCardsSchedule } from './StudySetMethods/UpdateCardsSchedule';
+import { saveStudySet } from './StudySetMethods/SaveStudySet';
 import { SortModes } from '@/FlashcardsScheduler';
 
 
@@ -153,61 +154,8 @@ const point = (what: string) => {
 }
 
 const downloadSet = () => {
-  // if (!props.studySet || !props.studySet.originalLines) {
-  //   alert('No study set to save!');
-  //   return;
-  // }
-
-  // const lines: string[] = [...props.studySet.originalLines];
-
-  // // Debug: Log all flashcards and their reviewedAt status
-  // console.log('All flashcards:');
-  // props.studySet.flashcards.forEach((card: any, index: number) => {
-  //   console.log(`Card ${index}: "${card.text}" - reviewedAt: ${card.reviewedAt} - interval: ${card.interval} - ease: ${card.ease}`);
-  // });
-
-  // // Filter cards that have been reviewed (have reviewedAt set)
-  // const reviewedCards = props.studySet.flashcards.filter((card: any) => card.reviewedAt !== null);
-  // console.log(`Found ${reviewedCards.length} reviewed cards to save out of ${props.studySet.flashcards.length} total cards`);
-
-  // if (reviewedCards.length === 0) {
-  //   alert('No reviewed cards to save! Make sure you have studied some cards first.');
-  //   return;
-  // }
-
-  // // Sort by line number in descending order to avoid index shifting issues
-  // const cardsSorted = [...reviewedCards].sort((a: any, b: any) => b.line - a.line);
-
-  // for (let i = 0; i < cardsSorted.length; i++) {
-  //   const card = cardsSorted[i];
-  //   console.log(`Saving card: "${card.text}" - reviewedAt: ${card.reviewedAt} - line: ${card.line}`);
-
-  //   // Insert or replace the save command after the card line
-  //   const insertIndex = card.line + 1;
-  //   const command = `\t*** ${card.reviewedAt.toISOString()}, ${card.ease}, ${card.interval}, ${card.learningPhase}`;
-
-  //   // Remove any existing recall data lines for this card
-  //   while (insertIndex < lines.length && lines[insertIndex].trimStart().startsWith('***')) {
-  //     lines.splice(insertIndex, 1);
-  //   }
-
-  //   lines.splice(insertIndex, 0, command);
-  // }
-
-  // const content = lines.join('\n');
-
-  // const blob = new Blob([content], { type: 'text/plain' });
-  // const url = window.URL.createObjectURL(blob);
-  // const link = document.createElement('a');
-
-  // const filename = `${props.studySet.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_flashcards.txt`;
-  // link.href = url;
-  // link.download = filename;
-
-  // document.body.appendChild(link);
-  // link.click();
-  // document.body.removeChild(link);
-  // window.URL.revokeObjectURL(url);
+  if (!props.studySet) return;
+  saveStudySet(props.studySet);
 };
 
 const hideCardWithKeyboard = (event: KeyboardEvent) => {

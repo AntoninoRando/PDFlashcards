@@ -6,6 +6,7 @@ import { AutoReveal } from "./All/AutoReveal";
 import { Alias } from "./All/Alias";
 import { Recap } from "./All/Recap";
 import { Example } from "./All/Example";
+import { RecallData } from "./All/RecallData";
 import { LineDescriptor, IStudySet } from "@/FlashcardParser/Types/Types";
 
 export class CommandsFactory {
@@ -44,6 +45,9 @@ export class CommandsFactory {
             case Header.symbol:
             case 'header':
                 return new Header(lineDescriptor, studySet, commandArgument || 1);
+            case RecallData.symbol:
+            case 'recall_data':
+                return new RecallData(lineDescriptor, studySet, commandArgument || '');
             case 'recap':
             case 'Recap':
                 return new Recap(lineDescriptor, commandArgument);
