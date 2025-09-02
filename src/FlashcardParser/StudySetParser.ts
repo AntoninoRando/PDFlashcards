@@ -100,7 +100,7 @@ export function parseStudyset(lines: string[]): IStudySet | null {
             
             for (let i = k - 1; i >= 0; i--) {
                 const previousLd = studySet.linesDescriptors[i];
-                if (previousLd.tabs == tabs) continue;
+                if (previousLd.tabs >= tabs) continue;
                 if (previousLd.tabs < tabs) {
                     lineDescriptor.parent = previousLd;
                     previousLd.tabbedUnder.push(lineDescriptor);

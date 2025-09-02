@@ -77,7 +77,7 @@ export function parseCommandLine(
     }
 
     let receiver = inLine ? lineDescriptor : lineDescriptor.parent;
-    receiver.subParts.push({ ...command.toJson(), subParts: [] });
+    receiver.subParts.push({ ...command.toJson(), subParts: [], sourceIndex: lineDescriptor.index });
 
     subCommands.forEach((x) => {
         const ld: LineDescriptor = {
