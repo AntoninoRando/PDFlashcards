@@ -95,7 +95,7 @@ const shuffleLearnOrder = () => {
             :pdf-url="pdfCache[pdfToShow]" />
         </div>
 
-        <div class="flashcard-wrapper" :class="{ revealed: cardRevealed }">
+        <div class="flashcard-wrapper" :class="{ revealed: cardRevealed, initial: !studySet }">
           <FileParser v-if="!studySet" 
             @setUploaded="loadStudySet" />
           <StudySet ref="studySetComponent" v-else 
@@ -349,10 +349,16 @@ const shuffleLearnOrder = () => {
 .flashcard-wrapper {
   position: absolute;
   left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  bottom: 20px; /* Align hidden flashcard with hovered recall options */
+  transform: translateX(-50%);
   transition: all 0.5s ease;
   z-index: 10;
+}
+
+.flashcard-wrapper.initial {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
 }
 
 .flashcard-wrapper.revealed {
