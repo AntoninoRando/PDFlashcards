@@ -7,6 +7,7 @@ import GestureRecognizer from '../Components/GestureRecognizer/GestureRecognizer
 import VoiceRecognizer from '../Components/VoiceRecognizer/VoiceRecognizer.vue'
 import TextEditor from '../Components/TextEditor.vue'
 import ShuffleMenu from '../Components/ShuffleMenu.vue'
+import ShortcutsSidebar from '../Components/ShortcutsSidebar.vue'
 import { useApp } from './UseApp'
 import { SortModes } from '@/FlashcardsScheduler'
 
@@ -34,7 +35,7 @@ const {
   highlightPointing,
   isPointing,
   totalCards,
-  studiedCards,
+  remainingCards,
   progressPercent
 } = useApp()
 
@@ -81,9 +82,12 @@ const shuffleLearnOrder = () => {
     <!-- Sticky Navbar -->
     <div v-if="studySet" class="progress-container">
       <div class="progress-bar" :style="{ width: progressPercent + '%' }"></div>
-      <div class="progress-label">{{ studiedCards }}/{{ totalCards }}</div>
+      <div class="progress-label">{{ remainingCards }}/{{ totalCards }}</div>
     </div>
-    
+
+    <!-- Shortcuts Sidebar -->
+    <ShortcutsSidebar v-if="studySet" :cardRevealed="cardRevealed" />
+
 
     <div class="content-wrapper" :class="{ 'pointing': isPointing }">
       <div class="single-column">
@@ -256,7 +260,7 @@ const shuffleLearnOrder = () => {
   background-color: transparent;
   margin: 0 1rem;
   border-radius: 2px;
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden to visible */
 }
 
 .progress-bar {
@@ -267,12 +271,19 @@ const shuffleLearnOrder = () => {
 
 .progress-label {
   position: absolute;
-  top: -20px;
-  right: 0;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #6b7280;
+  top: -25px; /* Moved further up for better visibility */
+  left: 50%; /* Centered horizontally */
+  transform: translateX(-50%); /* Perfect center alignment */
+  font-size: 0.875rem; /* Slightly larger for better readability */
+  font-weight: 600; /* Bolder for better visibility */
+  color: #374151; /* Darker color for better contrast */
+  background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent background */
+  padding: 2px 8px; /* Padding for better readability */
+  border-radius: 4px; /* Rounded corners */
+  backdrop-filter: blur(4px); /* Subtle blur effect */
+  border: 1px solid rgba(0, 0, 0, 0.1); /* Subtle border */
   pointer-events: none;
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 .nav-btn {

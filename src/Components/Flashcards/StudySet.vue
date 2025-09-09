@@ -10,14 +10,16 @@ latter case, also a recall option is associated with the hide action.
 
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import Flashcard from './Flashcard.vue';
-import { 
-  HideOption, 
-  IFlashcard, 
+import {
+  HideOption,
+  IFlashcard,
   IStudySet
 } from '@/FlashcardParser/Types/Types';
 import { updateCardsSchedule } from './StudySetMethods/UpdateCardsSchedule';
 import { saveStudySet } from './StudySetMethods/SaveStudySet';
 import { SortModes } from '@/FlashcardsScheduler';
+import { playRecallSound } from './StudySetMethods/PlayRecallSound';
+import { burstConfetti } from './StudySetMethods/BurstConfetti';
 
 
 
@@ -54,6 +56,7 @@ const studyCard = ref<IFlashcard>(null);
  * The VUE COMPONENT instance of the current shown flashcard.
  */
 const vueShownFlashcard = ref<InstanceType<typeof Flashcard> | null>(null);
+const animationContainer = ref<HTMLDivElement | null>(null);
 //#endregion -------------------------------------------------------------------
 
 
@@ -87,7 +90,15 @@ const hideCurrent = (recallType: HideOption) => {
   console.log(`[studySet] Hiding card with recall: ${recallType}`);
   if (recallType === 'hide') {
     vueShownFlashcard.value.hide();
-  } else if (recallType === 'forgot') {
+    return;
+  }
+
+  playRecallSound();
+  if (animationContainer.value) {
+    burstConfetti(animationContainer.value);
+  }
+
+  if (recallType === 'forgot') {
     vueShownFlashcard.value.forgot();
   } else if (recallType === 'bad') {
     vueShownFlashcard.value.bad();
@@ -109,7 +120,7 @@ const updateCards = (flashcardObj: {
 }) => {
   const { flashcard, recall } = flashcardObj;
   updateCardsSchedule(flashcard, recall, props.studySet);
-  
+
   studyCard.value = props.studySet.scheduler.getFirstCard();
   if (studyCard.value) {
     console.log(`Next card: ${studyCard.value.text}, due: ${studyCard.value.nextReviewAt}`);
@@ -134,12 +145,12 @@ const undoLastReview = () => {
 
   originalFlashcard.reviewedAt = snapshot.reviewedAt;
   originalFlashcard.reviewedAt = snapshot.reviewedAt,
-  originalFlashcard.nextReviewAt= snapshot.nextReviewAt,
-  originalFlashcard.interval= snapshot.interval,
-  originalFlashcard.ease= snapshot.ease,
-  originalFlashcard.retrievalSuccess= snapshot.retrievalSuccess,
-  originalFlashcard.reviewCount= snapshot.reviewCount,
-  originalFlashcard.learningPhase= snapshot.learningPhase
+    originalFlashcard.nextReviewAt = snapshot.nextReviewAt,
+    originalFlashcard.interval = snapshot.interval,
+    originalFlashcard.ease = snapshot.ease,
+    originalFlashcard.retrievalSuccess = snapshot.retrievalSuccess,
+    originalFlashcard.reviewCount = snapshot.reviewCount,
+    originalFlashcard.learningPhase = snapshot.learningPhase
 
   /*
     Note that here the first card of the studyset and the first card of the 
@@ -161,21 +172,22 @@ const downloadSet = () => {
 const hideCardWithKeyboard = (event: KeyboardEvent) => {
   switch (event.key) {
     case ' ':
-      revealCurrent();
+      if (isFlashcardRevealed.value) {
+        hideCurrent(HideOption.hide);
+      } else {
+        revealCurrent();
+      }
       break;
-    case '0':
-      hideCurrent(HideOption.hide);
-      break;
-    case '1':
+    case 'q':
       hideCurrent(HideOption.forgot);
       break;
-    case '2':
+    case 'w':
       hideCurrent(HideOption.bad);
       break;
-    case '3':
+    case 'e':
       hideCurrent(HideOption.notBad);
       break;
-    case '4':
+    case 'r':
       hideCurrent(HideOption.ok);
       break;
   }
@@ -211,7 +223,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="all-container">
+  <div class="all-container" ref="animationContainer">
     <div class="header-section" v-if="!isFlashcardRevealed">
       <h3>{{ studySet.title }}</h3>
       <h1>{{ headerBreadcrumb }}</h1>
@@ -228,9 +240,8 @@ defineExpose({
     </div>
     <div class="cards-section">
       <div class="cards-section-row">
-        <Flashcard v-if="studyCard !== undefined && studyCard !== null" ref="vueShownFlashcard" 
-          class="main-flashcard" :flashcard="studyCard"
-          @reveal="reveal" @hide="updateCards" />
+        <Flashcard v-if="studyCard !== undefined && studyCard !== null" ref="vueShownFlashcard" class="main-flashcard"
+          :flashcard="studyCard" @reveal="reveal" @hide="updateCards" />
       </div>
     </div>
   </div>
@@ -275,5 +286,22 @@ defineExpose({
   display: flex;
   flex-direction: column;
   row-gap: 100px;
+}
+
+
+@keyframes confetti-burst {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) rotate(var(--rz)) scale(0.9);
+  }
 }
 </style>

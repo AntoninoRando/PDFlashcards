@@ -35,8 +35,8 @@ const emit = defineEmits<{
 }>();
 
 // Reactive data
-const pressedButton = ref<string>(null);
-const pointedButton = ref<string>(null);
+const pressedButton = ref<string | null>(null);
+const pointedButton = ref<string | null>(null);
 
 const chooseRecallOption = (option: HideOption) => {
   pressedButton.value = option;
@@ -44,8 +44,8 @@ const chooseRecallOption = (option: HideOption) => {
 };
 
 const point = (what: string) => {
-  if (what == "not bad") what = "fine";
-  pointedButton.value.point(what);
+  if (what === "not bad") what = "fine";
+  pointedButton.value = what;
 };
 
 // Expose methods to parent component
@@ -62,14 +62,13 @@ defineExpose({
   display: flex;
   flex-direction: row;
   column-gap: 20px;
+  position: relative;
 }
 
 .revealed-button {
   height: 100px;
   width: 100px;
   transition: all 0.2s ease;
-
-
   align-items: center;
   appearance: none;
   background-color: #FCFCFD;
