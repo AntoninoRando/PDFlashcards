@@ -52,28 +52,19 @@ const shuffleLearnOrder = () => {
 
 // Build the resources list (PDF-only for now) and keep the current one on top
 const resourcesList = computed(() => {
-  console.log('Resources');
   const set = studySet.value
   if (!set) return [] as any[]
 
   const aliases = Object.keys(set.resources || {})
   const items: any[] = []
 
-  // Put the currently selected resource first if available
-  const primary = pdfToShow.value
-  if (primary) {
-    const url = pdfCache[primary]
-    if (url) {
-      items.push({ type: 'pdf', pdfUrl: url, pageToShow: pageToShow.value, _alias: primary })
-    }
-  }
-
-  // Add the remaining resources
-  for (const alias of aliases) {
-    if (alias === primary) continue
-    const url = pdfCache[alias]
-    if (!url) continue
-    items.push({ type: 'pdf', pdfUrl: url, pageToShow: 1, _alias: alias })
+  for (const pdfFileName of Object.keys(pdfCache)) {
+    const url = pdfCache[pdfFileName];
+    if (!url) continue;
+    const page = pdfToShow.value === pdfFileName ? pageToShow.value : 1
+    let alias = aliases.find(a => set.resources[a] === pdfFileName) || null;
+    alias = alias !== null ? set.resources[alias] : pdfFileName;
+    items.push({ type: 'pdf', pdfUrl: url, pageToShow: page, _alias: alias })
   }
 
   return items
@@ -114,7 +105,7 @@ function onResourceChanged(item: any) {
       </nav>
     </div>
 
-    
+
     <!-- Sticky Navbar -->
     <div v-if="studySet" class="progress-container">
       <div class="progress-bar" :style="{ width: progressPercent + '%' }"></div>
@@ -127,39 +118,27 @@ function onResourceChanged(item: any) {
 
     <div class="content-wrapper" :class="{ 'pointing': isPointing }">
       <div class="single-column">
-          <PDFUploader @uploaded="addStudyResource" />
+        <PDFUploader @uploaded="addStudyResource" />
         <div v-if="studySet && cardRevealed" class="pdf-section">
-          <Resources
-            :resources="resourcesList"
-            @changed="onResourceChanged"
-          />
+          <Resources :resources="resourcesList" @changed="onResourceChanged" />
         </div>
 
         <div class="flashcard-wrapper" :class="{ revealed: cardRevealed, initial: !studySet }">
-          <FileParser v-if="!studySet" 
-            @setUploaded="loadStudySet" />
-          <StudySet ref="studySetComponent" v-else 
-            @reveal="showPage"
-            @hide="cardHidden"
-            :studySet="studySet" />
+          <FileParser v-if="!studySet" @setUploaded="loadStudySet" />
+          <StudySet ref="studySetComponent" v-else @reveal="showPage" @hide="cardHidden" :studySet="studySet" />
         </div>
       </div>
     </div>
 
     <!-- The text editor that allows to modify the StudySet file directly in 
     app. -->
-    <TextEditor v-if="editorVisible"
-      :model-value="uploadedText"
-      @close="closeEditor"
-      @save="saveEdited" />
-    
+    <TextEditor v-if="editorVisible" :model-value="uploadedText" @close="closeEditor" @save="saveEdited" />
+
     <!-- Wheel of options to manipulate the StudySet, e.g. by showing the cards
     in order instead of "randomly". -->
-    <ShuffleMenu v-if="studySet"
-      @order-original="shuffleOriginalOrder"
-      @order-random="shuffleRandomOrder" 
-      @order-learn="shuffleLearnOrder"/>
-  
+    <ShuffleMenu v-if="studySet" @order-original="shuffleOriginalOrder" @order-random="shuffleRandomOrder"
+      @order-learn="shuffleLearnOrder" />
+
   </div>
 </template>
 
@@ -296,7 +275,8 @@ function onResourceChanged(item: any) {
   background-color: transparent;
   margin: 0 1rem;
   border-radius: 2px;
-  overflow: visible; /* Changed from hidden to visible */
+  overflow: visible;
+  /* Changed from hidden to visible */
 }
 
 .progress-bar {
@@ -307,19 +287,31 @@ function onResourceChanged(item: any) {
 
 .progress-label {
   position: absolute;
-  top: -25px; /* Moved further up for better visibility */
-  left: 50%; /* Centered horizontally */
-  transform: translateX(-50%); /* Perfect center alignment */
-  font-size: 0.875rem; /* Slightly larger for better readability */
-  font-weight: 600; /* Bolder for better visibility */
-  color: #374151; /* Darker color for better contrast */
-  background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent background */
-  padding: 2px 8px; /* Padding for better readability */
-  border-radius: 4px; /* Rounded corners */
-  backdrop-filter: blur(4px); /* Subtle blur effect */
-  border: 1px solid rgba(0, 0, 0, 0.1); /* Subtle border */
+  top: -25px;
+  /* Moved further up for better visibility */
+  left: 50%;
+  /* Centered horizontally */
+  transform: translateX(-50%);
+  /* Perfect center alignment */
+  font-size: 0.875rem;
+  /* Slightly larger for better readability */
+  font-weight: 600;
+  /* Bolder for better visibility */
+  color: #374151;
+  /* Darker color for better contrast */
+  background-color: rgba(255, 255, 255, 0.9);
+  /* Semi-transparent background */
+  padding: 2px 8px;
+  /* Padding for better readability */
+  border-radius: 4px;
+  /* Rounded corners */
+  backdrop-filter: blur(4px);
+  /* Subtle blur effect */
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  /* Subtle border */
   pointer-events: none;
-  white-space: nowrap; /* Prevent text wrapping */
+  white-space: nowrap;
+  /* Prevent text wrapping */
 }
 
 .nav-btn {
@@ -396,7 +388,8 @@ function onResourceChanged(item: any) {
 .flashcard-wrapper {
   position: absolute;
   left: 50%;
-  bottom: 20px; /* Align hidden flashcard with hovered recall options */
+  bottom: 20px;
+  /* Align hidden flashcard with hovered recall options */
   transform: translateX(-50%);
   transition: all 0.5s ease;
   z-index: 10;
@@ -410,7 +403,8 @@ function onResourceChanged(item: any) {
 
 .flashcard-wrapper.revealed {
   top: auto;
-  bottom: -130px; /* leave a small strip visible */
+  bottom: -130px;
+  /* leave a small strip visible */
   transform: translateX(-50%);
 }
 

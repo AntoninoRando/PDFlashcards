@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onBeforeUnmount } from 'vue'
 
 
 //#region EMITS ----------------------------------------------------------------
@@ -13,16 +13,24 @@ const emit = defineEmits<{
 
 
 
-const files = ref<Map<File, string>>(new Map<File, string>());
+//#region COMPUTED DATA --------------------------------------------------------
+const uploadedCount = computed(() => files.size);
+//#endregion -------------------------------------------------------------------
+
+
+
+const files = reactive(new Map<File, string>());
 const isDragging = ref(false)
 const errorMessage = ref<string | null>(null)
 const dragCounter = ref(0)
 
 function handleFileChange(event: Event) {
   const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    validateAndProcessFile(file)
+  const list = target.files
+  if (list && list.length) {
+    for (const file of Array.from(list)) {
+      validateAndProcessFile(file)
+    }
   }
   target.value = ''
 }
@@ -50,9 +58,11 @@ function handleFileDrop(event: DragEvent) {
   isDragging.value = false
   dragCounter.value = 0
 
-  const file = event.dataTransfer?.files?.[0]
-  if (file) {
-    validateAndProcessFile(file)
+  const list = event.dataTransfer?.files
+  if (list && list.length) {
+    for (const file of Array.from(list)) {
+      validateAndProcessFile(file)
+    }
   }
 }
 
@@ -77,7 +87,7 @@ function validateAndProcessFile(file: File) {
 
 function processFile(file: File) {
   try {
-    const filesMap = files.value as Map<File, string>;
+    const filesMap = files as Map<File, string>;
     if (filesMap.has(file)) {
       console.log('[PDFUploader] File already uploaded!');
       return;
@@ -109,8 +119,8 @@ function formatFileSize(bytes: number): string {
 }
 
 onBeforeUnmount(() => {
-  const filesMap = files.value as Map<File, string>;
-  for (const url in filesMap.values) {
+  const filesMap = files as Map<File, string>;
+  for (const url of filesMap.values()) {
     URL.revokeObjectURL(url)
   }
 })
@@ -127,9 +137,8 @@ onBeforeUnmount(() => {
       @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave" @drop.prevent="handleFileDrop">
       <div class="text-center">
 
-        <label for="pdf-upload" class="upload-btn">Select PDF</label>
-        <input id="pdf-upload" type="file" class="hidden" accept="application/pdf" @change="handleFileChange" />
-        <p class="text-sm text-gray-600">or drag and drop</p>
+        <label for="pdf-upload" class="upload-btn">Select PDF ({{ uploadedCount }})</label>
+        <input id="pdf-upload" type="file" class="hidden" accept="application/pdf" multiple @change="handleFileChange" />
 
       </div>
     </div>
