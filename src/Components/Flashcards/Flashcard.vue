@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { HideOption, IFlashcard } from '@/FlashcardParser/Types/Types';
 import RecallOptions from './RecallOptions.vue'
-import { createApp, ref, computed, onMounted, watch } from 'vue'
+import { createApp, ref, onMounted, watch } from 'vue'
 
 
 //#region PROPS ----------------------------------------------------------------
@@ -26,21 +26,6 @@ const revealed = ref(false)
 const hidingRecallOptions = ref(false)
 const recallOptions = ref<InstanceType<typeof RecallOptions> | null>(null)
 const subparts = ref<HTMLElement | null>(null)
-//#endregion -------------------------------------------------------------------
-
-
-
-//#region COMPUTED DATA --------------------------------------------------------
-const flashcardSize = computed(() => {
-  if (props.flashcard.alias && props.flashcard.alias.length > 0) return '90%'
-  return '100%'
-})
-
-const flashcardsBorders = computed(() => {
-  if (props.flashcard.alias && props.flashcard.alias.length > 0)
-    return '0px 3px 3px 0px'
-  return '3px'
-})
 //#endregion -------------------------------------------------------------------
 
 
@@ -163,16 +148,16 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
 
 <template>
   <div class="flashcard">
+    <!--The flashcard in it's hide state-->
     <div v-if="!revealed" class="card-container">
-      <div v-if="flashcard.alias" class="aliases">//a</div>
-      <button @click="reveal" class="flashcard-button"
-        :style="`width: ${flashcardSize}; border-radius: ${flashcardsBorders};`">
-        {{ flashcard.text }}
-      </button>
+      <button @click="reveal" class="flashcard-button">{{ flashcard.text }} </button>
     </div>
+
+    <!--Recall options for the flashcards when it is revealed-->
     <RecallOptions v-else ref="recallOptions" class="buttons-container" :class="{ hiding: hidingRecallOptions }"
-      @mouseenter="() => pdfBlur(true)" @mouseleave="() => pdfBlur(false)"
-      @optionSelected="option => hide(option)" />
+      @mouseenter="() => pdfBlur(true)" @mouseleave="() => pdfBlur(false)" @optionSelected="option => hide(option)" />
+
+    <!--Here flashcard subparts are added-->
     <div ref="subparts" id="subparts"></div>
   </div>
 </template>
@@ -185,7 +170,7 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
   width: 100%;
   height: 150px;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
 }
 
 .card-container {
@@ -211,7 +196,8 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
 }
 
 .flashcard-button {
-  height: 100%;
+  width: 500px;
+  height: 150px;
   font-size: 15px;
   font-family: "JetBrains Mono", monospace;
   font-optical-sizing: auto;

@@ -8,6 +8,7 @@ from .header import Header
 from .recall_data import RecallData
 from .recap import Recap
 from .example import Example
+from .note import Note
 
 
 class CommandsFactory:
@@ -37,5 +38,7 @@ class CommandsFactory:
             return Recap(line_descriptor, command_argument)
         if command_name_or_shortcut.lower() == "example":
             return Example(line_descriptor, command_argument)
+        if command_name_or_shortcut.lower() == "note":
+            return Note(command_argument or "")
         print(f"[MakeCommand] Unrecognized command {command_name_or_shortcut}")
         return None

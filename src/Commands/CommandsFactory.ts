@@ -7,6 +7,7 @@ import { Alias } from "./All/Alias";
 import { Recap } from "./All/Recap";
 import { Example } from "./All/Example";
 import { RecallData } from "./All/RecallData";
+import { Note } from "./All/Note";
 import { LineDescriptor, IStudySet } from "@/FlashcardParser/Types/Types";
 
 export class CommandsFactory {
@@ -54,6 +55,9 @@ export class CommandsFactory {
             case 'example':
             case 'Example':
                 return new Example(lineDescriptor, commandArgument);
+            case 'note':
+            case 'Note':
+                return new Note(commandArgument);
             default:
                 console.log(`[MakeCommand] Unrecognized command ${commandNameOrShortcut}`)
                 return null;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import StudySet from '../Components/Flashcards/StudySet.vue'
-import PDFPreview from '../Components/PDFPreview.vue'
+import Resources from '../Components/Resources.vue'
 import FileParser from '../Components/FileParser.vue'
 import PDFUploader from '../Components/PDFUploader.vue'
 import GestureRecognizer from '../Components/GestureRecognizer/GestureRecognizer.vue'
@@ -10,6 +10,7 @@ import ShuffleMenu from '../Components/ShuffleMenu.vue'
 import ShortcutsSidebar from '../Components/ShortcutsSidebar.vue'
 import { useApp } from './UseApp'
 import { SortModes } from '@/FlashcardsScheduler'
+import { computed } from 'vue'
 
 const {
   pageToShow,
@@ -47,6 +48,41 @@ const shuffleRandomOrder = () => {
 }
 const shuffleLearnOrder = () => {
   studySetComponent.value?.shuffleFlashcards(SortModes.learningPriority)
+}
+
+// Build the resources list (PDF-only for now) and keep the current one on top
+const resourcesList = computed(() => {
+  console.log('Resources');
+  const set = studySet.value
+  if (!set) return [] as any[]
+
+  const aliases = Object.keys(set.resources || {})
+  const items: any[] = []
+
+  // Put the currently selected resource first if available
+  const primary = pdfToShow.value
+  if (primary) {
+    const url = pdfCache[primary]
+    if (url) {
+      items.push({ type: 'pdf', pdfUrl: url, pageToShow: pageToShow.value, _alias: primary })
+    }
+  }
+
+  // Add the remaining resources
+  for (const alias of aliases) {
+    if (alias === primary) continue
+    const url = pdfCache[alias]
+    if (!url) continue
+    items.push({ type: 'pdf', pdfUrl: url, pageToShow: 1, _alias: alias })
+  }
+
+  return items
+})
+
+function onResourceChanged(item: any) {
+  if (item && typeof item === 'object' && item._alias) {
+    pdfToShow.value = item._alias
+  }
 }
 </script>
 
@@ -91,12 +127,12 @@ const shuffleLearnOrder = () => {
 
     <div class="content-wrapper" :class="{ 'pointing': isPointing }">
       <div class="single-column">
-          <PDFUploader
-            @file-selected="addStudyResource" />
+          <PDFUploader @uploaded="addStudyResource" />
         <div v-if="studySet && cardRevealed" class="pdf-section">
-          <PDFPreview ref="PDF"
-            :pageToShow="pageToShow"
-            :pdf-url="pdfCache[pdfToShow]" />
+          <Resources
+            :resources="resourcesList"
+            @changed="onResourceChanged"
+          />
         </div>
 
         <div class="flashcard-wrapper" :class="{ revealed: cardRevealed, initial: !studySet }">
