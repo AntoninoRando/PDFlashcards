@@ -17,6 +17,7 @@ const {
   studySet,
   pdfCache,
   pdfToShow,
+  resourcePages,
   isScrolled,
   mousePosition,
   cardRevealed,
@@ -61,10 +62,17 @@ const resourcesList = computed(() => {
   for (const pdfFileName of Object.keys(pdfCache)) {
     const url = pdfCache[pdfFileName];
     if (!url) continue;
-    const page = pdfToShow.value === pdfFileName ? pageToShow.value : 1
+    const page = resourcePages[pdfFileName] ?? (pdfToShow.value === pdfFileName ? pageToShow.value : 1)
     let alias = aliases.find(a => set.resources[a] === pdfFileName) || null;
     alias = alias !== null ? set.resources[alias] : pdfFileName;
     items.push({ type: 'pdf', pdfUrl: url, pageToShow: page, _alias: alias })
+  }
+
+  // Ensure the currently selected PDF (pdfToShow) appears first in the list
+  const idx = items.findIndex(it => it._alias === pdfToShow.value)
+  if (idx > 0) {
+    const [sel] = items.splice(idx, 1)
+    items.unshift(sel)
   }
 
   return items
@@ -73,6 +81,10 @@ const resourcesList = computed(() => {
 function onResourceChanged(item: any) {
   if (item && typeof item === 'object' && item._alias) {
     pdfToShow.value = item._alias
+    const page = resourcePages[item._alias]
+    if (typeof page === 'number' && page > 0) {
+      pageToShow.value = page
+    }
   }
 }
 </script>
@@ -156,7 +168,7 @@ function onResourceChanged(item: any) {
 
 .app-container {
   position: relative;
-  min-height: 100vh;
+  min-height: 120vh;
   width: 90vw;
   font-family: 'Inter', 'Segoe UI', sans-serif;
   display: flex;

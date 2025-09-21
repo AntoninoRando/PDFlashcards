@@ -1,4 +1,4 @@
-import VueRemember from "../Components/VueRemember.vue";
+import VueNote from "../Components/VueNote.vue";
 
 export class Note {
   public static commandName: string = "Note";
@@ -12,7 +12,7 @@ export class Note {
   public toJson(): object {
     return {
       name: Note.commandName,
-      vueComponent: VueRemember,
+      vueComponent: VueNote,
       // Reuse VueRemember prop name for identical display
       what: this.text,
     };

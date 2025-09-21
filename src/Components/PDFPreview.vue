@@ -4,7 +4,7 @@
             v-if="pdfUrl"
             :src="pdfUrl" 
             :initialScrollMode="ScrollMode.Page" 
-            :initialScale="ZoomLevel.PageFit"
+            :initialScale="ZoomLevel.PageWidth"
             :toolbar-options="true"
             ref="vpvRef"
             @loaded="onPdfLoaded"

@@ -150,7 +150,7 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
   <div class="flashcard">
     <!--The flashcard in it's hide state-->
     <div v-if="!revealed" class="card-container">
-      <button @click="reveal" class="flashcard-button">{{ flashcard.text }} </button>
+      <button @click="reveal" class="flashcard-button" v-html="flashcard.text"></button>
     </div>
 
     <!--Recall options for the flashcards when it is revealed-->

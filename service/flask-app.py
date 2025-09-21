@@ -1,10 +1,11 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import threading
 import cv2
 from gesture_recognizer import GestureRecognizer
 import time
+from pathlib import Path
 
 GESTURE_RECOGNIZER = GestureRecognizer()
 gesture_command = None
@@ -92,6 +93,24 @@ def camera_status():
         'camera_enabled': camera_enabled,
         'thread_alive': camera_thread.is_alive() if camera_thread else False
     })
+
+
+@app.route('/autosave', methods=['POST'])
+def autosave():
+    payload = request.get_json(silent=True) or {}
+    content = payload.get('content', '')
+
+    if not isinstance(content, str):
+        return jsonify({'status': 'error', 'message': 'Invalid content payload'}), 400
+
+    target = Path(__file__).resolve().parents[1] / 'tmp.txt'
+    try:
+        target.write_text(content, encoding='utf-8')
+    except Exception as exc:  # pragma: no cover - best effort logging
+        print(f'[autosave] Failed to write tmp.txt: {exc}')
+        return jsonify({'status': 'error', 'message': 'Failed to write file'}), 500
+
+    return jsonify({'status': 'success'})
 
 #---
 def count_fingers(tgt, image_rgb, detection_result, recognition_result) -> bool:

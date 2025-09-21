@@ -5,46 +5,77 @@ export class PageRef {
 	public static commandName: string = 'pageref';
 
 	public pageRef: number;
-	public allPageRefs: number[];
+	public allPageRefs: Array<[string | null, number]>;
 	public pagesString: string;
 	public resourceAlias?: string;
 
 	constructor(pageRef: string) {
 		let alias: string | undefined;
-		let pageString = pageRef;
+		let pageString = pageRef || '';
 
-		const idx = pageRef.indexOf(':');
-		if (idx !== -1) {
+		// Support alias separator with ':' or ';' (first occurrence)
+		const idxColon = pageRef.indexOf(':');
+		const idxSemi = pageRef.indexOf(';');
+		const idx = [idxColon, idxSemi]
+			.filter((i) => i !== -1)
+			.sort((a, b) => a - b)[0];
+
+		if (idx !== undefined) {
 			alias = pageRef.slice(0, idx).trim();
 			pageString = pageRef.slice(idx + 1).trim();
 		}
 
 		this.pagesString = pageString;
 		this.resourceAlias = alias;
-		this.allPageRefs = this.parsePageRefs(pageString?.toString() || '0');
-		this.pageRef = this.allPageRefs[0] || 0;
+		this.allPageRefs = this.parsePageRefs(pageString?.toString() || '', alias);
+		this.pageRef = (this.allPageRefs[0]?.[1] ?? 0);
 	}
 
-	private parsePageRefs(pageRefString: string): number[] {
-		const result: number[] = [];
+	private parsePageRefs(pageRefString: string, defaultAlias?: string): Array<[string | null, number]> {
+		const result: Array<[string | null, number]> = [];
 
-		// Split by comma to handle multiple parts
-		const parts = pageRefString.split(',').map(part => part.trim());
+		// Tokenize by ',' and ';' while allowing alias overrides per token.
+		const tokens = pageRefString
+			.split(/[;,]/)
+			.map((t) => t.trim())
+			.filter((t) => t.length > 0);
 
-		for (const part of parts) {
-			if (part.includes('-')) {
-				// Handle range like "3-5"
-				const [start, end] = part.split('-').map(num => parseInt(num.trim(), 10));
+		let currentAlias: string | null = defaultAlias ?? null;
+
+		for (const token of tokens) {
+			// If token has an explicit alias using ':' then it sets/overrides current alias
+			let work = token;
+			let aliasForToken: string | null = null;
+			const pos = token.indexOf(':');
+			if (pos !== -1) {
+				aliasForToken = token.slice(0, pos).trim() || null;
+				work = token.slice(pos + 1).trim();
+				// Persist alias for following tokens until changed
+				currentAlias = aliasForToken;
+			}
+
+			// If token looks like a bare alias (no digits and no colon), treat it as a context switch
+			if (pos === -1 && !/[0-9]/.test(work)) {
+				currentAlias = work || null;
+				continue;
+			}
+
+			if (!work) continue;
+
+			// Parse either range "a-b" or single number
+			if (work.includes('-')) {
+				const [startStr, endStr] = work.split('-').map((s) => s.trim());
+				const start = parseInt(startStr, 10);
+				const end = parseInt(endStr, 10);
 				if (!isNaN(start) && !isNaN(end)) {
 					for (let i = start; i <= end; i++) {
-						result.push(i);
+						result.push([aliasForToken ?? currentAlias ?? null, i]);
 					}
 				}
 			} else {
-				// Handle single number
-				const num = parseInt(part, 10);
+				const num = parseInt(work, 10);
 				if (!isNaN(num)) {
-					result.push(num);
+					result.push([aliasForToken ?? currentAlias ?? null, num]);
 				}
 			}
 		}
@@ -68,7 +99,7 @@ export interface IPageRef {
 	name: string;
 	vueComponent: any;
 	ref: number;
-	allRefs: number[];
+	allRefs: Array<[string | null, number]>;
 	pagesString: string;
 	resourceAlias?: string;
 }

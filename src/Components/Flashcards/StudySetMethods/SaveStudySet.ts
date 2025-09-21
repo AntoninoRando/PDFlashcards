@@ -1,23 +1,26 @@
 import { IFlashcard, IStudySet } from "@/FlashcardParser/Types/Types";
 
-export function saveStudySet(studySet: IStudySet) {
-  if (!studySet || !studySet.originalLines) {
-    alert('No study set to save!');
-    return;
+export type BuildStudySetContentResult =
+  | { ok: true; content: string }
+  | { ok: false; reason: 'missing-original-lines' | 'no-reviewed-cards' };
+
+function ensureSerializableCards(flashcards: IFlashcard[]): IFlashcard[] {
+  return flashcards.filter((card: IFlashcard) => card.reviewedAt !== null);
+}
+
+export function buildStudySetContent(studySet: IStudySet): BuildStudySetContentResult {
+  if (!studySet || !Array.isArray(studySet.originalLines)) {
+    return { ok: false, reason: 'missing-original-lines' };
   }
 
   const lines: string[] = [...studySet.originalLines];
-
-  // Filter cards that have been reviewed (have reviewedAt set)
-  const reviewedCards = studySet.flashcards.filter((card: any) => card.reviewedAt !== null);
+  const reviewedCards = ensureSerializableCards(studySet.flashcards);
   console.log(`Found ${reviewedCards.length} reviewed cards to save out of ${studySet.flashcards.length} total cards`);
 
   if (reviewedCards.length === 0) {
-    alert('No reviewed cards to save! Make sure you have studied some cards first.');
-    return;
+    return { ok: false, reason: 'no-reviewed-cards' };
   }
 
-  // Sort by line number in descending order to avoid index shifting issues
   const cardsSorted = [...reviewedCards].sort((a: IFlashcard, b: IFlashcard) =>
     b.lineDescriptor.index - a.lineDescriptor.index
   );
@@ -26,11 +29,9 @@ export function saveStudySet(studySet: IStudySet) {
     const card = cardsSorted[i] as IFlashcard;
     console.log(`Saving card: "${card.text}" - reviewedAt: ${card.reviewedAt} - line: ${card.lineDescriptor.index}`);
 
-    // Insert or replace the save command after the card line
     const insertIndex = card.lineDescriptor.index + 1;
     const command = `\t*** ${card.reviewedAt.toISOString()}, ${card.ease}, ${card.interval}, ${card.learningPhase}`;
 
-    // Remove any existing recall data lines for this card
     while (insertIndex < lines.length && lines[insertIndex].trimStart().startsWith('***')) {
       lines.splice(insertIndex, 1);
     }
@@ -39,8 +40,22 @@ export function saveStudySet(studySet: IStudySet) {
   }
 
   const content = lines.join('\n');
+  return { ok: true, content };
+}
 
-  const blob = new Blob([content], { type: 'text/plain' });
+export function saveStudySet(studySet: IStudySet) {
+  const result = buildStudySetContent(studySet);
+
+  if (!result.ok) {
+    if (result.reason === 'missing-original-lines') {
+      alert('No study set to save!');
+    } else if (result.reason === 'no-reviewed-cards') {
+      alert('No reviewed cards to save! Make sure you have studied some cards first.');
+    }
+    return;
+  }
+
+  const blob = new Blob([result.content], { type: 'text/plain' });
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
 

@@ -17,6 +17,7 @@ import {
 } from '@/FlashcardParser/Types/Types';
 import { updateCardsSchedule } from './StudySetMethods/UpdateCardsSchedule';
 import { saveStudySet } from './StudySetMethods/SaveStudySet';
+import { autosaveStudySet } from './StudySetMethods/AutoSaveStudySet';
 import { SortModes } from '@/FlashcardsScheduler';
 import { playRecallSound } from './StudySetMethods/PlayRecallSound';
 import { burstConfetti } from './StudySetMethods/BurstConfetti';
@@ -120,6 +121,10 @@ const updateCards = (flashcardObj: {
 }) => {
   const { flashcard, recall } = flashcardObj;
   updateCardsSchedule(flashcard, recall, props.studySet);
+
+  if (recall !== HideOption.hide) {
+    void autosaveStudySet(props.studySet);
+  }
 
   studyCard.value = props.studySet.scheduler.getFirstCard();
   if (studyCard.value) {

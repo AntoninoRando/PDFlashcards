@@ -34,6 +34,14 @@ defineProps<{
         <kbd>D</kbd>
         <span>Previous page <em>(when card is revealed)</em></span>
       </div>
+      <div class="item">
+        <kbd>C</kbd>
+        <span>Next page within current card's PageRef list</span>
+      </div>
+      <div class="item">
+        <kbd>X</kbd>
+        <span>Previous page within current card's PageRef list</span>
+      </div>
     </div>
 
     <div class="group">
@@ -43,7 +51,7 @@ defineProps<{
       </div>
     </div>
   </aside>
-  
+
 </template>
 
 <style scoped>

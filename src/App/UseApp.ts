@@ -1,6 +1,7 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
 import { parseStudyset } from '../FlashcardParser/StudySetParser';
 import { IFlashcard, IStudySet } from '../FlashcardParser/Types/Types';
+import { PageRef } from '@/Commands/All/PageRef';
 
 interface FileUploadItem {
   file: File;
@@ -13,6 +14,7 @@ export function useApp() {
   const studySet = ref<IStudySet | null>(null);
   const pdfCache = reactive<Record<string, string>>({});
   const pdfToShow = ref<string>('');
+  const resourcePages = reactive<Record<string, number>>({});
   const isScrolled = ref<boolean>(false);
   const mousePosition = ref({ x: 0, y: 0 });
   const cardRevealed = ref<boolean>(false);
@@ -21,6 +23,7 @@ export function useApp() {
   // Tracks PageRef pages for the currently revealed flashcard
   const currentCardPageRefs = ref<number[]>([]);
   const currentCardResourceAlias = ref<string>('');
+  const currentCardSteps = ref<Array<{ page: number; resourceAlias: string }>>([]);
 
   // Refs
   const studySetComponent = ref<any>(null);
@@ -33,37 +36,48 @@ export function useApp() {
       return;
     }
 
-    let pageRefNum: number | null = null;
-    let resourceAlias = studySet.value?.defaultResource || '';
-    let pageRefsForCard: number[] = [];
-    for (let component of flashcard.lineDescriptor.subParts || []) {
-      if (component.name == 'pageref') {
-        pageRefNum = component.ref;
-        pageRefsForCard = Array.isArray(component.allRefs)
-          ? (component.allRefs as number[])
-          : (typeof component.ref === 'number' ? [component.ref] : []);
-        if (component.resourceAlias) {
-          resourceAlias = component.resourceAlias;
-        }
-        break;
+    const set = studySet.value;
+    if (!set) return;
+
+    const defaultAlias = set.defaultResource || '';
+    const steps: Array<{ page: number; resourceAlias: string }> = [];
+    for (const component of flashcard.lineDescriptor.subParts || []) {
+      if (component?.name !== PageRef.commandName) continue;
+      const pairs: Array<[string | null, number]> = Array.isArray(component.allRefs)
+        ? (component.allRefs as Array<[string | null, number]>)
+        : [];
+      if (pairs.length) {
+        pairs.forEach(([aliasMaybe, page]) => {
+          const alias = (aliasMaybe ?? component.resourceAlias ?? defaultAlias) as string;
+          steps.push({ page, resourceAlias: alias });
+        });
+      } else {
+        const alias = (component.resourceAlias || defaultAlias) as string;
+        const page = typeof component.ref === 'number' ? component.ref : 0;
+        if (page) steps.push({ page, resourceAlias: alias });
       }
     }
 
-    if (!pageRefNum || !resourceAlias) {
+    if (!steps.length || !steps[0].resourceAlias) {
       console.error('Revealed card has no page or resource ' + JSON.stringify(flashcard));
       return;
     }
 
+    console.log('Revealed card with steps:', steps);
+    const first = steps[0];
     console.log(
-      `[showPage]\n\t-Page: ${pageRefNum};` +
-        `\n\t-Pdf: ${studySet.value?.resources[resourceAlias] || ''}` +
-        `\n\t-ResourceAlias: ${resourceAlias}`
+      `[showPage]\n\t-Page: ${first.page};` +
+        `\n\t-Pdf: ${set.resources[first.resourceAlias] || ''}` +
+        `\n\t-ResourceAlias: ${first.resourceAlias}`
     );
 
-    pageToShow.value = pageRefNum;
-    pdfToShow.value = studySet.value?.resources[resourceAlias] || '';
-    currentCardPageRefs.value = pageRefsForCard || [];
-    currentCardResourceAlias.value = resourceAlias;
+    pageToShow.value = first.page;
+    const firstFile = set.resources[first.resourceAlias] || '';
+    pdfToShow.value = firstFile;
+    if (firstFile) resourcePages[firstFile] = first.page;
+    currentCardPageRefs.value = steps.map((s) => s.page);
+    currentCardResourceAlias.value = first.resourceAlias;
+    currentCardSteps.value = steps;
     cardRevealed.value = true;
   }
 
@@ -129,34 +143,70 @@ export function useApp() {
     if (event.key === 'f') {
       // Next PDF page
       pageToShow.value = pageToShow.value + 1;
+      if (pdfToShow.value) resourcePages[pdfToShow.value] = pageToShow.value;
     } else if (event.key === 'd') {
       // Previous PDF page (clamp to 1)
       pageToShow.value = Math.max(1, pageToShow.value - 1);
+      if (pdfToShow.value) resourcePages[pdfToShow.value] = pageToShow.value;
     } else if (event.key === 'c') {
-      // Next page within current card's PageRef list
-      const refs = currentCardPageRefs.value || [];
-      if (!refs.length) return;
-      const cur = pageToShow.value;
-      const idx = refs.indexOf(cur);
-      if (idx !== -1 && idx < refs.length - 1) {
-        pageToShow.value = refs[idx + 1];
+      // Next PageRef element (can cross resources)
+      const steps = currentCardSteps.value || [];
+      if (!steps.length) return;
+      const set = studySet.value;
+      if (!set) return;
+      const aliasNow = getCurrentPdfAlias();
+      const curPage = pageToShow.value;
+      const idx = steps.findIndex(s => s.page === curPage && s.resourceAlias === aliasNow);
+      if (idx !== -1 && idx < steps.length - 1) {
+        const next = steps[idx + 1];
+        pageToShow.value = next.page;
+        const file = set.resources[next.resourceAlias] || '';
+        if (file) {
+          resourcePages[file] = next.page;
+          pdfToShow.value = file;
+        }
       } else if (idx === -1) {
-        // If current page not in refs, jump to the first greater ref if any
-        const next = refs.find((p) => p > cur);
-        if (next !== undefined) pageToShow.value = next;
+        // Fallback: find the first upcoming step by page number
+        const j = steps.findIndex(s => s.page > curPage);
+        if (j !== -1) {
+          const next = steps[j];
+          pageToShow.value = next.page;
+          const file = set.resources[next.resourceAlias] || '';
+          if (file) {
+            resourcePages[file] = next.page;
+            pdfToShow.value = file;
+          }
+        }
       }
     } else if (event.key === 'x') {
-      // Previous page within current card's PageRef list
-      const refs = currentCardPageRefs.value || [];
-      if (!refs.length) return;
-      const cur = pageToShow.value;
-      const idx = refs.indexOf(cur);
+      // Previous PageRef element (can cross resources)
+      const steps = currentCardSteps.value || [];
+      if (!steps.length) return;
+      const set = studySet.value;
+      if (!set) return;
+      const aliasNow = getCurrentPdfAlias();
+      const curPage = pageToShow.value;
+      const idx = steps.findIndex(s => s.page === curPage && s.resourceAlias === aliasNow);
       if (idx > 0) {
-        pageToShow.value = refs[idx - 1];
+        const prev = steps[idx - 1];
+        pageToShow.value = prev.page;
+        const file = set.resources[prev.resourceAlias] || '';
+        if (file) {
+          resourcePages[file] = prev.page;
+          pdfToShow.value = file;
+        }
       } else if (idx === -1) {
-        // If current page not in refs, jump to the greatest smaller ref if any
-        const prev = [...refs].filter((p) => p < cur).pop();
-        if (prev !== undefined) pageToShow.value = prev;
+        // Fallback: find the last previous step by page number
+        const candidates = steps.filter(s => s.page < curPage);
+        const prev = candidates.length ? candidates[candidates.length - 1] : undefined;
+        if (prev) {
+          pageToShow.value = prev.page;
+          const file = set.resources[prev.resourceAlias] || '';
+          if (file) {
+            resourcePages[file] = prev.page;
+            pdfToShow.value = file;
+          }
+        }
       }
     }
   }
@@ -186,8 +236,10 @@ export function useApp() {
 
     if (command == 'next page') {
       pageToShow.value = pageToShow.value + 1;
+      if (pdfToShow.value) resourcePages[pdfToShow.value] = pageToShow.value;
     } else if (command == 'previous page') {
-      pageToShow.value = pageToShow.value - 1;
+      pageToShow.value = Math.max(1, pageToShow.value - 1);
+      if (pdfToShow.value) resourcePages[pdfToShow.value] = pageToShow.value;
     }
 
     if (command == 'point') {
@@ -228,6 +280,14 @@ export function useApp() {
     return ((totalCards.value - remainingCards.value) / totalCards.value) * 100;
   });
 
+  function getCurrentPdfAlias(): string {
+    const set = studySet.value;
+    if (!set) return '';
+    const file = pdfToShow.value;
+    const aliases = Object.keys(set.resources || {});
+    return aliases.find((a) => set.resources[a] === file) || '';
+  }
+
   onMounted(() => {
     // let vid = document.getElementById("video-bg");
     // vid.playbackRate = 0.3;
@@ -245,6 +305,7 @@ export function useApp() {
     studySet,
     pdfCache,
     pdfToShow,
+    resourcePages,
     isScrolled,
     mousePosition,
     cardRevealed,
