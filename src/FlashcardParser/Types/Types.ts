@@ -13,6 +13,7 @@ export interface IFlashcard {
     reviewCount: number;
     learningPhase: boolean;
     alias?: string[];
+    skippedUntil?: Date | null;
 }
 
 export interface ISubPart {
@@ -57,5 +58,6 @@ export enum HideOption {
     forgot = 'forgot',
     bad = 'bad',
     notBad = 'not bad',
-    ok = 'ok'
+    ok = 'ok',
+    skip = 'skip',
 }

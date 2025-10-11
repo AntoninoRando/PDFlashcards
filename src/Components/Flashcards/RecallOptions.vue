@@ -1,5 +1,9 @@
 <template>
   <div class="all-buttons">
+    <button class="revealed-button" :class="{ pressed: pressedButton === 'skip', pointed: pointedButton === 'skip' }"
+      @click="() => chooseRecallOption('skip')">
+      Skip
+    </button>
     <button class="revealed-button" :class="{ pressed: pressedButton === 'hide', pointed: pointedButton === 'hide' }"
       @click="() => chooseRecallOption('hide')">
       Hide

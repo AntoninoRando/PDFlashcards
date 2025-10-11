@@ -70,7 +70,13 @@ export default class FlashcardsScheduler {
    */
   getFirstCard(): IFlashcard | null {
     console.log(`[scheduler] Getting first card from ${this.flashcards.length} sorted cards`);
-    return this.flashcards.length > 0 ? this.flashcards[0] : null;
+    const now = new Date();
+    for (const c of this.flashcards) {
+      if (!c?.skippedUntil || c.skippedUntil <= now) {
+        return c;
+      }
+    }
+    return null;
   }
 
   /**
@@ -280,6 +286,18 @@ export default class FlashcardsScheduler {
     const now = new Date();
 
     this.flashcards.sort((a, b) => {
+      // Priority 0: cards currently skipped are deprioritized
+      const aSkipped = !!(a?.skippedUntil && a.skippedUntil > now);
+      const bSkipped = !!(b?.skippedUntil && b.skippedUntil > now);
+
+      if (aSkipped && !bSkipped) return 1;
+      if (!aSkipped && bSkipped) return -1;
+      if (aSkipped && bSkipped) {
+        const at = a.skippedUntil?.getTime() ?? Infinity;
+        const bt = b.skippedUntil?.getTime() ?? Infinity;
+        return at - bt; // the one that becomes available sooner comes first among skipped
+      }
+
       // Priority 1: Cards with bad recall (retrievalSuccess 0 or 1) come first
       const aBadRecall = a.retrievalSuccess !== null && a.retrievalSuccess <= 1;
       const bBadRecall = b.retrievalSuccess !== null && b.retrievalSuccess <= 1;

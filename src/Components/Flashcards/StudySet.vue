@@ -155,7 +155,8 @@ const undoLastReview = () => {
     originalFlashcard.ease = snapshot.ease,
     originalFlashcard.retrievalSuccess = snapshot.retrievalSuccess,
     originalFlashcard.reviewCount = snapshot.reviewCount,
-    originalFlashcard.learningPhase = snapshot.learningPhase
+    originalFlashcard.learningPhase = snapshot.learningPhase,
+    (originalFlashcard as any).skippedUntil = (snapshot as any).skippedUntil
 
   /*
     Note that here the first card of the studyset and the first card of the 

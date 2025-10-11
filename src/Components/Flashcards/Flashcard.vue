@@ -45,7 +45,9 @@ function hide(recall = 'hide') {
   setTimeout(() => {
     revealed.value = false
     hidingRecallOptions.value = false
-    props.flashcard.reviewedAt = new Date()
+    if (recall !== 'skip') {
+      props.flashcard.reviewedAt = new Date()
+    }
     pdfBlur(false)
     emit('hide', { flashcard: props.flashcard, recall })
   }, 300)
