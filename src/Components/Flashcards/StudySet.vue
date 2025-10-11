@@ -157,12 +157,13 @@ const undoLastReview = () => {
     originalFlashcard.reviewCount = snapshot.reviewCount,
     originalFlashcard.learningPhase = snapshot.learningPhase
 
+  props.studySet.scheduler.restoreSessionRecall(originalFlashcard, snapshot.retrievalSuccess);
   /*
     Note that here the first card of the studyset and the first card of the 
     scheduler may differ.
   */
   props.studySet.scheduler.sort();
-  studyCard.value = originalFlashcard;
+  studyCard.value = props.studySet.scheduler.getFirstCard() ?? originalFlashcard;
 };
 
 const point = (what: string) => {
@@ -203,6 +204,7 @@ const hideCardWithKeyboard = (event: KeyboardEvent) => {
 
 onMounted(() => {
   window.addEventListener('keydown', hideCardWithKeyboard);
+  props.studySet.scheduler.startSession();
   if (props.studySet.flashcards && props.studySet.flashcards.length > 0) {
     props.studySet.scheduler.resetCards();
     props.studySet.scheduler.addFlashcards(...props.studySet.flashcards);

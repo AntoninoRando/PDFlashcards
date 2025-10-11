@@ -22,6 +22,14 @@ export default class FlashcardsScheduler {
   sortedFlashcards: IFlashcard[];
 
   sortMode: SortModes = SortModes.learningPriority;
+  private bucketOrder: string[];
+  private bucketMap: Map<string, IFlashcard[]>;
+  private bucketProgress: Map<string, { total: number; fineCount: number }>;
+  private currentBucketKey: string | null;
+  private sessionRecalls: Map<IFlashcard, number>;
+  private readonly fineRecallGrade = 2;
+  private readonly bucketCompletionRatio = 0.7;
+  private readonly fallbackBucketKey = '__NO_HEADER__';
   
   /* --- Learning settings --- */
   initialLearningPhaseFixedSteps: string[];
@@ -35,6 +43,12 @@ export default class FlashcardsScheduler {
   //#region CONSTRUCTORS -------------------------------------------------------
   constructor() {
     this.flashcards = [];
+    this.sortedFlashcards = [];
+    this.bucketOrder = [];
+    this.bucketMap = new Map();
+    this.bucketProgress = new Map();
+    this.currentBucketKey = null;
+    this.sessionRecalls = new Map();
     this.initialLearningPhaseFixedSteps = ["30m", "2h", "2d"];
     this.easyIntervalOnExitingLearningMode = "4d";
     // Default difficulty used by the Free Spaced Repetition Scheduler (FSRS)
@@ -53,6 +67,22 @@ export default class FlashcardsScheduler {
    */
   resetCards(): void {
     this.flashcards = [];
+    this.sortedFlashcards = [];
+    this.bucketMap.clear();
+    this.bucketOrder = [];
+    this.bucketProgress.clear();
+  }
+
+  /**
+   * Clears session-specific data so the scheduler can start fresh progress
+   * tracking for the next study run.
+   */
+  startSession(): void {
+    this.sessionRecalls.clear();
+    this.bucketMap.clear();
+    this.bucketOrder = [];
+    this.bucketProgress.clear();
+    this.currentBucketKey = null;
   }
 
   /**
@@ -60,7 +90,11 @@ export default class FlashcardsScheduler {
    * @param flashcard One or more flashcards to add to the scheduler.
    */
   addFlashcards(...flashcard: IFlashcard[]): void {
-    this.flashcards.push(...flashcard);
+    if (flashcard.length > 0) {
+      const validCards = flashcard.filter((card): card is IFlashcard => !!card);
+      this.flashcards.push(...validCards);
+    }
+    this.rebuildBuckets();
     this.sort();
   }
 
@@ -69,8 +103,52 @@ export default class FlashcardsScheduler {
    * or null if no cards are available.
    */
   getFirstCard(): IFlashcard | null {
-    console.log(`[scheduler] Getting first card from ${this.flashcards.length} sorted cards`);
-    return this.flashcards.length > 0 ? this.flashcards[0] : null;
+    const now = new Date();
+
+    if (!this.currentBucketKey) {
+      const initialCard = this.flashcards.find((card) => this.isCardDue(card, now)) ?? this.flashcards[0];
+      if (initialCard) {
+        this.currentBucketKey = this.getBucketKey(initialCard);
+      }
+    }
+
+    this.advanceBucketIfNeeded();
+
+    if (!this.currentBucketKey) {
+      console.log('[scheduler] No cards available across buckets');
+      return null;
+    }
+
+    const activeBucket = this.currentBucketKey;
+    const card = this.flashcards.find((c) => this.getBucketKey(c) === activeBucket && this.isCardDue(c, now))
+      ?? this.flashcards.find((c) => this.getBucketKey(c) === activeBucket)
+      ?? null;
+
+    if (card) {
+      const progress = this.bucketProgress.get(activeBucket);
+      const fineCount = progress?.fineCount ?? 0;
+      const total = progress?.total ?? 0;
+      console.log(`[scheduler] Getting first card from bucket '${activeBucket}' (${fineCount}/${total} fine)`);
+      return card;
+    }
+
+    const currentIndex = this.bucketOrder.indexOf(activeBucket);
+    for (let i = currentIndex + 1; i < this.bucketOrder.length; i++) {
+      const candidateKey = this.bucketOrder[i];
+      const candidateCard = this.flashcards.find((c) => this.getBucketKey(c) === candidateKey);
+      if (!candidateCard) continue;
+
+      this.currentBucketKey = candidateKey;
+      const progress = this.bucketProgress.get(candidateKey);
+      const fineCount = progress?.fineCount ?? 0;
+      const total = progress?.total ?? 0;
+      console.log(`[scheduler] Getting first card from bucket '${candidateKey}' (${fineCount}/${total} fine)`);
+      return candidateCard;
+    }
+
+    console.log('[scheduler] No cards available across buckets');
+    this.currentBucketKey = null;
+    return null;
   }
 
   /**
@@ -127,6 +205,7 @@ export default class FlashcardsScheduler {
     );
     flashcard.nextReviewAt = nextReviewTime;
 
+    this.recordSessionRecall(flashcard, retrievalSuccess);
     this.sort();
     console.log(`[scheduler] Updated card '${flashcard.text}' with:
       retrievalSuccess=${retrievalSuccess}, 
@@ -135,6 +214,40 @@ export default class FlashcardsScheduler {
       ease=${flashcard.ease}`);
 
     return flashcard;
+  }
+
+  /**
+   * Restores the session recall state for a flashcard (used when undoing).
+   */
+  restoreSessionRecall(
+    flashcard: IFlashcard,
+    retrievalSuccess: number | null | undefined
+  ): void {
+    const previousGrade = this.sessionRecalls.get(flashcard);
+    const prevFine = this.isGradeFine(previousGrade);
+
+    if (typeof retrievalSuccess === 'number') {
+      this.sessionRecalls.set(flashcard, retrievalSuccess);
+    } else {
+      this.sessionRecalls.delete(flashcard);
+    }
+
+    const newFine = this.isGradeFine(retrievalSuccess ?? undefined);
+    const bucketKey = this.getBucketKey(flashcard);
+    this.currentBucketKey = bucketKey;
+    const progress = this.bucketProgress.get(bucketKey);
+
+    if (!progress || prevFine === newFine) {
+      this.advanceBucketIfNeeded();
+      return;
+    }
+
+    let fineCount = progress.fineCount;
+    if (prevFine) fineCount = Math.max(0, fineCount - 1);
+    if (newFine) fineCount = Math.min(progress.total, fineCount + 1);
+
+    this.bucketProgress.set(bucketKey, { ...progress, fineCount });
+    this.advanceBucketIfNeeded();
   }
 
   // Get statistics about card distribution
@@ -169,6 +282,136 @@ export default class FlashcardsScheduler {
     });
 
     return stats;
+  }
+
+  private recordSessionRecall(flashcard: IFlashcard, retrievalSuccess: number): void {
+    const previousGrade = this.sessionRecalls.get(flashcard);
+    const prevFine = this.isGradeFine(previousGrade);
+    const newFine = this.isGradeFine(retrievalSuccess);
+
+    this.sessionRecalls.set(flashcard, retrievalSuccess);
+
+    const bucketKey = this.getBucketKey(flashcard);
+    this.currentBucketKey = bucketKey;
+    const progress = this.bucketProgress.get(bucketKey);
+
+    if (!progress || prevFine === newFine) {
+      this.advanceBucketIfNeeded();
+      return;
+    }
+
+    let fineCount = progress.fineCount;
+    if (prevFine) fineCount = Math.max(0, fineCount - 1);
+    if (newFine) fineCount = Math.min(progress.total, fineCount + 1);
+
+    this.bucketProgress.set(bucketKey, { ...progress, fineCount });
+    this.advanceBucketIfNeeded();
+  }
+
+  private rebuildBuckets(): void {
+    const previousBucketKey = this.currentBucketKey;
+    const map = new Map<string, IFlashcard[]>();
+    const firstIndex = new Map<string, number>();
+
+    for (const card of this.flashcards) {
+      const key = this.getBucketKey(card);
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+
+      map.get(key)!.push(card);
+
+      const lineIndex = card.lineDescriptor?.index ?? 0;
+      const storedIndex = firstIndex.get(key);
+      if (storedIndex === undefined || lineIndex < storedIndex) {
+        firstIndex.set(key, lineIndex);
+      }
+    }
+
+    this.bucketMap = map;
+    this.bucketOrder = Array.from(map.keys()).sort((a, b) => {
+      const aIndex = firstIndex.get(a) ?? 0;
+      const bIndex = firstIndex.get(b) ?? 0;
+      return aIndex - bIndex;
+    });
+
+    const progress = new Map<string, { total: number; fineCount: number }>();
+    for (const [key, cards] of map.entries()) {
+      const total = cards.length;
+      let fineCount = 0;
+      for (const card of cards) {
+        const grade = this.sessionRecalls.get(card);
+        if (this.isGradeFine(grade)) fineCount++;
+      }
+      progress.set(key, { total, fineCount });
+    }
+    this.bucketProgress = progress;
+
+    if (previousBucketKey && map.has(previousBucketKey)) {
+      this.currentBucketKey = previousBucketKey;
+    } else {
+      this.currentBucketKey = null;
+    }
+  }
+
+  private getBucketKey(card: IFlashcard): string {
+    const topHeader = card.headers?.[0]?.trim();
+    if (topHeader) {
+      return topHeader;
+    }
+    return this.fallbackBucketKey;
+  }
+
+  private isGradeFine(grade: number | null | undefined): boolean {
+    if (typeof grade !== 'number') {
+      return false;
+    }
+    return grade >= this.fineRecallGrade;
+  }
+
+  private advanceBucketIfNeeded(): void {
+    if (!this.currentBucketKey) {
+      return;
+    }
+
+    let safety = 0;
+    while (this.currentBucketKey) {
+      safety++;
+      if (safety > this.bucketOrder.length) {
+        this.currentBucketKey = null;
+        break;
+      }
+
+      const progress = this.bucketProgress.get(this.currentBucketKey);
+      const total = progress?.total ?? 0;
+      const fineCount = progress?.fineCount ?? 0;
+      const ratio = total === 0 ? 1 : fineCount / total;
+
+      if (ratio >= this.bucketCompletionRatio) {
+        const currentIndex = this.bucketOrder.indexOf(this.currentBucketKey);
+        const nextIndex = currentIndex + 1;
+        if (nextIndex < this.bucketOrder.length) {
+          this.currentBucketKey = this.bucketOrder[nextIndex];
+          continue;
+        }
+        this.currentBucketKey = null;
+      }
+      break;
+    }
+  }
+
+  private isCardDue(card: IFlashcard | undefined, referenceDate: Date): boolean {
+    if (!card) return false;
+
+    if (card.reviewedAt === null) {
+      return true;
+    }
+
+    if (!card.nextReviewAt) {
+      return true;
+    }
+
+    return card.nextReviewAt.getTime() <= referenceDate.getTime();
   }
 
   static intervalNoise(): number {

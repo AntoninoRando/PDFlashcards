@@ -168,22 +168,21 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
 
 .flashcard {
   width: 100%;
-  height: 150px;
+  min-height: 150px;
   display: flex;
   flex-direction: column;
 }
 
 .card-container {
   display: flex;
-  height: 100%;
   width: 100%;
   flex-direction: row;
   gap: 3px;
 }
 
 .buttons-container {
-  height: 100%;
   width: 100%;
+  min-height: 150px;
   transition: all 0.3s ease-in-out;
   transform: scale(1);
   opacity: 1;
@@ -196,8 +195,8 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
 }
 
 .flashcard-button {
-  width: 500px;
-  height: 150px;
+  min-width: 500px;
+  min-height: 150px;
   font-size: 15px;
   font-family: "JetBrains Mono", monospace;
   font-optical-sizing: auto;
