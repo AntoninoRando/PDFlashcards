@@ -8,6 +8,7 @@ import { Recap } from "./All/Recap";
 import { Example } from "./All/Example";
 import { RecallData } from "./All/RecallData";
 import { Note } from "./All/Note";
+import { Skip } from "./All/Skip";
 import { LineDescriptor, IStudySet } from "@/FlashcardParser/Types/Types";
 
 export class CommandsFactory {
@@ -58,6 +59,11 @@ export class CommandsFactory {
             case 'note':
             case 'Note':
                 return new Note(commandArgument);
+            case Skip.symbol:
+            case Skip.commandName:
+            case 'Skip':
+            case 'skip':
+                return new Skip(lineDescriptor, studySet, commandArgument);
             default:
                 console.log(`[MakeCommand] Unrecognized command ${commandNameOrShortcut}`)
                 return null;

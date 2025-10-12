@@ -12,6 +12,7 @@ export interface IFlashcard {
     retrievalSuccess: number | null;
     reviewCount: number;
     learningPhase: boolean;
+    skipUntil?: Date | null;
     alias?: string[];
 }
 

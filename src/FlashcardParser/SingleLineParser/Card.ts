@@ -28,6 +28,7 @@ export function parseCardLine(
 		retrievalSuccess: 0,
 		reviewCount: 0,
 		nextReviewAt: new Date(), // Default to now, will be updated if recall data follows
+		skipUntil: null,
 	};
 
 	addHeaders(card, studySet);

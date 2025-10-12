@@ -106,7 +106,10 @@ export default class FlashcardsScheduler {
     const now = new Date();
 
     if (!this.currentBucketKey) {
-      const initialCard = this.flashcards.find((card) => this.isCardDue(card, now)) ?? this.flashcards[0];
+      const initialCard =
+        this.flashcards.find((card) => this.isCardDue(card, now)) ??
+        this.flashcards.find((card) => !this.isSkipActive(card, now)) ??
+        null;
       if (initialCard) {
         this.currentBucketKey = this.getBucketKey(initialCard);
       }
@@ -120,9 +123,14 @@ export default class FlashcardsScheduler {
     }
 
     const activeBucket = this.currentBucketKey;
-    const card = this.flashcards.find((c) => this.getBucketKey(c) === activeBucket && this.isCardDue(c, now))
-      ?? this.flashcards.find((c) => this.getBucketKey(c) === activeBucket)
-      ?? null;
+    const card =
+      this.flashcards.find(
+        (c) => this.getBucketKey(c) === activeBucket && this.isCardDue(c, now)
+      ) ??
+      this.flashcards.find(
+        (c) => this.getBucketKey(c) === activeBucket && !this.isSkipActive(c, now)
+      ) ??
+      null;
 
     if (card) {
       const progress = this.bucketProgress.get(activeBucket);
@@ -135,7 +143,9 @@ export default class FlashcardsScheduler {
     const currentIndex = this.bucketOrder.indexOf(activeBucket);
     for (let i = currentIndex + 1; i < this.bucketOrder.length; i++) {
       const candidateKey = this.bucketOrder[i];
-      const candidateCard = this.flashcards.find((c) => this.getBucketKey(c) === candidateKey);
+      const candidateCard = this.flashcards.find(
+        (c) => this.getBucketKey(c) === candidateKey && !this.isSkipActive(c, now)
+      );
       if (!candidateCard) continue;
 
       this.currentBucketKey = candidateKey;
@@ -335,11 +345,14 @@ export default class FlashcardsScheduler {
       return aIndex - bIndex;
     });
 
+    const now = new Date();
     const progress = new Map<string, { total: number; fineCount: number }>();
     for (const [key, cards] of map.entries()) {
-      const total = cards.length;
+      // Exclude skipped cards from the total count
+      const nonSkippedCards = cards.filter(card => !this.isSkipActive(card, now));
+      const total = nonSkippedCards.length;
       let fineCount = 0;
-      for (const card of cards) {
+      for (const card of nonSkippedCards) {
         const grade = this.sessionRecalls.get(card);
         if (this.isGradeFine(grade)) fineCount++;
       }
@@ -403,6 +416,10 @@ export default class FlashcardsScheduler {
   private isCardDue(card: IFlashcard | undefined, referenceDate: Date): boolean {
     if (!card) return false;
 
+    if (card.skipUntil && card.skipUntil.getTime() > referenceDate.getTime()) {
+      return false;
+    }
+
     if (card.reviewedAt === null) {
       return true;
     }
@@ -412,6 +429,11 @@ export default class FlashcardsScheduler {
     }
 
     return card.nextReviewAt.getTime() <= referenceDate.getTime();
+  }
+
+  private isSkipActive(card: IFlashcard | undefined, referenceDate: Date): boolean {
+    if (!card || !card.skipUntil) return false;
+    return card.skipUntil.getTime() > referenceDate.getTime();
   }
 
   static intervalNoise(): number {

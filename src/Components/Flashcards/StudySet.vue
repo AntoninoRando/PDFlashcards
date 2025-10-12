@@ -13,7 +13,8 @@ import Flashcard from './Flashcard.vue';
 import {
   HideOption,
   IFlashcard,
-  IStudySet
+  IStudySet,
+  LineDescriptor
 } from '@/FlashcardParser/Types/Types';
 import { updateCardsSchedule } from './StudySetMethods/UpdateCardsSchedule';
 import { saveStudySet } from './StudySetMethods/SaveStudySet';
@@ -21,6 +22,8 @@ import { autosaveStudySet } from './StudySetMethods/AutoSaveStudySet';
 import { SortModes } from '@/FlashcardsScheduler';
 import { playRecallSound } from './StudySetMethods/PlayRecallSound';
 import { burstConfetti } from './StudySetMethods/BurstConfetti';
+import { parseCommandLine } from '@/FlashcardParser/SingleLineParser/Command';
+import { Skip } from '@/Commands/All/Skip';
 
 
 
@@ -58,6 +61,7 @@ const studyCard = ref<IFlashcard>(null);
  */
 const vueShownFlashcard = ref<InstanceType<typeof Flashcard> | null>(null);
 const animationContainer = ref<HTMLDivElement | null>(null);
+const SKIP_DURATION_MS = 30 * 60 * 1000;
 //#endregion -------------------------------------------------------------------
 
 
@@ -170,6 +174,148 @@ const point = (what: string) => {
   vueShownFlashcard.value?.point(what);
 }
 
+function computeCommandIndent(parent: LineDescriptor): string {
+  const originalLines = props.studySet.originalLines || [];
+  const existingChild = (parent.tabbedUnder || []).find((ld) => {
+    const source = originalLines[ld.index] ?? ld.originalLine ?? '';
+    return source.trim().length > 0;
+  });
+
+  if (existingChild) {
+    const source = originalLines[existingChild.index] ?? existingChild.originalLine ?? '';
+    const trimLength = existingChild.trimmedLine?.length ?? 0;
+    return source.slice(0, source.length - trimLength);
+  }
+
+  const parentLine = parent.originalLine ?? '';
+  const parentIndentLength = parentLine.length - (parent.trimmedLine?.length ?? 0);
+  const parentIndent = parentLine.slice(0, parentIndentLength);
+
+  if (parentIndentLength > 0) {
+    if (parentIndent.endsWith('\t')) {
+      return parentIndent + '\t';
+    }
+    if (parentIndent.endsWith('    ')) {
+      return parentIndent + '    ';
+    }
+    return parentIndent + '\t';
+  }
+
+  return '\t'.repeat((parent.tabs ?? 0) + 1);
+}
+
+function findInsertIndex(parent: LineDescriptor): number {
+  const descriptors = props.studySet.linesDescriptors || [];
+  let idx = parent.index + 1;
+  while (idx < descriptors.length) {
+    const descriptor = descriptors[idx];
+    if (!descriptor) break;
+    if (descriptor.tabs <= parent.tabs) break;
+    idx++;
+  }
+  return idx;
+}
+
+function insertSkipCommandLine(
+  parent: LineDescriptor,
+  trimmedCommand: string,
+  fullCommandLine: string
+): LineDescriptor {
+  const insertAt = findInsertIndex(parent);
+  const descriptors = props.studySet.linesDescriptors || [];
+  const originalLines = props.studySet.originalLines || [];
+
+  originalLines.splice(insertAt, 0, fullCommandLine);
+
+  // Update indexes and source references for existing descriptors/subparts
+  descriptors.forEach((ld) => {
+    if (ld.index >= insertAt) {
+      ld.index += 1;
+    }
+    if (Array.isArray(ld.subParts)) {
+      ld.subParts.forEach((sub: any) => {
+        if (typeof sub?.sourceIndex === 'number' && sub.sourceIndex >= insertAt) {
+          sub.sourceIndex += 1;
+        }
+      });
+    }
+  });
+
+  const newDescriptor: LineDescriptor = {
+    index: insertAt,
+    originalLine: fullCommandLine,
+    trimmedLine: trimmedCommand,
+    tabs: (parent.tabs ?? 0) + 1,
+    category: parent.category,
+    tabbedUnder: [],
+    parent,
+    isComment: false,
+    subParts: []
+  };
+
+  descriptors.splice(insertAt, 0, newDescriptor);
+
+  const children = parent.tabbedUnder || (parent.tabbedUnder = []);
+  const childInsertPos = children.findIndex((ld) => ld.index > insertAt);
+  if (childInsertPos === -1) {
+    children.push(newDescriptor);
+  } else {
+    children.splice(childInsertPos, 0, newDescriptor);
+  }
+
+  return newDescriptor;
+}
+
+const skipCurrentCard = () => {
+  const card = studyCard.value;
+  if (!card) {
+    console.warn('[studySet] No flashcard available to skip');
+    return;
+  }
+
+  const parentLD = card.lineDescriptor;
+  if (!parentLD) {
+    console.error('[studySet] Flashcard has no line descriptor');
+    return;
+  }
+
+  const skipUntil = new Date(Date.now() + SKIP_DURATION_MS);
+  const iso = skipUntil.toISOString();
+  const trimmedCommand = `\\${Skip.symbol} ${iso}`;
+  const indent = computeCommandIndent(parentLD);
+  const fullCommandLine = `${indent}${trimmedCommand}`;
+
+  parentLD.subParts = (parentLD.subParts || []).filter((sub: any) => sub?.name !== Skip.commandName);
+
+  let commandDescriptor =
+    (parentLD.tabbedUnder || []).find(
+      (ld) => ld.trimmedLine?.startsWith(`\\${Skip.symbol}`) || ld.trimmedLine?.startsWith(Skip.symbol)
+    ) || null;
+
+  if (commandDescriptor) {
+    props.studySet.originalLines[commandDescriptor.index] = fullCommandLine;
+    commandDescriptor.originalLine = fullCommandLine;
+    commandDescriptor.trimmedLine = trimmedCommand;
+    commandDescriptor.subParts = [];
+    parseCommandLine(commandDescriptor, props.studySet);
+  } else {
+    commandDescriptor = insertSkipCommandLine(parentLD, trimmedCommand, fullCommandLine);
+    parseCommandLine(commandDescriptor, props.studySet);
+  }
+
+  card.skipUntil = skipUntil;
+  card.nextReviewAt = skipUntil;
+
+  props.studySet.scheduler.resetCards();
+  props.studySet.scheduler.addFlashcards(...props.studySet.flashcards);
+  const nextCard = props.studySet.scheduler.getFirstCard();
+
+  studyCard.value = nextCard ?? null;
+
+  emit('hide', card);
+  void autosaveStudySet(props.studySet);
+};
+
 const downloadSet = () => {
   if (!props.studySet) return;
   saveStudySet(props.studySet);
@@ -239,6 +385,9 @@ defineExpose({
         <button class="back-btn" @click="undoLastReview" :disabled="studySet.history.length === 0">
           Back
         </button>
+        <button class="skip-btn" @click="skipCurrentCard" :disabled="!studyCard">
+          Skipped
+        </button>
         <button class="save-btn" @click="downloadSet">
           Save
         </button>
@@ -248,7 +397,7 @@ defineExpose({
     <div class="cards-section">
       <div class="cards-section-row">
         <Flashcard v-if="studyCard !== undefined && studyCard !== null" ref="vueShownFlashcard" class="main-flashcard"
-          :flashcard="studyCard" @reveal="reveal" @hide="updateCards" />
+          :key="studyCard.lineDescriptor.index" :flashcard="studyCard" @reveal="reveal" @hide="updateCards" />
       </div>
     </div>
   </div>
@@ -271,6 +420,26 @@ defineExpose({
   display: flex;
   gap: 10px;
   margin-top: 10px;
+}
+
+.skip-btn {
+  background-color: #fbbf24;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  color: #1f2937;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.skip-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.skip-btn:not(:disabled):hover {
+  filter: brightness(0.95);
 }
 
 .back-btn:disabled {
