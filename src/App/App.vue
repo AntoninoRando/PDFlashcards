@@ -14,6 +14,7 @@ import { computed } from 'vue'
 
 const {
   pageToShow,
+  scrollPercentToShow,
   studySet,
   pdfCache,
   pdfToShow,
@@ -63,9 +64,10 @@ const resourcesList = computed(() => {
     const url = pdfCache[pdfFileName];
     if (!url) continue;
     const page = resourcePages[pdfFileName] ?? (pdfToShow.value === pdfFileName ? pageToShow.value : 1)
+    const scrollPercent = pdfToShow.value === pdfFileName ? scrollPercentToShow.value : undefined
     let alias = aliases.find(a => set.resources[a] === pdfFileName) || null;
     alias = alias !== null ? set.resources[alias] : pdfFileName;
-    items.push({ type: 'pdf', pdfUrl: url, pageToShow: page, _alias: alias })
+    items.push({ type: 'pdf', pdfUrl: url, pageToShow: page, scrollPercent, _alias: alias })
   }
 
   // Ensure the currently selected PDF (pdfToShow) appears first in the list

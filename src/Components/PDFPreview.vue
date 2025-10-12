@@ -29,6 +29,7 @@ const pageControl = computed(() => vpvRef.value?.pageControl)
 const props = defineProps<{
     pdfUrl: string
     pageToShow: number
+    scrollPercent?: number
 }>()
 
 const emit = defineEmits<{
@@ -36,13 +37,25 @@ const emit = defineEmits<{
     pdfError: [error: any]
 }>()
 
-function scrollToPDFPage(pageNumber: number) {
+function scrollToPDFPage(pageNumber: number, scrollPercent?: number) {
     if (!pdfLoaded.value || !pageControl.value || !pageNumber || pageNumber < 1) {
         return
     }
-    
+
     try {
         pageControl.value.goToPage(pageNumber)
+
+        // If a scroll percentage is specified, scroll within the page
+        if (scrollPercent !== undefined && vpvRef.value) {
+            nextTick(() => {
+                const viewerElement = vpvRef.value?.$el?.querySelector('.vue-pdf-viewer__body')
+                if (viewerElement) {
+                    const scrollHeight = viewerElement.scrollHeight - viewerElement.clientHeight
+                    const scrollPosition = (scrollPercent / 100) * scrollHeight
+                    viewerElement.scrollTop = scrollPosition
+                }
+            })
+        }
     } catch (error) {
         console.error('Error navigating to page:', error)
     }
@@ -51,11 +64,11 @@ function scrollToPDFPage(pageNumber: number) {
 function onPdfLoaded() {
     pdfLoaded.value = true
     emit('pdfLoaded')
-    
+
     // Navigate to initial page after PDF is loaded
     nextTick(() => {
         if (props.pageToShow) {
-            scrollToPDFPage(props.pageToShow)
+            scrollToPDFPage(props.pageToShow, props.scrollPercent)
         }
     })
 }
@@ -66,11 +79,11 @@ function onPdfError(error: any) {
     emit('pdfError', error)
 }
 
-// Watch for changes in pageToShow prop
-watch(() => props.pageToShow, (newPage) => {
+// Watch for changes in pageToShow or scrollPercent props
+watch(() => [props.pageToShow, props.scrollPercent], ([newPage, newScrollPercent]) => {
     if (newPage && pdfLoaded.value) {
         nextTick(() => {
-            scrollToPDFPage(newPage)
+            scrollToPDFPage(newPage as number, newScrollPercent as number | undefined)
         })
     }
 }, { immediate: false })

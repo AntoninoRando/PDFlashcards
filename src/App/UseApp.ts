@@ -23,7 +23,8 @@ export function useApp() {
   // Tracks PageRef pages for the currently revealed flashcard
   const currentCardPageRefs = ref<number[]>([]);
   const currentCardResourceAlias = ref<string>('');
-  const currentCardSteps = ref<Array<{ page: number; resourceAlias: string }>>([]);
+  const currentCardSteps = ref<Array<{ page: number; resourceAlias: string; scrollPercent?: number }>>([]);
+  const scrollPercentToShow = ref<number | undefined>(undefined);
 
   // Refs
   const studySetComponent = ref<any>(null);
@@ -40,16 +41,16 @@ export function useApp() {
     if (!set) return;
 
     const defaultAlias = set.defaultResource || '';
-    const steps: Array<{ page: number; resourceAlias: string }> = [];
+    const steps: Array<{ page: number; resourceAlias: string; scrollPercent?: number }> = [];
     for (const component of flashcard.lineDescriptor.subParts || []) {
       if (component?.name !== PageRef.commandName) continue;
-      const pairs: Array<[string | null, number]> = Array.isArray(component.allRefs)
-        ? (component.allRefs as Array<[string | null, number]>)
+      const pairs: Array<[string | null, number, number?]> = Array.isArray(component.allRefs)
+        ? (component.allRefs as Array<[string | null, number, number?]>)
         : [];
       if (pairs.length) {
-        pairs.forEach(([aliasMaybe, page]) => {
+        pairs.forEach(([aliasMaybe, page, scrollPercent]) => {
           const alias = (aliasMaybe ?? component.resourceAlias ?? defaultAlias) as string;
-          steps.push({ page, resourceAlias: alias });
+          steps.push({ page, resourceAlias: alias, scrollPercent });
         });
       } else {
         const alias = (component.resourceAlias || defaultAlias) as string;
@@ -72,6 +73,7 @@ export function useApp() {
     );
 
     pageToShow.value = first.page;
+    scrollPercentToShow.value = first.scrollPercent;
     const firstFile = set.resources[first.resourceAlias] || '';
     pdfToShow.value = firstFile;
     if (firstFile) resourcePages[firstFile] = first.page;
@@ -160,6 +162,7 @@ export function useApp() {
       if (idx !== -1 && idx < steps.length - 1) {
         const next = steps[idx + 1];
         pageToShow.value = next.page;
+        scrollPercentToShow.value = next.scrollPercent;
         const file = set.resources[next.resourceAlias] || '';
         if (file) {
           resourcePages[file] = next.page;
@@ -171,6 +174,7 @@ export function useApp() {
         if (j !== -1) {
           const next = steps[j];
           pageToShow.value = next.page;
+          scrollPercentToShow.value = next.scrollPercent;
           const file = set.resources[next.resourceAlias] || '';
           if (file) {
             resourcePages[file] = next.page;
@@ -190,6 +194,7 @@ export function useApp() {
       if (idx > 0) {
         const prev = steps[idx - 1];
         pageToShow.value = prev.page;
+        scrollPercentToShow.value = prev.scrollPercent;
         const file = set.resources[prev.resourceAlias] || '';
         if (file) {
           resourcePages[file] = prev.page;
@@ -201,6 +206,7 @@ export function useApp() {
         const prev = candidates.length ? candidates[candidates.length - 1] : undefined;
         if (prev) {
           pageToShow.value = prev.page;
+          scrollPercentToShow.value = prev.scrollPercent;
           const file = set.resources[prev.resourceAlias] || '';
           if (file) {
             resourcePages[file] = prev.page;
@@ -302,6 +308,7 @@ export function useApp() {
 
   return {
     pageToShow,
+    scrollPercentToShow,
     studySet,
     pdfCache,
     pdfToShow,

@@ -29,6 +29,7 @@ type PDFResource = {
   type: 'pdf'
   pdfUrl: string
   pageToShow?: number
+  scrollPercent?: number
 }
 
 type ResourceItem = PDFResource // | { type: 'image', ... } | { type: 'video', ... } etc.
@@ -86,6 +87,7 @@ function resolveProps(item: ResourceItem): Record<string, any> {
       return {
         pdfUrl: pdf.pdfUrl,
         pageToShow: pdf.pageToShow ?? 1,
+        scrollPercent: pdf.scrollPercent,
       }
     }
     default:

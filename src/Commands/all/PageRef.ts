@@ -5,7 +5,7 @@ export class PageRef {
 	public static commandName: string = 'pageref';
 
 	public pageRef: number;
-	public allPageRefs: Array<[string | null, number]>;
+	public allPageRefs: Array<[string | null, number, number?]>;
 	public pagesString: string;
 	public resourceAlias?: string;
 
@@ -31,8 +31,8 @@ export class PageRef {
 		this.pageRef = (this.allPageRefs[0]?.[1] ?? 0);
 	}
 
-	private parsePageRefs(pageRefString: string, defaultAlias?: string): Array<[string | null, number]> {
-		const result: Array<[string | null, number]> = [];
+	private parsePageRefs(pageRefString: string, defaultAlias?: string): Array<[string | null, number, number?]> {
+		const result: Array<[string | null, number, number?]> = [];
 
 		// Tokenize by ',' and ';' while allowing alias overrides per token.
 		const tokens = pageRefString
@@ -62,20 +62,31 @@ export class PageRef {
 
 			if (!work) continue;
 
-			// Parse either range "a-b" or single number
+			// Parse either range "a-b" or single number, with optional scroll percentage "num%scroll"
+			let scrollPercent: number | undefined = undefined;
+			const percentPos = work.indexOf('%');
+			if (percentPos !== -1) {
+				const scrollStr = work.slice(percentPos + 1).trim();
+				const scrollNum = parseInt(scrollStr, 10);
+				if (!isNaN(scrollNum)) {
+					scrollPercent = scrollNum;
+				}
+				work = work.slice(0, percentPos).trim();
+			}
+
 			if (work.includes('-')) {
 				const [startStr, endStr] = work.split('-').map((s) => s.trim());
 				const start = parseInt(startStr, 10);
 				const end = parseInt(endStr, 10);
 				if (!isNaN(start) && !isNaN(end)) {
 					for (let i = start; i <= end; i++) {
-						result.push([aliasForToken ?? currentAlias ?? null, i]);
+						result.push([aliasForToken ?? currentAlias ?? null, i, scrollPercent]);
 					}
 				}
 			} else {
 				const num = parseInt(work, 10);
 				if (!isNaN(num)) {
-					result.push([aliasForToken ?? currentAlias ?? null, num]);
+					result.push([aliasForToken ?? currentAlias ?? null, num, scrollPercent]);
 				}
 			}
 		}
@@ -99,7 +110,7 @@ export interface IPageRef {
 	name: string;
 	vueComponent: any;
 	ref: number;
-	allRefs: Array<[string | null, number]>;
+	allRefs: Array<[string | null, number, number?]>;
 	pagesString: string;
 	resourceAlias?: string;
 }
