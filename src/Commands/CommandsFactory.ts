@@ -1,5 +1,6 @@
 import { Header } from "./All/Header";
 import { PageRef } from "./All/PageRef";
+import { TextBox } from "./All/TextBox";
 import { Remember } from "./All/Remember";
 import { Tag } from "./All/Tag";
 import { AutoReveal } from "./All/AutoReveal";
@@ -31,6 +32,9 @@ export class CommandsFactory {
             case PageRef.symbol:
             case 'page':
                 return new PageRef(commandArgument);
+            case TextBox.symbol:
+            case 'textbox':
+                return new TextBox(commandArgument);
             case Remember.symbol:
             case 'remember':
                 return new Remember(commandArgument);

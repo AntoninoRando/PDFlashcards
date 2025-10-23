@@ -28,7 +28,11 @@ export default class FlashcardsScheduler {
   private currentBucketKey: string | null;
   private sessionRecalls: Map<IFlashcard, number>;
   private readonly fineRecallGrade = 2;
-  private readonly bucketCompletionRatio = 0.7;
+  /*
+    Percentage (over 100) of flashcards that needs to be completed with good 
+    recall in order to continue to the next chapter.
+  */
+  private readonly bucketCompletionRatio = 1.0;
   private readonly fallbackBucketKey = '__NO_HEADER__';
   
   /* --- Learning settings --- */

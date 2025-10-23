@@ -1,5 +1,6 @@
 import { IFlashcard, IStudySet, LineDescriptor } from "../Types/Types";
 import { PageRef } from "@/Commands/All/PageRef";
+import { TextBox } from "@/Commands/All/TextBox";
 import { Header } from "@/Commands/All/Header";
 import { parseCommandLine } from "./Command";
 
@@ -10,10 +11,19 @@ export function parseCardLine(
 	const { trimmedLine: line } = lineDescriptor;
 
 	let cardFront = line;
-	const parts = line.split(PageRef.symbol);
-	if (parts.length == 2) {
-		parseCommandLine(lineDescriptor, studySet, `${PageRef.symbol}${parts[1]}`, true);
-		cardFront = parts[0].trim();
+
+	// Check for TextBox first (since "..." contains "..")
+	let textBoxParts = line.split(TextBox.symbol);
+	if (textBoxParts.length == 2) {
+		parseCommandLine(lineDescriptor, studySet, `${TextBox.symbol}${textBoxParts[1]}`, true);
+		cardFront = textBoxParts[0].trim();
+	} else {
+		// Check for PageRef
+		const pageRefParts = line.split(PageRef.symbol);
+		if (pageRefParts.length == 2) {
+			parseCommandLine(lineDescriptor, studySet, `${PageRef.symbol}${pageRefParts[1]}`, true);
+			cardFront = pageRefParts[0].trim();
+		}
 	}
 
 	const card: IFlashcard = {
