@@ -56,9 +56,6 @@ defineProps<{
 
 <style scoped>
 .shortcuts-sidebar {
-  position: fixed;
-  top: 140px; /* below the banner */
-  left: 10px;
   width: 230px;
   padding: 12px 14px;
   background: rgba(255, 255, 255, 0.9);

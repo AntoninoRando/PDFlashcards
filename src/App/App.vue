@@ -127,7 +127,7 @@ function onResourceChanged(item: any) {
     </div>
 
     <!-- Shortcuts Sidebar -->
-    <ShortcutsSidebar v-if="studySet" :cardRevealed="cardRevealed" />
+    <ShortcutsSidebar id="shortcuts-sidebar" v-if="studySet" :cardRevealed="cardRevealed" />
 
 
     <div class="content-wrapper" :class="{ 'pointing': isPointing }">
@@ -161,6 +161,19 @@ function onResourceChanged(item: any) {
 
 
 <style scoped>
+#shortcuts-sidebar {
+  position: fixed;
+  top: 150px;
+  z-index: 1000;
+  left: 0; /* override previous left so we can animate via transform */
+  transform: translateX(-200px);
+  transition: transform 300ms cubic-bezier(.2,.9,.2,1);
+  will-change: transform;
+}
+#shortcuts-sidebar:hover {
+  transform: translateX(0);
+}
+
 .pointing-border {
   border: 5px solid rgb(255, 0, 0) !important;
   border-radius: 8px !important;
