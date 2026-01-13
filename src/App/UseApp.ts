@@ -266,18 +266,32 @@ export function useApp() {
   const totalCards = computed(() => studySet.value?.flashcards.length || 0);
   // Remaining cards X: cards that have the minimum review count c
   const remainingCards = computed(() => {
+    // const set = studySet.value;
+    // if (!set || !set.flashcards || set.flashcards.length === 0) return 0;
+
+    // // Compute c = min reviewCount (treat missing as 0)
+    // const counts = set.flashcards
+    //   .filter((f) => f !== undefined && f !== null)
+    //   .map((f) => (typeof f.reviewCount === 'number' ? f.reviewCount : 0));
+    // if (counts.length === 0) return 0;
+    // const c = Math.min(...counts);
+
+    // // X = number of cards reviewed exactly c times
+    // return set.flashcards.filter((f) => (f?.reviewCount ?? 0) === c).length;
+
     const set = studySet.value;
-    if (!set || !set.flashcards || set.flashcards.length === 0) return 0;
+    if (!set || !set.flashcards) return 0;
 
-    // Compute c = min reviewCount (treat missing as 0)
-    const counts = set.flashcards
-      .filter((f) => f !== undefined && f !== null)
-      .map((f) => (typeof f.reviewCount === 'number' ? f.reviewCount : 0));
-    if (counts.length === 0) return 0;
-    const c = Math.min(...counts);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // X = number of cards reviewed exactly c times
-    return set.flashcards.filter((f) => (f?.reviewCount ?? 0) === c).length;
+    return set.flashcards.filter((f) => {
+      if (!f) return false;
+      // If never reviewed, treat as remaining
+      if (!f.reviewedAt) return true;
+      // Check if reviewed before today
+      return new Date(f.reviewedAt) < today;
+    }).length;
   });
 
   // Progress based on current round: (total - remaining) / total

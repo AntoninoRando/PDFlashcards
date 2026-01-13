@@ -16,3 +16,8 @@ Source code files:
 Other useful files:
 - `start.sh`: starts the docker volume to run the web app and the python services;
 - `startWebapp.sh`: starts only the docker volume to run the web app;
+
+# Vue Scripts: `src` Directory
+
+- `App`: contains the [`.vue` component](#appvue) for the main web app, plus a typescript that defines pieces of it (in order to split the main app script into more modular parts).
+- `Assets`: contains `.css` and icons (`.svg`).

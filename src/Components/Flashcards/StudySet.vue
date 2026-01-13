@@ -386,7 +386,7 @@ defineExpose({
           Back
         </button>
         <button class="skip-btn" @click="skipCurrentCard" :disabled="!studyCard">
-          Skipped
+          Skip
         </button>
         <button class="save-btn" @click="downloadSet">
           Save
@@ -422,24 +422,10 @@ defineExpose({
   margin-top: 10px;
 }
 
-.skip-btn {
-  background-color: #fbbf24;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  color: #1f2937;
-  font-weight: 600;
-  cursor: pointer;
-  transition: filter 0.2s ease;
-}
 
 .skip-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
-}
-
-.skip-btn:not(:disabled):hover {
-  filter: brightness(0.95);
 }
 
 .back-btn:disabled {

@@ -195,7 +195,6 @@ function onResourceChanged(item: any) {
   position: relative;
   width: calc(100% - 2rem);
   height: 120px;
-  margin: 1rem;
   background: linear-gradient(135deg, rgba(237, 246, 249, 0.9) 0%, rgba(237, 246, 249, 0.9) 100%);
   backdrop-filter: blur(10px);
   display: flex;
@@ -203,7 +202,7 @@ function onResourceChanged(item: any) {
   justify-content: center;
   overflow: hidden;
   transition: all 0.3s ease;
-  transform: translateY(0);
+  transform: translateY(-20px);
   opacity: 1;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.3);
   border-radius: 16px;

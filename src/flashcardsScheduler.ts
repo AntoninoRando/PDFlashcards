@@ -10,7 +10,8 @@ export interface CardStats {
 }
 
 export enum SortModes {
-  learningPriority = 'learning priority', // Default
+  sectionLearningPriority = 'section learning priority', // Default
+  learningPriority = 'learning priority',
   byDueDate = 'by due date',
   random = 'random',
   originalOrder= 'original order',
@@ -21,7 +22,7 @@ export default class FlashcardsScheduler {
   flashcards: IFlashcard[];
   sortedFlashcards: IFlashcard[];
 
-  sortMode: SortModes = SortModes.learningPriority;
+  sortMode: SortModes = SortModes.sectionLearningPriority;
   private bucketOrder: string[];
   private bucketMap: Map<string, IFlashcard[]>;
   private bucketProgress: Map<string, { total: number; fineCount: number }>;
@@ -535,6 +536,9 @@ export default class FlashcardsScheduler {
         this.flashcards.sort((a, b) => 
           (a.lineDescriptor.index ?? 0) - (b.lineDescriptor.index ?? 0));
         break;
+      case SortModes.sectionLearningPriority:
+        this.sortFlashcardsBySectionSchedule();
+        break;
       case SortModes.learningPriority:
       default:
         this.sortFlashcardsBySchedule();
@@ -549,6 +553,95 @@ export default class FlashcardsScheduler {
     const now = new Date();
 
     this.flashcards.sort((a, b) => {
+      // Priority 1: Cards with bad recall (retrievalSuccess 0 or 1) come first
+      const aBadRecall = a.retrievalSuccess !== null && a.retrievalSuccess <= 1;
+      const bBadRecall = b.retrievalSuccess !== null && b.retrievalSuccess <= 1;
+
+      if (aBadRecall && !bBadRecall) return -1;
+      if (!aBadRecall && bBadRecall) return 1;
+
+      // Priority 2: Among bad recalls, sort by how overdue they are
+      if (aBadRecall && bBadRecall) {
+        const aOverdue = a.nextReviewAt ? now.getTime() - a.nextReviewAt.getTime() : 0;
+        const bOverdue = b.nextReviewAt ? now.getTime() - b.nextReviewAt.getTime() : 0;
+        return bOverdue - aOverdue; // More overdue first
+      }
+
+      // Priority 3: Cards that have been reviewed before (but not badly)
+      const aReviewed = a.reviewedAt !== null;
+      const bReviewed = b.reviewedAt !== null;
+
+      if (aReviewed && !bReviewed) return -1;
+      if (!aReviewed && bReviewed) return 1;
+
+      // Priority 4: Among reviewed cards, sort by next review time
+      if (aReviewed && bReviewed) {
+        return (
+          (a.nextReviewAt?.getTime() ?? 0) - (b.nextReviewAt?.getTime() ?? 0)
+        );
+      }
+
+      // Priority 5 - New cards (never reviewed): random order or original order
+      if (!aReviewed && !bReviewed) {
+        return Math.random() - 0.5;
+      }
+
+      return 0;
+    });
+  }
+
+  // Get flashcards that are due for review, but the first card is taken from
+  // the "section" (i.e., header) with the max number of due cards. Differently
+  // from what happens with the sortFlashcardsBySchedule method, here we try to
+  // avoid situations in which the majority of the cards in a section are known,
+  // but since there is a single unknown card that entire section will be 
+  // studied first (since ending a section is prioritized).
+  sortFlashcardsBySectionSchedule(): void {
+    const now = new Date();
+
+    // 1. Count due cards per bucket
+    const bucketDueCounts = new Map<string, number>();
+    for (const card of this.flashcards) {
+      if (this.isCardDue(card, now)) {
+        const key = this.getBucketKey(card);
+        bucketDueCounts.set(key, (bucketDueCounts.get(key) || 0) + 1);
+      }
+    }
+
+    // 2. Sort bucketOrder by due count (descending), then by file position (ascending)
+    this.bucketOrder.sort((keyA, keyB) => {
+      const countA = bucketDueCounts.get(keyA) ?? 0;
+      const countB = bucketDueCounts.get(keyB) ?? 0;
+      
+      if (countA !== countB) {
+        return countB - countA; // More due cards first
+      }
+
+      // Tie-breaker: original file order (min line index of the bucket)
+      const cardsA = this.bucketMap.get(keyA) ?? [];
+      const cardsB = this.bucketMap.get(keyB) ?? [];
+      
+      const minIndexA = cardsA.reduce((min, c) => Math.min(min, c.lineDescriptor?.index ?? Infinity), Infinity);
+      const minIndexB = cardsB.reduce((min, c) => Math.min(min, c.lineDescriptor?.index ?? Infinity), Infinity);
+        
+      return minIndexA - minIndexB;
+    });
+
+    // 3. Map bucket key to its new rank index
+    const bucketRank = new Map<string, number>();
+    this.bucketOrder.forEach((key, index) => bucketRank.set(key, index));
+
+    this.flashcards.sort((a, b) => {
+      // Priority 0: Bucket Priority (Use the sorted bucketOrder)
+      const bucketA = this.getBucketKey(a);
+      const bucketB = this.getBucketKey(b);
+
+      if (bucketA !== bucketB) {
+        const rankA = bucketRank.get(bucketA) ?? Infinity;
+        const rankB = bucketRank.get(bucketB) ?? Infinity;
+        return rankA - rankB;
+      }
+
       // Priority 1: Cards with bad recall (retrievalSuccess 0 or 1) come first
       const aBadRecall = a.retrievalSuccess !== null && a.retrievalSuccess <= 1;
       const bBadRecall = b.retrievalSuccess !== null && b.retrievalSuccess <= 1;
