@@ -39,7 +39,8 @@ const {
   isPointing,
   totalCards,
   remainingCards,
-  progressPercent
+  progressPercent,
+  revealTrigger
 } = useApp()
 
 const shuffleOriginalOrder = () => {
@@ -60,14 +61,24 @@ const resourcesList = computed(() => {
   const aliases = Object.keys(set.resources || {})
   const items: any[] = []
 
+  console.log('Building resources list with pdfToShow:', pdfToShow.value);
+
   for (const pdfFileName of Object.keys(pdfCache)) {
     const url = pdfCache[pdfFileName];
     if (!url) continue;
-    const page = resourcePages[pdfFileName] ?? (pdfToShow.value === pdfFileName ? pageToShow.value : 1)
-    const scrollPercent = pdfToShow.value === pdfFileName ? scrollPercentToShow.value : undefined
+    
+    // Determine if this is the currently active PDF
+    console.log('Evaluating PDF:', pdfFileName, 'Current pdfToShow:', pdfToShow.value);
+    const isCurrent = pdfToShow.value === pdfFileName;
+    
+    // Priority: 1. Active Page (if current), 2. Cached Page, 3. Default (-1)
+    const page = isCurrent ? pageToShow.value : (resourcePages[pdfFileName] ?? -1);
+    const scrollPercent = isCurrent ? scrollPercentToShow.value : undefined;
+    const trigger = isCurrent ? revealTrigger.value : 0;
+    
     let alias = aliases.find(a => set.resources[a] === pdfFileName) || null;
     alias = alias !== null ? set.resources[alias] : pdfFileName;
-    items.push({ type: 'pdf', pdfUrl: url, pageToShow: page, scrollPercent, _alias: alias })
+    items.push({ type: 'pdf', pdfUrl: url, pageToShow: page, scrollPercent, trigger, _alias: alias })
   }
 
   // Ensure the currently selected PDF (pdfToShow) appears first in the list
@@ -165,11 +176,13 @@ function onResourceChanged(item: any) {
   position: fixed;
   top: 150px;
   z-index: 1000;
-  left: 0; /* override previous left so we can animate via transform */
+  left: 0;
+  /* override previous left so we can animate via transform */
   transform: translateX(-200px);
-  transition: transform 300ms cubic-bezier(.2,.9,.2,1);
+  transition: transform 300ms cubic-bezier(.2, .9, .2, 1);
   will-change: transform;
 }
+
 #shortcuts-sidebar:hover {
   transform: translateX(0);
 }

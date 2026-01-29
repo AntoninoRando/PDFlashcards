@@ -1,15 +1,7 @@
 <template>
     <div class="pdf-viewer-container">
-        <VPdfViewer 
-            v-if="pdfUrl"
-            :src="pdfUrl" 
-            :initialScrollMode="ScrollMode.Page" 
-            :initialScale="ZoomLevel.PageWidth"
-            :toolbar-options="true"
-            ref="vpvRef"
-            @loaded="onPdfLoaded"
-            @error="onPdfError"
-        />
+        <VPdfViewer v-if="pdfUrl" :src="pdfUrl" :initialScrollMode="ScrollMode.Page" :initialScale="ZoomLevel.PageWidth"
+            :toolbar-options="true" ref="vpvRef" @loaded="onPdfLoaded" @error="onPdfError" />
         <div v-else class="no-preview">
             <p>No PDF selected</p>
         </div>
@@ -30,6 +22,7 @@ const props = defineProps<{
     pdfUrl: string
     pageToShow: number
     scrollPercent?: number
+    trigger?: number
 }>()
 
 const emit = defineEmits<{
@@ -79,14 +72,15 @@ function onPdfError(error: any) {
     emit('pdfError', error)
 }
 
-// Watch for changes in pageToShow or scrollPercent props
-watch(() => [props.pageToShow, props.scrollPercent], ([newPage, newScrollPercent]) => {
+// Watch for changes in pageToShow, scrollPercent, or trigger props
+watch(() => [props.pageToShow, props.scrollPercent, props.trigger], ([newPage, newScrollPercent, newTrigger]) => {
+    console.log('Props changed:', { newPage, newScrollPercent, newTrigger })
     if (newPage && pdfLoaded.value) {
         nextTick(() => {
             scrollToPDFPage(newPage as number, newScrollPercent as number | undefined)
         })
     }
-}, { immediate: false })
+}, { immediate: true })
 
 // Watch for PDF URL changes
 watch(() => props.pdfUrl, () => {
