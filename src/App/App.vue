@@ -3,7 +3,7 @@ import StudySet from '@/Components/Flashcards/StudySet.vue'
 import Resources from '@/Components/Resources/Resources.vue'
 import PDFUploader from '@/Components/Resources/PDFUploader.vue'
 import FileParser from '@/Components/StudySetFile/FileParser.vue'
-import TextEditor from '@/Components/StudySetFile/TextEditor.vue'
+import StudySetEditor from '@/Components/StudySetFile/Editor/StudySetEditor.vue'
 // import GestureRecognizer from '@/Components/Recognizers/GestureRecognizer.vue'
 import VoiceRecognizer from '@/Components/Recognizers/VoiceRecognizer.vue'
 import ShuffleMenu from '@/Components/Layout/ShuffleMenu.vue'
@@ -24,11 +24,14 @@ const {
   cardRevealed,
   uploadedText,
   editorVisible,
+  editorMode,
+  studySetKey,
   studySetComponent,
   gestureRecognizer,
   showPage,
   cardHidden,
   loadStudySet,
+  openCreator,
   openEditor,
   closeEditor,
   saveEdited,
@@ -123,6 +126,7 @@ function onResourceChanged(item: PdfResourceItem) {
         <div class="navbar-buttons">
           <button class="nav-btn">PDF</button>
           <button class="nav-btn">Studysets</button>
+          <button class="nav-btn" @click="openCreator">New</button>
           <button class="nav-btn" v-if="studySet" @click="openEditor">Edit</button>
           <!-- <GestureRecognizer ref="gestureRecognizer" class=" nav-btn" @command-recognized="commandRecognized"
             @pointing-changed="highlightPointing" /> -->
@@ -150,15 +154,21 @@ function onResourceChanged(item: PdfResourceItem) {
         </div>
 
         <div class="flashcard-wrapper" :class="{ revealed: cardRevealed, initial: !studySet }">
-          <FileParser v-if="!studySet" @setUploaded="loadStudySet" />
-          <StudySet ref="studySetComponent" v-else @reveal="showPage" @hide="cardHidden" :studySet="studySet" />
+          <div v-if="!studySet" class="start-options">
+            <FileParser @setUploaded="loadStudySet" />
+            <span class="start-divider">or</span>
+            <button class="create-btn" @click="openCreator">Create a new study set</button>
+          </div>
+          <StudySet ref="studySetComponent" v-else :key="studySetKey" @reveal="showPage" @hide="cardHidden" :studySet="studySet" />
         </div>
       </div>
     </div>
 
     <!-- The text editor that allows to modify the StudySet file directly in 
     app. -->
-    <TextEditor v-if="editorVisible" :model-value="uploadedText" @close="closeEditor" @save="saveEdited" />
+    <StudySetEditor v-if="editorVisible" :mode="editorMode" :initial-text="uploadedText" :pdf-cache="pdfCache"
+      :replacing="editorMode === 'create' && !!studySet" @close="closeEditor" @save="saveEdited"
+      @upload-pdf="addStudyResource" />
 
     <!-- Wheel of options to manipulate the StudySet, e.g. by showing the cards
     in order instead of "randomly". -->
@@ -198,7 +208,7 @@ function onResourceChanged(item: PdfResourceItem) {
 .app-container {
   position: relative;
   min-height: 120vh;
-  width: 90vw;
+  width: 100%;
   font-family: 'Inter', 'Segoe UI', sans-serif;
   display: flex;
   flex-direction: column;
@@ -208,6 +218,7 @@ function onResourceChanged(item: PdfResourceItem) {
 .logo-banner {
   position: relative;
   width: calc(100% - 2rem);
+  margin: 0 1rem;
   height: 120px;
   background: linear-gradient(135deg, rgba(237, 246, 249, 0.9) 0%, rgba(237, 246, 249, 0.9) 100%);
   backdrop-filter: blur(10px);
@@ -450,6 +461,37 @@ function onResourceChanged(item: PdfResourceItem) {
 
 .flashcard-wrapper.revealed:hover {
   bottom: 20px;
+}
+
+.start-options {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.start-divider {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.create-btn {
+  font: inherit;
+  font-weight: 600;
+  color: rgb(180, 0, 0);
+  background: #fff;
+  border: 1.5px solid rgba(180, 0, 0, 0.35);
+  border-radius: 999px;
+  padding: 0.55rem 1.4rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.create-btn:hover {
+  border-color: rgb(180, 0, 0);
+  background: rgba(180, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
 .divider {

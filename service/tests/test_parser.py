@@ -87,5 +87,23 @@ def test_to_dict_is_json_serializable():
     json.dumps(parse(STUDY_SET).to_dict())
 
 
+def test_lines_tabbed_under_a_comment_are_ignored():
+    study_set = parse(
+        "[Cards]\n"
+        "// Commented card .. 1\n"
+        "\tbogus command under the comment\n"
+        "Card .. 2\n"
+        "\t// Commented detail\n"
+        "\t\tbogus command under the comment\n"
+        "\t+ Still a detail of the card\n"
+    )
+    assert study_set is not None
+    assert [f.text for f in study_set.flashcards] == ["Card"]
+    assert len(study_set.lines_descriptors) == 7
+    assert [ld.is_comment for ld in study_set.lines_descriptors] == [
+        False, True, True, False, True, True, False,
+    ]
+
+
 def test_invalid_category_fails():
     assert parse("[Unknown]\nsomething") is None

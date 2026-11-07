@@ -53,6 +53,22 @@ describe("parseStudyset", () => {
     expect(set).not.toBeNull();
   });
 
+  it("ignores lines tabbed under a comment, but not their siblings", () => {
+    const set = parseStudyset([
+      "[Cards]",
+      "// Commented card .. 1",
+      "\tbogus command under the comment",
+      "Card .. 2",
+      "\t// Commented detail",
+      "\t\tbogus command under the comment",
+      "\t+ Still a detail of the card",
+    ]);
+    expect(set).not.toBeNull();
+    expect(set!.flashcards.map((f) => f.text)).toEqual(["Card"]);
+    const remember = set!.flashcards[0].lineDescriptor.subParts.find((p) => p.name === "Remember");
+    expect(remember?.what).toBe("Still a detail of the card");
+  });
+
   it("fails on text outside any category", () => {
     expect(parseStudyset(["stray line", "[Cards]", "card"])).toBeNull();
   });

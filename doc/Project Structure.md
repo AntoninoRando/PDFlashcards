@@ -25,7 +25,7 @@ Folder and file names under `src` use **PascalCase**. Keep imports in the exact 
 - `Components/`: Vue components.
     - `Flashcards/`: the study set, the flashcard and its recall options. `StudySetMethods/` contains the logic used by `StudySet.vue` (schedule update, save/autosave, effects).
     - `Resources/`: PDF upload and preview.
-    - `StudySetFile/`: upload of the study-set `.txt` file and the in-app editor.
+    - `StudySetFile/`: upload of the study-set `.txt` file and the in-app editor (`Editor/`). The editor creates a study set from scratch or edits the loaded one, in a visual view (cards, sections, resources, live PDF preview) or a text view. `Editor/EditorDocument.ts` converts the `.txt` syntax to the structure the editor binds to and back, keeping verbatim every line it does not model (review data, comments...): when you add a command to the DSL, teach it there too or it shows up as raw lines.
     - `Recognizers/`: voice (browser Web Speech API) and gesture (service) recognition.
     - `Layout/`: shortcuts sidebar and shuffle menu.
 - `FlashcardParser/`: parses a study-set file into an `IStudySet` (`StudySetParser.ts` is the entry point, `Types/Types.ts` holds the data types).

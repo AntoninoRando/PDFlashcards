@@ -35,7 +35,8 @@ export function parseStudyset(lines: string[]): IStudySet | null {
     try {
         let lastCategoryIndex = 0;
         let currentCategory: Category | undefined = undefined;
-        let isUnderComment: boolean = false;
+        /** Tabs of the comment the following lines may be tabbed under. */
+        let commentTabs: number | null = null;
 
 
         for (let i = 0; i < lines.length; i++) {
@@ -56,17 +57,17 @@ export function parseStudyset(lines: string[]): IStudySet | null {
             }
 
             /*
-                A line is considered a commet if it starts with a comment symbol
-                or is tabbed under a commented line.
+                A line is considered a comment if it starts with a comment
+                symbol or is tabbed under a commented line (i.e. it has more
+                tabs than the comment above it).
             */
             const lineTabs = countTabs(lines[i]);
             const trimmedLine = lines[i].trim();
-            const isComment = trimmedLine.startsWith(COMMENT_SYMBOL);
+            const isUnderComment = commentTabs !== null && lineTabs > commentTabs;
+            const isComment = isUnderComment || trimmedLine.startsWith(COMMENT_SYMBOL);
 
-            if (isComment || (lineTabs > 0 && isUnderComment)) {
-                isUnderComment = true;
-            } else {
-                isUnderComment = false;
+            if (!isUnderComment) {
+                commentTabs = isComment ? lineTabs : null;
             }
 
             /*

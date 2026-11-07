@@ -40,6 +40,10 @@ export function useApp() {
   const cardRevealed = ref<boolean>(false);
   const uploadedText = ref<string>("");
   const editorVisible = ref<boolean>(false);
+  /** Whether the editor creates a new study set or edits the loaded one. */
+  const editorMode = ref<"create" | "edit">("edit");
+  /** Changes whenever a new study set is loaded, to restart the study view. */
+  const studySetKey = ref<number>(0);
   /** Pages (possibly across resources) referenced by the revealed card. */
   const currentCardSteps = ref<PageStep[]>([]);
   const scrollPercentToShow = ref<number | undefined>(undefined);
@@ -114,11 +118,20 @@ export function useApp() {
     studySet.value = newStudySet;
     uploadedText.value = content;
     pdfToShow.value = newStudySet.resources[newStudySet.defaultResource] || "";
+    cardHidden();
+    studySetKey.value++;
 
     console.info(`[LoadStudySet] Success`);
   }
 
+  /** Opens the editor on an empty study set (or the unsaved draft). */
+  function openCreator() {
+    editorMode.value = "create";
+    editorVisible.value = true;
+  }
+
   function openEditor() {
+    editorMode.value = "edit";
     // Edit the current state of the study set (including the reviews of this
     // session), not the text originally loaded, so that saving the editor
     // does not discard the progress.
@@ -140,8 +153,7 @@ export function useApp() {
       alert("The edited study set is not valid: fix it before saving (see the console for details).");
       return;
     }
-    uploadedText.value = content;
-    studySet.value = newSet;
+    loadStudySet(newSet, content);
     editorVisible.value = false;
   }
 
@@ -308,11 +320,14 @@ export function useApp() {
     cardRevealed,
     uploadedText,
     editorVisible,
+    editorMode,
+    studySetKey,
     studySetComponent,
     gestureRecognizer,
     showPage,
     cardHidden,
     loadStudySet,
+    openCreator,
     openEditor,
     closeEditor,
     saveEdited,

@@ -17,7 +17,8 @@ def parse_studyset(lines: List[str]) -> StudySet | None:
     try:
         last_category_index = 0
         current_category: Category | None = None
-        is_under_comment = False
+        # Tabs of the comment the following lines may be tabbed under
+        comment_tabs: int | None = None
         for i, line in enumerate(lines):
             for j in range(last_category_index, len(categories)):
                 category = categories[j]
@@ -27,11 +28,11 @@ def parse_studyset(lines: List[str]) -> StudySet | None:
                 last_category_index = j
             line_tabs = count_tabs(line)
             trimmed_line = line.strip()
-            is_comment = trimmed_line.startswith(COMMENT_SYMBOL)
-            if is_comment or (line_tabs > 0 and is_under_comment):
-                is_under_comment = True
-            else:
-                is_under_comment = False
+            # A comment line, or a line tabbed under one, is ignored
+            is_under_comment = comment_tabs is not None and line_tabs > comment_tabs
+            is_comment = is_under_comment or trimmed_line.startswith(COMMENT_SYMBOL)
+            if not is_under_comment:
+                comment_tabs = line_tabs if is_comment else None
             ld = LineDescriptor(
                 index=i,
                 original_line=line,
