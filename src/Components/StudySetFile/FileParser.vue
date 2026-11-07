@@ -60,14 +60,18 @@ function parseFileContent() {
 
 <template>
   <div class="upload-container">
-    <label for="file-input" class="upload-circle">
-      <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-        <polyline points="17,8 12,3 7,8"/>
-        <line x1="12" y1="3" x2="12" y2="15"/>
-      </svg>
+    <label for="file-input" class="upload-orb" title="Open a study set (.txt)">
+      <span class="orb-core">
+        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17,8 12,3 7,8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+      </span>
       <input type="file" id="file-input" accept=".txt" @change="handleFileUpload" class="hidden-input" />
     </label>
+    <span class="upload-caption">Open study set</span>
     <p v-if="error" class="upload-error">{{ error }}</p>
   </div>
 </template>
@@ -78,47 +82,87 @@ function parseFileContent() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.6rem;
+}
+
+.upload-caption {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .upload-error {
-  margin-top: 1rem;
-  color: rgb(180, 0, 0);
+  max-width: 18rem;
+  color: var(--red);
   text-align: center;
+  font-size: 0.85rem;
 }
 
-.upload-circle {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background-color: rgb(180, 0, 0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(180, 0, 0, 0.3);
+/* Iridescent orb: a spinning conic ring around a dark glass core */
+.upload-orb {
   position: relative;
-  overflow: hidden;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  isolation: isolate;
+  transition: transform 0.3s ease;
+  animation: bob 4s ease-in-out infinite;
 }
 
-.upload-circle:hover {
-  background-color: rgb(150, 0, 0);
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(150, 0, 0, 0.4);
+.upload-orb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--grad-iridescent);
+  z-index: -1;
+  animation: spin 6s linear infinite;
+  box-shadow: 0 0 30px rgba(155, 92, 255, 0.6), 0 0 70px rgba(255, 115, 250, 0.3);
 }
 
-.upload-circle:active {
+.upload-orb::after {
+  /* soft halo */
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: var(--grad-iridescent);
+  filter: blur(22px);
+  opacity: 0.45;
+  z-index: -2;
+  animation: spin 6s linear infinite;
+}
+
+.orb-core {
+  width: calc(100% - 6px);
+  height: calc(100% - 6px);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, #3a2f8a, #15123a 70%);
+  box-shadow: inset 0 2px 10px rgba(255, 255, 255, 0.18);
+}
+
+.upload-orb:hover {
+  transform: scale(1.08);
+}
+
+.upload-orb:active {
   transform: scale(0.95);
 }
 
 .upload-icon {
-  width: 32px;
-  height: 32px;
-  color: white;
+  width: 30px;
+  height: 30px;
+  color: #fff;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6));
   transition: transform 0.2s ease;
 }
 
-.upload-circle:hover .upload-icon {
+.upload-orb:hover .upload-icon {
   transform: translateY(-2px);
 }
 
@@ -128,5 +172,23 @@ function parseFileContent() {
   pointer-events: none;
   width: 0;
   height: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bob {
+
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -6px;
+  }
 }
 </style>

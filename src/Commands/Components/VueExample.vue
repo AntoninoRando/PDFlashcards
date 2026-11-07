@@ -35,9 +35,11 @@ onMounted(() => {
 
 .label {
   display: inline-block;
-  padding: 2px 6px;
-  background-color: rgba(0, 0, 0, 0.08);
-  border-radius: 4px;
+  padding: 1px 8px;
+  color: var(--pink-soft);
+  background-color: rgba(255, 115, 250, 0.14);
+  border: 1px solid rgba(255, 115, 250, 0.3);
+  border-radius: 999px;
   font-size: 11px;
   font-family: "JetBrains Mono", monospace;
 }

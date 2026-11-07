@@ -14,8 +14,8 @@ const toggleMenu = () => {
 </script>
 <template>
   <div class="menu-container">
-    <button class="main-button" @click="toggleMenu" :class="{ 'open': isOpen }">
-      ⚙️
+    <button class="main-button" title="Card order" @click="toggleMenu" :class="{ 'open': isOpen }">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5" /></svg>
     </button>
     <transition name="wheel">
       <div v-if="isOpen" class="options-wheel">
@@ -43,25 +43,27 @@ const toggleMenu = () => {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  border: none;
-  background: linear-gradient(135deg, #4b5563, #374151);
+  background: radial-gradient(circle at 30% 30%, #3a2f8a, #15123a 75%);
+  border: 1px solid rgba(255, 160, 250, 0.35);
   color: #fff;
   cursor: pointer;
   font-size: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(3, 2, 14, 0.6), 0 0 24px rgba(155, 92, 255, 0.45);
   transition: all 0.3s ease;
   position: relative;
   z-index: 10;
+  display: grid;
+  place-items: center;
 }
 
 .main-button:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px rgba(3, 2, 14, 0.6), 0 0 34px rgba(255, 115, 250, 0.6);
 }
 
 .main-button.open {
   transform: rotate(180deg);
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  background: var(--grad-nitro);
 }
 
 .options-wheel {
@@ -77,8 +79,9 @@ const toggleMenu = () => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  background: linear-gradient(135deg, #6b7280, #4b5563);
+  border: 1px solid var(--border-strong);
+  background: rgba(30, 24, 72, 0.9);
+  backdrop-filter: blur(10px);
   color: #fff;
   cursor: pointer;
   font-size: 12px;
@@ -87,14 +90,14 @@ const toggleMenu = () => {
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 16px rgba(3, 2, 14, 0.5);
   transform-origin: center;
 }
 
 .option:hover {
   transform: scale(1.1);
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  background: var(--grad-nitro);
+  box-shadow: var(--glow-pink);
 }
 
 /* Position options in a circular pattern */

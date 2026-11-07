@@ -375,17 +375,29 @@ defineExpose({
 <template>
   <div class="all-container" ref="animationContainer">
     <div class="header-section" v-if="!isFlashcardRevealed">
-      <h3>{{ studySet.title }}</h3>
-      <h1>{{ headerBreadcrumb }}</h1>
+      <span class="set-title pill-badge">{{ studySet.title }}</span>
+      <h1 class="display breadcrumb" v-if="headerBreadcrumb">{{ headerBreadcrumb }}</h1>
 
       <div class="header-buttons">
-        <button class="back-btn" @click="undoLastReview" :disabled="studySet.history.length === 0">
+        <button class="btn-glass back-btn" @click="undoLastReview" :disabled="studySet.history.length === 0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3" />
+          </svg>
           Back
         </button>
-        <button class="skip-btn" @click="skipCurrentCard" :disabled="!studyCard">
+        <button class="btn-glass skip-btn" @click="skipCurrentCard" :disabled="!studyCard">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 5l8 7-8 7zM17 5v14" />
+          </svg>
           Skip
         </button>
-        <button class="save-btn" @click="downloadSet">
+        <button class="btn-glass save-btn" @click="downloadSet">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 4v12M6 10l6 6 6-6M4 20h16" />
+          </svg>
           Save
         </button>
       </div>
@@ -395,6 +407,10 @@ defineExpose({
       <div class="cards-section-row">
         <Flashcard v-if="studyCard !== undefined && studyCard !== null" ref="vueShownFlashcard" class="main-flashcard"
           :key="studyCard.lineDescriptor.index" :flashcard="studyCard" @reveal="reveal" @hide="updateCards" />
+        <div v-else class="all-done glass">
+          <span class="display all-done-title">All caught up</span>
+          <p>No cards are due right now. Come back later or reshuffle the deck.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -410,24 +426,36 @@ defineExpose({
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 20px;
+  text-align: center;
+  gap: 0.7rem;
+  margin-bottom: 1.5rem;
+  animation: fade-up 0.4s ease both;
+}
+
+.set-title {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breadcrumb {
+  max-width: min(760px, 92vw);
+  font-size: clamp(1.4rem, 3vw, 2.3rem);
+  line-height: 1.05;
+  text-wrap: balance;
+  text-shadow: 0 4px 30px rgba(155, 92, 255, 0.6);
 }
 
 .header-buttons {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
 }
 
-
-.skip-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.back-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.header-buttons .btn-glass {
+  padding: 0.45rem 0.95rem;
+  font-size: 0.85rem;
 }
 
 .flashcards-container {
@@ -438,7 +466,7 @@ defineExpose({
 }
 
 .main-flashcard {
-  width: 500px;
+  width: min(560px, 92vw);
 }
 
 .cards-section {
@@ -447,6 +475,41 @@ defineExpose({
   row-gap: 100px;
 }
 
+.cards-section-row {
+  display: flex;
+  justify-content: center;
+}
+
+.all-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: min(560px, 92vw);
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.all-done-title {
+  font-size: 1.6rem;
+  background: var(--grad-nitro);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 @keyframes confetti-burst {
   0% {

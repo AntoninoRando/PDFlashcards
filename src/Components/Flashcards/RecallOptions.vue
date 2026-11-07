@@ -1,26 +1,36 @@
 <template>
   <div class="all-buttons">
-    <button class="revealed-button" :class="{ pressed: pressedButton === 'hide', pointed: pointedButton === 'hide' }"
+    <button class="revealed-button tone-hide" :class="{ pressed: pressedButton === 'hide', pointed: pointedButton === 'hide' }"
       @click="() => chooseRecallOption('hide')">
+      <span class="emoji">🙈</span>
       Hide
+      <span class="key">Space</span>
     </button>
-    <button class="revealed-button" :class="{
+    <button class="revealed-button tone-forgot" :class="{
       pressed: pressedButton === 'forgot',
       pointed: pointedButton === 'forgot',
     }" @click="() => chooseRecallOption('forgot')">
-      👎🏽 Forgot
+      <span class="emoji">👎🏽</span>
+      Forgot
+      <span class="key">Q</span>
     </button>
-    <button class="revealed-button" :class="{ pressed: pressedButton === 'bad', pointed: pointedButton === 'bad' }"
+    <button class="revealed-button tone-bad" :class="{ pressed: pressedButton === 'bad', pointed: pointedButton === 'bad' }"
       @click="() => chooseRecallOption('bad')">
-      😶 Bad
+      <span class="emoji">😶</span>
+      Bad
+      <span class="key">W</span>
     </button>
-    <button class="revealed-button" :class="{ pressed: pressedButton === 'not bad', pointed: pointedButton === 'not bad' }"
+    <button class="revealed-button tone-fine" :class="{ pressed: pressedButton === 'not bad', pointed: pointedButton === 'not bad' }"
       @click="() => chooseRecallOption('not bad')">
-      🙂 Fine
+      <span class="emoji">🙂</span>
+      Fine
+      <span class="key">E</span>
     </button>
-    <button class="revealed-button" :class="{ pressed: pressedButton === 'ok', pointed: pointedButton === 'ok' }"
+    <button class="revealed-button tone-ok" :class="{ pressed: pressedButton === 'ok', pointed: pointedButton === 'ok' }"
       @click="() => chooseRecallOption('ok')">
-      👍🏼 Ok
+      <span class="emoji">👍🏼</span>
+      Ok
+      <span class="key">R</span>
     </button>
   </div>
 </template>
@@ -54,66 +64,113 @@ defineExpose({
 </script>
 
 <style scoped>
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
-
 .all-buttons {
   display: flex;
   flex-direction: row;
-  column-gap: 20px;
+  justify-content: center;
+  column-gap: 14px;
   position: relative;
 }
 
+/* Each option is a glass tile tinted by its own --tone colour */
 .revealed-button {
-  height: 100px;
-  width: 100px;
-  transition: all 0.2s ease;
-  align-items: center;
-  appearance: none;
-  background-color: #FCFCFD;
-  border-radius: 4px;
-  border-width: 0;
-  box-shadow: rgba(45, 35, 66, 0.4) 0 2px 4px, rgba(45, 35, 66, 0.3) 0 7px 13px -3px, #D6D6E7 0 -3px 0 inset;
-  box-sizing: border-box;
-  color: #36395A;
-  cursor: pointer;
+  --tone: 170, 164, 204;
+  height: 104px;
+  width: 104px;
   display: inline-flex;
-  font-family: "JetBrains Mono", monospace;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  line-height: 1;
-  list-style: none;
-  overflow: hidden;
-  padding-left: 16px;
-  padding-right: 16px;
-  position: relative;
-  text-align: left;
-  text-decoration: none;
-  transition: box-shadow .15s, transform .15s;
+  gap: 0.35rem;
+  padding: 0 0.5rem;
+
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+  white-space: nowrap;
+
+  appearance: none;
+  background: linear-gradient(180deg, rgba(var(--tone), 0.16), rgba(20, 16, 50, 0.85));
+  border: 1px solid rgba(var(--tone), 0.35);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 30px rgba(3, 2, 14, 0.5);
+  backdrop-filter: blur(14px);
+  cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
-  white-space: nowrap;
-  will-change: box-shadow, transform;
-  font-size: 13px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.revealed-button .emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.revealed-button .key {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.revealed-button.tone-hide {
+  --tone: 170, 164, 204;
+}
+
+.revealed-button.tone-forgot {
+  --tone: 255, 92, 124;
+}
+
+.revealed-button.tone-bad {
+  --tone: 255, 176, 92;
+}
+
+.revealed-button.tone-fine {
+  --tone: 94, 225, 255;
+}
+
+.revealed-button.tone-ok {
+  --tone: 75, 227, 167;
 }
 
 .revealed-button:hover {
-  border-color: rgb(180, 0, 0) !important;
-  border-width: 3px !important;
-  transition: all 0.2s ease;
+  transform: translateY(-4px);
+  border-color: rgba(var(--tone), 0.85);
+  box-shadow: 0 16px 34px rgba(3, 2, 14, 0.55), 0 0 26px rgba(var(--tone), 0.4);
 }
 
 .revealed-button.pressed {
-  background-color: rgb(180, 0, 0);
-  color: white;
-  transform: scale(1.05);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  color: #0d0b24;
+  background: rgb(var(--tone));
+  border-color: rgb(var(--tone));
+  transform: scale(1.06);
+  box-shadow: 0 0 34px rgba(var(--tone), 0.7);
   z-index: 10;
   position: relative;
 }
 
+.revealed-button.pressed .key {
+  color: rgba(13, 11, 36, 0.6);
+}
+
 .pointed {
-  border-color: rgb(180, 0, 0) !important;
-  border-width: 3px !important;
-  transition: all 0.2s ease;
+  border-color: rgb(var(--tone)) !important;
+  border-width: 2px !important;
+  box-shadow: 0 0 26px rgba(var(--tone), 0.6);
+}
+
+@media (max-width: 620px) {
+  .all-buttons {
+    column-gap: 8px;
+  }
+
+  .revealed-button {
+    width: 64px;
+    height: 80px;
+    font-size: 0.75rem;
+  }
 }
 </style>

@@ -171,8 +171,6 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
 
 
 <style scoped>
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
-
 .flashcard {
   width: 100%;
   min-height: 150px;
@@ -201,41 +199,81 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
   opacity: 0;
 }
 
+/* The card: dark glass with an iridescent border and a soft glow */
 .flashcard-button {
-  min-width: 500px;
-  min-height: 150px;
-  font-size: 15px;
-  font-family: "JetBrains Mono", monospace;
-  font-optical-sizing: auto;
-  font-weight: 300;
-  font-style: normal;
-  color: #000;
-
-  align-items: center;
-  appearance: none;
-  background-color: #FCFCFD;
-  border-radius: 4px;
-  border-width: 0;
-  box-shadow: rgba(45, 35, 66, 0.4) 0 2px 4px, rgba(45, 35, 66, 0.3) 0 7px 13px -3px, #D6D6E7 0 -3px 0 inset;
-  box-sizing: border-box;
-  color: #36395A;
-  cursor: pointer;
-  display: inline-flex;
-  justify-content: center;
-  line-height: 1.5;
-  list-style: none;
-  overflow: hidden;
-  padding-left: 16px;
-  padding-right: 16px;
   position: relative;
+  width: 100%;
+  min-height: 170px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.75rem 2rem;
+
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text);
   text-align: center;
-  text-decoration: none;
-  transition: box-shadow .15s, transform .15s;
+  white-space: pre-wrap;
+
+  appearance: none;
+  background:
+    linear-gradient(160deg, rgba(42, 34, 100, 0.92), rgba(18, 14, 48, 0.95)) padding-box,
+    var(--grad-nitro) border-box;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 50px rgba(3, 2, 14, 0.55), 0 0 40px rgba(155, 92, 255, 0.25);
+  backdrop-filter: blur(16px);
+  cursor: pointer;
+  overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
-  white-space: pre-wrap;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
   will-change: box-shadow, transform;
+}
+
+/* Glossy sheen sweeping across on hover */
+.flashcard-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.1) 50%, transparent 65%);
+  transform: translateX(-100%);
+  transition: transform 0.7s ease;
+  pointer-events: none;
+}
+
+.flashcard-button:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 26px 60px rgba(3, 2, 14, 0.6), 0 0 60px rgba(255, 115, 250, 0.35);
+}
+
+.flashcard-button:hover::before {
+  transform: translateX(100%);
+}
+
+.flashcard-button:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+#subparts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  color: var(--text-muted);
+}
+
+#subparts:empty {
+  display: none;
+}
+
+/* Block-like subparts (notes, text boxes) take a full row; chips flow inline */
+#subparts :deep(.subpart-container:has(.textbox-container, p)) {
+  flex-basis: 100%;
 }
 
 .aliases {
@@ -243,15 +281,15 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
   width: 20%;
   align-content: center;
   text-align: center;
-  background: rgba(255, 255, 255, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 12px 0px 0px 12px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 .pointed {
-  border-color: rgb(180, 0, 0) !important;
+  border-color: var(--pink) !important;
   border-width: 3px !important;
   transition: all 0.2s ease;
 }

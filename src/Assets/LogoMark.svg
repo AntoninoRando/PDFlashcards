@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="g" x1="6" y1="6" x2="58" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff73fa"/>
+      <stop offset="0.5" stop-color="#b05cff"/>
+      <stop offset="1" stop-color="#5865f2"/>
+    </linearGradient>
+  </defs>
+  <!-- back card -->
+  <rect x="8" y="14" width="34" height="42" rx="8" transform="rotate(-12 25 35)" fill="url(#g)" opacity="0.55"/>
+  <!-- front card -->
+  <rect x="20" y="8" width="34" height="44" rx="8" transform="rotate(8 37 30)" fill="url(#g)"/>
+  <!-- sparkle -->
+  <path d="M38 19c1.2 5.2 3.3 7.3 8.5 8.5-5.2 1.2-7.3 3.3-8.5 8.5-1.2-5.2-3.3-7.3-8.5-8.5 5.2-1.2 7.3-3.3 8.5-8.5z" fill="#fff"/>
+</svg>

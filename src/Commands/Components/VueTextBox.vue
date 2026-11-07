@@ -33,9 +33,10 @@ onMounted(() => {
 
 .textbox {
     padding: 12px 16px;
-    background-color: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 6px;
+    color: var(--text);
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
     font-family: "JetBrains Mono", monospace;
     font-size: 14px;
     line-height: 1.5;

@@ -27,10 +27,12 @@ onMounted(() => {
 <style scoped>
 .tag {
     display: inline-block;
-    padding: 2px 6px;
+    padding: 1px 9px;
     margin-right: 4px;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
+    color: var(--text);
+    background-color: rgba(88, 101, 242, 0.18);
+    border: 1px solid rgba(88, 101, 242, 0.45);
+    border-radius: 999px;
     font-size: 12px;
     font-family: "JetBrains Mono", monospace;
 }

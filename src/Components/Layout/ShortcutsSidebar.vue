@@ -56,35 +56,56 @@ defineProps<{
 
 <style scoped>
 .shortcuts-sidebar {
+  position: relative;
   width: 230px;
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  color: #111827;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, rgba(34, 28, 84, 0.92), rgba(16, 13, 42, 0.92));
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  box-shadow: var(--shadow-lg), 0 0 30px rgba(155, 92, 255, 0.18);
+  color: var(--text);
   z-index: 900;
+}
+
+/* Glowing tab that peeks out while the panel is tucked away */
+.shortcuts-sidebar::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  width: 4px;
+  height: 48px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: var(--grad-nitro);
+  box-shadow: var(--glow-pink);
 }
 
 .title {
   margin: 0 0 6px 0;
-  font-size: 14px;
-  font-weight: 700;
-  color: #111827;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-style: italic;
+  font-stretch: 125%;
+  font-variation-settings: 'wdth' 125;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+  color: #fff;
 }
 
 .group {
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .group-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  color: #374151;
+  color: var(--pink-soft);
   margin-bottom: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.08em;
 }
 
 .item {
@@ -92,36 +113,41 @@ defineProps<{
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #1f2937;
-  margin: 4px 0;
+  color: var(--text-muted);
+  margin: 5px 0;
+}
+
+.item em {
+  color: var(--text-dim);
 }
 
 kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   min-width: 28px;
   padding: 2px 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 12px;
-  line-height: 1.2;
-  border: 1px solid #d1d5db;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-strong);
   border-bottom-width: 2px;
   border-radius: 6px;
-  background: #f9fafb;
-  color: #111827;
-  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.08);
 }
 
 .no-key {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-dim);
 }
 
 @media (max-width: 900px) {
   .shortcuts-sidebar {
-    display: none; /* hide on small screens */
+    display: none;
+    /* hide on small screens */
   }
 }
 </style>
-

@@ -107,8 +107,8 @@ watch(() => props.pdfUrl, () => {
 #pdf-preview {
     width: 100%;
     height: 100%;
-    border: 1px solid #ddd;
-    background-color: #f9f9f9;
+    border: 1px solid var(--border);
+    background-color: var(--bg-2);
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -118,7 +118,7 @@ watch(() => props.pdfUrl, () => {
     align-items: center;
     justify-content: center;
     min-height: 500px;
-    color: #999;
+    color: var(--text-dim);
     text-align: center;
     flex: 1;
 }

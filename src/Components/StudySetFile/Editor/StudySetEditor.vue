@@ -797,8 +797,8 @@ onBeforeUnmount(() => {
   position: fixed;
   inset: 0;
   z-index: 3000;
-  background: rgba(17, 24, 39, 0.55);
-  backdrop-filter: blur(3px);
+  background: rgba(5, 4, 18, 0.72);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: stretch;
   justify-content: center;
@@ -806,23 +806,24 @@ onBeforeUnmount(() => {
 }
 
 .editor {
-  --ed-bg: #f4f5f7;
-  --ed-surface: #ffffff;
-  --ed-input: #f9fafb;
-  --ed-border: #e3e6ea;
-  --ed-border-strong: #c9ced6;
-  --ed-text: #1f2430;
-  --ed-muted: #6b7280;
-  --ed-hover: #eceff3;
-  --ed-accent: rgb(180, 0, 0);
-  --ed-accent-hover: rgb(150, 0, 0);
-  --ed-accent-soft: rgba(180, 0, 0, 0.07);
-  --ed-accent-ring: rgba(180, 0, 0, 0.14);
-  --ed-error: #c0262d;
-  --ed-error-soft: rgba(192, 38, 45, 0.08);
-  --ed-warn: #9a5b06;
-  --ed-ok: #15803d;
-  --ed-ok-soft: rgba(21, 128, 61, 0.1);
+  --ed-bg: #0f0c2a;
+  --ed-surface: #18153f;
+  --ed-input: rgba(255, 255, 255, 0.045);
+  --ed-border: rgba(255, 255, 255, 0.09);
+  --ed-border-strong: rgba(255, 255, 255, 0.2);
+  --ed-text: #f3f0ff;
+  --ed-muted: #a39dc8;
+  --ed-hover: rgba(255, 255, 255, 0.07);
+  --ed-accent: #ff8bf7;
+  --ed-accent-hover: #ffb0fa;
+  --ed-accent-soft: rgba(255, 115, 250, 0.13);
+  --ed-accent-ring: rgba(255, 115, 250, 0.28);
+  --ed-error: #ff6b86;
+  --ed-error-soft: rgba(255, 92, 124, 0.14);
+  --ed-warn: #ffc46b;
+  --ed-ok: #4be3a7;
+  --ed-ok-soft: rgba(75, 227, 167, 0.13);
+  --ed-warn-soft: rgba(255, 196, 107, 0.13);
 
   position: relative;
   width: 100%;
@@ -831,10 +832,11 @@ onBeforeUnmount(() => {
   flex-direction: column;
   background: var(--ed-bg);
   color: var(--ed-text);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--ed-border);
   overflow: hidden;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
-  font-family: 'Inter', 'Segoe UI', sans-serif;
+  box-shadow: 0 30px 80px rgba(3, 2, 14, 0.7), 0 0 120px rgba(155, 92, 255, 0.18);
+  font-family: var(--font-body);
   font-size: 0.95rem;
   line-height: 1.45;
 }
@@ -960,13 +962,14 @@ onBeforeUnmount(() => {
 }
 
 .primary-btn {
-  background: var(--ed-accent);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(180, 0, 0, 0.25);
+  background: #fff;
+  color: var(--text-on-light);
+  box-shadow: 0 0 18px rgba(170, 120, 255, 0.5);
 }
 
 .primary-btn:hover {
-  background: var(--ed-accent-hover);
+  background: #fff;
+  box-shadow: 0 0 0 1px #fff, 0 0 26px rgba(180, 130, 255, 0.75), 0 0 50px rgba(255, 115, 250, 0.35);
 }
 
 button:focus-visible {
@@ -980,9 +983,9 @@ button:focus-visible {
   gap: 0.75rem;
   padding: 0.45rem 1.25rem;
   font-size: 0.85rem;
-  background: #fff8e6;
-  border-bottom: 1px solid #f3e1b0;
-  color: #6b4e05;
+  background: var(--ed-warn-soft);
+  border-bottom: 1px solid rgba(255, 196, 107, 0.3);
+  color: #ffdca3;
 }
 
 .banner .icon-btn {
@@ -1162,11 +1165,16 @@ button:focus-visible {
   flex-direction: column;
 }
 
+/* The bar reaches into the gap around it (negative margins) so that its
+   hover zone is easy to hit without spacing the rows further apart. */
 .insert-bar {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: center;
-  gap: 0.5rem;
-  height: 0.6rem;
+  gap: 0.75rem;
+  height: 1.5rem;
+  margin-block: -0.45rem;
   align-items: center;
   opacity: 0;
   transition: opacity 0.12s ease, height 0.12s ease;
@@ -1175,22 +1183,31 @@ button:focus-visible {
 .insert-bar:hover,
 .insert-bar:focus-within {
   opacity: 1;
-  height: 1.9rem;
+  height: 2.6rem;
 }
 
 .insert-bar button {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
+  min-height: 1.9rem;
   font: inherit;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--ed-accent);
   background: var(--ed-surface);
   border: 1px dashed var(--ed-border-strong);
   border-radius: 999px;
-  padding: 0.15rem 0.6rem;
+  padding: 0.3rem 1rem;
   cursor: pointer;
+}
+
+/* Invisible padding around each button: clicks slightly outside still land */
+.insert-bar button::before {
+  content: '';
+  position: absolute;
+  inset: -0.35rem -0.3rem;
 }
 
 .insert-bar button:hover {
@@ -1205,7 +1222,7 @@ button:focus-visible {
   align-items: center;
   padding: 0.6rem 0.5rem 0.35rem;
   margin-top: 0.9rem;
-  border-bottom: 2px solid var(--ed-text);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.4);
 }
 
 .header-row.level-2 {
@@ -1567,7 +1584,7 @@ code {
 
 .status-btn.has-warnings {
   color: var(--ed-warn);
-  background: #fdf3e1;
+  background: var(--ed-warn-soft);
 }
 
 .status-btn.has-errors {
@@ -1601,7 +1618,7 @@ kbd {
   background: var(--ed-surface);
   border: 1px solid var(--ed-border);
   border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 12px 32px rgba(3, 2, 14, 0.6);
   padding: 0.6rem;
 }
 
@@ -1662,16 +1679,17 @@ kbd {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: #1f2430;
+  background: #241f55;
+  border: 1px solid var(--ed-border-strong);
   color: #fff;
   border-radius: 10px;
   padding: 0.55rem 0.6rem 0.55rem 1rem;
   font-size: 0.88rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 30px rgba(3, 2, 14, 0.6), 0 0 30px rgba(155, 92, 255, 0.3);
 }
 
 .toast .link-btn {
-  color: #ffb4b4;
+  color: var(--ed-accent);
 }
 
 .toast .link-btn:hover {

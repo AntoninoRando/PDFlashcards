@@ -127,21 +127,22 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="pdf-uploader">
-    <h2 class="text-xl font-bold mb-4">PDF Uploader</h2>
-
-    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 mb-6"
-      :class="{ 'border-blue-500 bg-blue-50': isDragging }" @dragover.prevent="handleDragOver"
+    <div class="dropzone" :class="{ dragging: isDragging }" @dragover.prevent="handleDragOver"
       @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave" @drop.prevent="handleFileDrop">
-      <div class="text-center">
-
-        <label for="pdf-upload" class="upload-btn">Select PDF ({{ uploadedCount }})</label>
-        <input id="pdf-upload" type="file" class="hidden" accept="application/pdf" multiple @change="handleFileChange" />
-
-      </div>
+      <label for="pdf-upload" class="upload-btn" title="Add PDFs (or drop them here)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 3H6v18h12V7zM14 3v4h4M12 11v6M9 14h6" />
+        </svg>
+        <span>Add PDF</span>
+        <span class="count">{{ uploadedCount }}</span>
+      </label>
+      <input id="pdf-upload" type="file" class="hidden-input" accept="application/pdf" multiple
+        @change="handleFileChange" />
     </div>
 
     <!-- Error message display -->
-    <div v-if="errorMessage" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+    <div v-if="errorMessage" class="upload-error" role="alert">
       {{ errorMessage }}
     </div>
   </div>
@@ -151,31 +152,71 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .pdf-uploader {
-  max-width: 100%;
+  position: relative;
 }
 
-.border-dashed {
-  transition: all 0.2s ease-in-out;
+.dropzone {
+  border-radius: var(--radius-md);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.border-dashed:hover {
-  border-color: #93c5fd;
-  background-color: #eff6ff;
+.dropzone.dragging {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 2px var(--pink), var(--glow-pink);
 }
 
 .upload-btn {
-  display: inline-block;
-  background-color: #4f46e5;
-  color: white;
-  padding: 0.5rem 1.25rem;
-  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #fff;
+  background: linear-gradient(var(--bg-2), var(--bg-2)) padding-box, var(--grad-nitro) border-box;
+  border: 1px solid transparent;
+  padding: 0.5rem 0.6rem 0.5rem 0.9rem;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  white-space: nowrap;
+  transition: box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .upload-btn:hover {
-  background-color: #4338ca;
+  background: linear-gradient(var(--bg-3), var(--bg-3)) padding-box, var(--grad-nitro) border-box;
+  box-shadow: 0 0 20px rgba(255, 115, 250, 0.35);
 }
 
-/* Remove unused styles that don't belong to uploader */
+.count {
+  min-width: 1.4rem;
+  padding: 0 0.4rem;
+  font-size: 0.75rem;
+  line-height: 1.4rem;
+  text-align: center;
+  border-radius: var(--radius-pill);
+  background: var(--grad-nitro);
+  font-variant-numeric: tabular-nums;
+}
+
+.hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.upload-error {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: max-content;
+  max-width: 16rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.82rem;
+  color: #ffd1da;
+  background: rgba(255, 92, 124, 0.15);
+  border: 1px solid rgba(255, 92, 124, 0.45);
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(10px);
+}
 </style>

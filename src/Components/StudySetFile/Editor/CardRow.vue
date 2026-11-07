@@ -206,11 +206,11 @@ function onAnswerKeydown(event: KeyboardEvent) {
 .card-row.focused {
   border-color: var(--ed-border-strong);
   border-left-color: var(--ed-accent);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
+  box-shadow: 0 4px 14px rgba(3, 2, 14, 0.5), 0 0 22px rgba(255, 115, 250, 0.12);
 }
 
 .card-row.invalid .card-number {
-  color: #fff;
+  color: #1a0a14;
   background: var(--ed-error);
   border-radius: 999px;
   text-align: center;

@@ -1,8 +1,8 @@
 <template>
   <div class="resources-container">
     <div class="controls" v-if="queue.length > 1">
-      <button class="nav-btn" @click="prev">&lt;-</button>
-      <button class="nav-btn" @click="next">-&gt;</button>
+      <button class="nav-btn" @click="prev" title="Previous resource">&lsaquo;</button>
+      <button class="nav-btn" @click="next" title="Next resource">&rsaquo;</button>
     </div>
 
     <div class="stack">
@@ -123,14 +123,24 @@ function onPdfError(error: any) {
 }
 
 .nav-btn {
-  background-color: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  color: #111827;
-  padding: 6px 10px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border-radius: 6px;
+  display: inline-grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(20, 16, 50, 0.8);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
   cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nav-btn:hover {
+  background: var(--grad-nitro);
+  box-shadow: var(--glow-pink);
 }
 
 .stack {
@@ -151,7 +161,7 @@ function onPdfError(error: any) {
   justify-content: center;
   width: 100%;
   height: 100%;
-  color: #6b7280;
+  color: var(--text-dim);
 }
 </style>
 

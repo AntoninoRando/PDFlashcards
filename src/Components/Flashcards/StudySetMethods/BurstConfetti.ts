@@ -10,7 +10,7 @@ export function burstConfetti(root) {
     // Random y position along the height
     const y = Math.random() * rect.height;
 
-    const colors = ["#ff4757", "#ffa502", "#2ed573", "#1e90ff", "#e84393"];
+    const colors = ["#ff73fa", "#b05cff", "#5865f2", "#5ee1ff", "#ffffff"];
     const pieces = 18;
 
     for (let i = 0; i < pieces; i++) {
