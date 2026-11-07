@@ -1,5 +1,7 @@
-flask
-flask-cors
-flask_socketio
-opencv-python-headless==4.8.1.78
-mediapipe
+# Kept in sync with pyproject.toml for users not using uv
+# (`uv export --no-dev --no-hashes` regenerates a fully pinned list).
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-socketio>=5.13.0
+mediapipe>=0.10.21
+opencv-python-headless>=4.11.0.86

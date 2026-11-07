@@ -1,44 +1,64 @@
+from typing import Optional
+
 from ..types import LineDescriptor, StudySet
-from .page_ref import PageRef
-from .remember import Remember
-from .tag import Tag
+from .alias_command import Alias
 from .auto_reveal import AutoReveal
-from .alias_command import Alias as AliasCommand
+from .example import Example
 from .header import Header
+from .note import Note
+from .page_ref import PageRef
 from .recall_data import RecallData
 from .recap import Recap
-from .example import Example
-from .note import Note
+from .remember import Remember
+from .skip import Skip
+from .tag import Tag
+from .text_box import TextBox
 
 
 class CommandsFactory:
+    """Port of `src/Commands/CommandsFactory.ts`: keep the two in sync."""
+
     @staticmethod
-    def make(line_descriptor: LineDescriptor, study_set: StudySet, command_name_or_shortcut: str, command_argument: str | None):
-        if command_name_or_shortcut.startswith("\\"):
-            command_name_or_shortcut = command_name_or_shortcut[1:]
-        p = command_name_or_shortcut.find("(")
+    def make(
+        line_descriptor: LineDescriptor,
+        study_set: StudySet,
+        command_name_or_shortcut: str,
+        command_argument: Optional[str],
+    ):
+        name = command_name_or_shortcut
+        if name.startswith("\\"):
+            name = name[1:]
+        p = name.find("(")
         if p != -1:
-            command_name_or_shortcut = command_name_or_shortcut[:p]
-        if command_name_or_shortcut in (PageRef.symbol, "page"):
-            return PageRef(command_argument or "0")
-        if command_name_or_shortcut in (Remember.symbol, "remember"):
+            name = name[:p]
+
+        if name in (PageRef.symbol, "page"):
+            return PageRef(command_argument)
+        if name in (TextBox.symbol, "textbox"):
+            return TextBox(command_argument)
+        if name in (Remember.symbol, "remember"):
             return Remember(command_argument or "")
-        if command_name_or_shortcut in (Tag.symbol, "tag"):
+        if name in (Tag.symbol, "tag"):
             return Tag(command_argument or "")
-        if command_name_or_shortcut in (AutoReveal.symbol, "auto_reveal"):
+        if name in (AutoReveal.symbol, "auto_reveal"):
             return AutoReveal()
-        if command_name_or_shortcut in (AliasCommand.symbol, "alias"):
-            alias = AliasCommand(command_argument or "", line_descriptor, study_set)
+        if name in (Alias.symbol, "alias"):
+            alias = Alias(command_argument or "", line_descriptor, study_set)
             return alias if alias.is_valid else None
-        if command_name_or_shortcut in (Header.symbol, "header"):
+        if name in (Header.symbol, "header"):
             return Header(line_descriptor, study_set, command_argument or 1)
-        if command_name_or_shortcut in (RecallData.symbol, "recall_data"):
+        if name in (RecallData.symbol, "recall_data"):
             return RecallData(line_descriptor, study_set, command_argument or "")
-        if command_name_or_shortcut.lower() == "recap":
+        if name in (Skip.symbol, "Skip", "skip"):
+            return Skip(line_descriptor, study_set, command_argument)
+
+        lowered = name.lower()
+        if lowered == "recap":
             return Recap(line_descriptor, command_argument)
-        if command_name_or_shortcut.lower() == "example":
+        if lowered == "example":
             return Example(line_descriptor, command_argument)
-        if command_name_or_shortcut.lower() == "note":
+        if lowered == "note":
             return Note(command_argument or "")
-        print(f"[MakeCommand] Unrecognized command {command_name_or_shortcut}")
+
+        print(f"[MakeCommand] Unrecognized command {name}")
         return None

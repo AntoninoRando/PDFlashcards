@@ -1,8 +1,12 @@
 import { IStudySet } from '@/FlashcardParser/Types/Types';
+import { Api } from '@/Services/Api';
 import { buildStudySetContent } from './SaveStudySet';
 
-const AUTOSAVE_ENDPOINT = 'http://localhost:5001/autosave';
-
+/**
+ * Sends the current state of the study set to the service, which stores it on
+ * disk. This is best effort: failures are only logged (the service may simply
+ * not be running).
+ */
 export async function autosaveStudySet(studySet: IStudySet | null | undefined) {
   if (!studySet) return;
 
@@ -13,17 +17,7 @@ export async function autosaveStudySet(studySet: IStudySet | null | undefined) {
   }
 
   try {
-    const response = await fetch(AUTOSAVE_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ content: result.content })
-    });
-
-    if (!response.ok) {
-      console.error(`[autosave] Failed with status ${response.status}`);
-    }
+    await Api.autosaveStudySet(result.content);
   } catch (error) {
     console.error('[autosave] Failed to persist study set', error);
   }

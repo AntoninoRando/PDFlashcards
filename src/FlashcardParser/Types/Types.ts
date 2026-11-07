@@ -1,5 +1,5 @@
-import FlashcardsScheduler from "@/FlashcardsScheduler";
-import { Category } from "../CategoriesFinder";
+import type FlashcardsScheduler from "@/Scheduler/FlashcardsScheduler";
+import type { Category } from "../CategoriesFinder";
 
 export interface IFlashcard {
     lineDescriptor: LineDescriptor,
@@ -39,7 +39,7 @@ export interface LineDescriptor {
     trimmedLine: string;
     originalLine: string;
     tabs: number;
-    category: Category,
+    category: Category | undefined,
     tabbedUnder: LineDescriptor[],
     parent: LineDescriptor | null,
     isComment: boolean,

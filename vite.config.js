@@ -4,6 +4,14 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import vueDevTools from "vite-plugin-vue-devtools";
 
+/*
+  Address of the Python service (see `/service`). The browser never talks to it
+  directly: requests to `/api` and `/socket.io` are proxied by the dev server.
+  Inside Docker the service runs on the host, hence `host.docker.internal`
+  (set through `docker-compose.yaml`).
+*/
+const apiTarget = process.env.API_PROXY_TARGET || "http://localhost:5001";
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue(), vueDevTools()],
@@ -16,18 +24,19 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     proxy: {
-      // Proxy API requests to your local Flask server
       "/api": {
-        target: "http://host.docker.internal:5001",
+        target: apiTarget,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+      "/socket.io": {
+        target: apiTarget,
+        changeOrigin: true,
+        ws: true,
       },
     },
   },
-  // Environment variables
-  define: {
-    __API_URL__: JSON.stringify(
-      process.env.VITE_API_URL || "http://localhost:5001"
-    ),
+  test: {
+    environment: "node",
+    include: ["tests/**/*.test.ts"],
   },
 });

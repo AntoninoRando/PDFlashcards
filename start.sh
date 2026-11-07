@@ -1,4 +1,7 @@
 #!/bin/bash
+# Starts the web app (in Docker) and the Python service (on the host).
+
+set -e
 
 # Check if Docker is running
 if ! docker info >/dev/null 2>&1; then
@@ -6,9 +9,13 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-# Start the app with docker-compose in the background
-docker-compose up &
+cd "$(dirname "$0")"
 
-# Start 'uv run flask-app.py' inside the 'service' directory
+# Start the web app in the background, and stop it when this script exits
+docker compose up &
+WEBAPP_PID=$!
+trap 'kill $WEBAPP_PID 2>/dev/null; docker compose stop' EXIT
+
+# Start the Python service (FastAPI + Socket.IO) on port 5001
 cd service
-uv run flask-app.py
+uv run uvicorn app.main:app --host 0.0.0.0 --port 5001 --reload
