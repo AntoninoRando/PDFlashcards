@@ -1,124 +1,115 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from "vue";
-import { parseStudyset } from "../FlashcardParser/StudySetParser";
-import { IFlashcard, IStudySet } from "../FlashcardParser/Types/Types";
+import { parseStudyset } from "@/FlashcardParser/StudySetParser";
+import { HideOption, IFlashcard, IStudySet } from "@/FlashcardParser/Types/Types";
 import { PageRef } from "@/Commands/All/PageRef";
+import { buildStudySetContent } from "@/Components/Flashcards/StudySetMethods/SaveStudySet";
+import { isTypingInInput } from "@/Utils/Dom";
 
 interface FileUploadItem {
   file: File;
   url: string;
 }
 
+/** A page of a resource the revealed card points to. */
+interface PageStep {
+  page: number;
+  resourceAlias: string;
+  scrollPercent?: number;
+}
+
+const RECALL_COMMANDS: ReadonlyArray<string> = [
+  HideOption.hide,
+  HideOption.forgot,
+  HideOption.bad,
+  HideOption.notBad,
+  HideOption.ok,
+];
+
 export function useApp() {
-  // Reactive data
+  //#region REACTIVE DATA ------------------------------------------------------
   const pageToShow = ref<number>(1);
   const studySet = ref<IStudySet | null>(null);
+  /** Uploaded PDFs: file name -> object URL. */
   const pdfCache = reactive<Record<string, string>>({});
+  /** File name of the PDF currently shown. */
   const pdfToShow = ref<string>("");
+  /** Last page shown for each PDF (file name -> page). */
   const resourcePages = reactive<Record<string, number>>({});
   const isScrolled = ref<boolean>(false);
   const mousePosition = ref({ x: 0, y: 0 });
   const cardRevealed = ref<boolean>(false);
   const uploadedText = ref<string>("");
   const editorVisible = ref<boolean>(false);
-  // Tracks PageRef pages for the currently revealed flashcard
-  const currentCardPageRefs = ref<number[]>([]);
-  const currentCardResourceAlias = ref<string>("");
-  const currentCardSteps = ref<
-    Array<{ page: number; resourceAlias: string; scrollPercent?: number }>
-  >([]);
+  /** Pages (possibly across resources) referenced by the revealed card. */
+  const currentCardSteps = ref<PageStep[]>([]);
   const scrollPercentToShow = ref<number | undefined>(undefined);
+  /** Incremented on each reveal to force the PDF viewer to scroll again. */
   const revealTrigger = ref<number>(0);
 
-  // Refs
+  // Template refs
   const studySetComponent = ref<any>(null);
   const gestureRecognizer = ref<any>(null);
+  //#endregion -----------------------------------------------------------------
 
-  // Methods
+  //#region CARDS --------------------------------------------------------------
+  function collectPageSteps(flashcard: IFlashcard, defaultAlias: string): PageStep[] {
+    const steps: PageStep[] = [];
+    for (const component of flashcard.lineDescriptor.subParts ?? []) {
+      if (component?.name !== PageRef.commandName) continue;
+
+      const pairs: Array<[string | null, number, number?]> = Array.isArray(component.allRefs)
+        ? component.allRefs
+        : [];
+
+      if (pairs.length) {
+        for (const [aliasMaybe, page, scrollPercent] of pairs) {
+          const resourceAlias = aliasMaybe ?? component.resourceAlias ?? defaultAlias;
+          steps.push({ page, resourceAlias, scrollPercent });
+        }
+      } else {
+        const page = typeof component.ref === "number" ? component.ref : 0;
+        if (page) steps.push({ page, resourceAlias: component.resourceAlias || defaultAlias });
+      }
+    }
+    return steps;
+  }
+
   function showPage(flashcard: IFlashcard | null) {
     if (!flashcard) {
-      console.error("Revealed nothing");
+      console.error("[showPage] Revealed nothing");
       return;
     }
-    console.debug(`Revealed ${flashcard}`);
 
     const set = studySet.value;
     if (!set) {
-      console.error("No study set loaded");
+      console.error("[showPage] No study set loaded");
       return;
     }
 
-    const defaultAlias = set.defaultResource ?? "";
-    console.debug(`Default resource alias: ${defaultAlias}`);
-
-    const steps: Array<{
-      page: number;
-      resourceAlias: string;
-      scrollPercent?: number;
-    }> = [];
-    for (const component of flashcard.lineDescriptor.subParts ?? []) {
-      if (component?.name !== PageRef.commandName) continue;
-      const pairs: Array<[string | null, number, number?]> = Array.isArray(
-        component.allRefs,
-      )
-        ? (component.allRefs as Array<[string | null, number, number?]>)
-        : [];
-      if (pairs.length) {
-        pairs.forEach(([aliasMaybe, page, scrollPercent]) => {
-          const alias = (aliasMaybe ??
-            component.resourceAlias ??
-            defaultAlias) as string;
-          steps.push({ page, resourceAlias: alias, scrollPercent });
-        });
-      } else {
-        const alias = (component.resourceAlias || defaultAlias) as string;
-        const page = typeof component.ref === "number" ? component.ref : 0;
-        if (page) steps.push({ page, resourceAlias: alias });
-      }
-    }
-
+    const steps = collectPageSteps(flashcard, set.defaultResource ?? "");
     if (!steps.length || !steps[0].resourceAlias) {
-      console.error(
-        "Revealed card has no page or resource " + JSON.stringify(flashcard),
-      );
+      console.error("[showPage] Revealed card has no page or resource: " + flashcard.text);
       return;
     }
 
-    console.log("Revealed card with steps:", steps);
-    const first = steps[0];
-    scrollPercentToShow.value = first.scrollPercent;
-    const firstFile = set.resources[first.resourceAlias] ?? "";
-    pdfToShow.value = firstFile;
-    if (firstFile) {
-      resourcePages[firstFile] = first.page;
-    }
-    pageToShow.value = first.page;
+    goToStep(steps[0]);
     revealTrigger.value++;
-    currentCardPageRefs.value = steps.map((s) => s.page);
-    currentCardResourceAlias.value = first.resourceAlias;
     currentCardSteps.value = steps;
     cardRevealed.value = true;
 
     console.log(
-      `[showPage]` +
-        `\n\t-Flashcard: ${flashcard.text}` +
-        `\n\t-Steps: ${steps.length}` +
-        `\n\t-Study-set: ${set.title}` +
-        `\n\t-Page: ${first.page};` +
-        `\n\t-Pdf: ${set.resources[first.resourceAlias] ?? ""}` +
-        `\n\t-ResourceAlias: ${first.resourceAlias}` +
-        `\n\t-PageToShow: ${pageToShow.value}` +
-        `\n\t-ScrollPercentToShow: ${scrollPercentToShow.value}` +
-        `\n\t-CardRevealed: ${cardRevealed.value}` +
-        `\n\t-PdfToShow: ${pdfToShow.value}`
+      `[showPage] '${flashcard.text}' -> ${steps.length} step(s), ` +
+      `first: page ${steps[0].page} of '${pdfToShow.value}'`,
     );
   }
 
   function cardHidden() {
     cardRevealed.value = false;
-    currentCardPageRefs.value = [];
-    currentCardResourceAlias.value = "";
+    currentCardSteps.value = [];
   }
+  //#endregion -----------------------------------------------------------------
 
+  //#region STUDY SET ----------------------------------------------------------
   function loadStudySet(newStudySet: IStudySet, content: string) {
     studySet.value = newStudySet;
     uploadedText.value = content;
@@ -128,6 +119,14 @@ export function useApp() {
   }
 
   function openEditor() {
+    // Edit the current state of the study set (including the reviews of this
+    // session), not the text originally loaded, so that saving the editor
+    // does not discard the progress.
+    const set = studySet.value;
+    if (set) {
+      const result = buildStudySetContent(set);
+      uploadedText.value = result.ok ? result.content : set.originalLines.join("\n");
+    }
     editorVisible.value = true;
   }
 
@@ -136,184 +135,123 @@ export function useApp() {
   }
 
   function saveEdited(content: string) {
-    uploadedText.value = content;
-    const lines = content.split("\n");
-    const newSet = parseStudyset(lines);
-    if (newSet) {
-      studySet.value = newSet;
+    const newSet = parseStudyset(content.split(/\r?\n/));
+    if (!newSet) {
+      alert("The edited study set is not valid: fix it before saving (see the console for details).");
+      return;
     }
+    uploadedText.value = content;
+    studySet.value = newSet;
     editorVisible.value = false;
   }
 
   function addStudyResource(item: FileUploadItem) {
     if (!item.file?.name || !item.url) {
-      console.error("Invalid file upload item:", item);
+      console.error("[addStudyResource] Invalid file upload item:", item);
       return;
     }
 
     pdfCache[item.file.name] = item.url;
     console.log(`[addStudyResource] Added (${item.file.name}, ${item.url})`);
   }
+  //#endregion -----------------------------------------------------------------
 
-  function handleScroll() {
-    isScrolled.value = window.scrollY > 50;
+  //#region PDF NAVIGATION -----------------------------------------------------
+  function setPage(page: number) {
+    pageToShow.value = Math.max(1, page);
+    if (pdfToShow.value) resourcePages[pdfToShow.value] = pageToShow.value;
   }
 
-  function isTypingInInput(): boolean {
-    const el = document.activeElement as HTMLElement | null;
-    if (!el) return false;
-    const tag = (el.tagName || "").toUpperCase();
-    const editable = (el as HTMLElement).isContentEditable;
-    return tag === "INPUT" || tag === "TEXTAREA" || editable;
+  function goToStep(step: PageStep) {
+    const file = studySet.value?.resources[step.resourceAlias] || "";
+    if (file) pdfToShow.value = file;
+    scrollPercentToShow.value = step.scrollPercent;
+    setPage(step.page);
+  }
+
+  function getCurrentPdfAlias(): string {
+    const set = studySet.value;
+    if (!set) return "";
+    const file = pdfToShow.value;
+    return Object.keys(set.resources || {}).find((a) => set.resources[a] === file) || "";
+  }
+
+  /** Moves to the next (`direction = 1`) or previous (`-1`) PageRef step. */
+  function moveStep(direction: 1 | -1) {
+    const steps = currentCardSteps.value;
+    if (!steps.length || !studySet.value) return;
+
+    const aliasNow = getCurrentPdfAlias();
+    const curPage = pageToShow.value;
+    const idx = steps.findIndex((s) => s.page === curPage && s.resourceAlias === aliasNow);
+
+    let target: PageStep | undefined;
+    if (idx !== -1) {
+      target = steps[idx + direction];
+    } else if (direction === 1) {
+      // Not on a step: go to the first upcoming one by page number
+      target = steps.find((s) => s.page > curPage);
+    } else {
+      target = [...steps].reverse().find((s) => s.page < curPage);
+    }
+
+    if (target) goToStep(target);
   }
 
   function handleKeydown(event: KeyboardEvent) {
     // Avoid interfering while typing or when PDF not shown
     if (isTypingInInput() || !cardRevealed.value) return;
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
 
-    if (event.key === "f") {
-      // Next PDF page
-      pageToShow.value = pageToShow.value + 1;
-      if (pdfToShow.value) resourcePages[pdfToShow.value] = pageToShow.value;
-    } else if (event.key === "d") {
-      // Previous PDF page (clamp to 1)
-      pageToShow.value = Math.max(1, pageToShow.value - 1);
-      if (pdfToShow.value) resourcePages[pdfToShow.value] = pageToShow.value;
-    } else if (event.key === "c") {
-      // Next PageRef element (can cross resources)
-      const steps = currentCardSteps.value || [];
-      if (!steps.length) return;
-      const set = studySet.value;
-      if (!set) return;
-      const aliasNow = getCurrentPdfAlias();
-      const curPage = pageToShow.value;
-      const idx = steps.findIndex(
-        (s) => s.page === curPage && s.resourceAlias === aliasNow,
-      );
-      if (idx !== -1 && idx < steps.length - 1) {
-        const next = steps[idx + 1];
-        pageToShow.value = next.page;
-        scrollPercentToShow.value = next.scrollPercent;
-        const file = set.resources[next.resourceAlias] || "";
-        if (file) {
-          resourcePages[file] = next.page;
-          pdfToShow.value = file;
-        }
-      } else if (idx === -1) {
-        // Fallback: find the first upcoming step by page number
-        const j = steps.findIndex((s) => s.page > curPage);
-        if (j !== -1) {
-          const next = steps[j];
-          pageToShow.value = next.page;
-          scrollPercentToShow.value = next.scrollPercent;
-          const file = set.resources[next.resourceAlias] || "";
-          if (file) {
-            resourcePages[file] = next.page;
-            pdfToShow.value = file;
-          }
-        }
-      }
-    } else if (event.key === "x") {
-      // Previous PageRef element (can cross resources)
-      const steps = currentCardSteps.value || [];
-      if (!steps.length) return;
-      const set = studySet.value;
-      if (!set) return;
-      const aliasNow = getCurrentPdfAlias();
-      const curPage = pageToShow.value;
-      const idx = steps.findIndex(
-        (s) => s.page === curPage && s.resourceAlias === aliasNow,
-      );
-      if (idx > 0) {
-        const prev = steps[idx - 1];
-        pageToShow.value = prev.page;
-        scrollPercentToShow.value = prev.scrollPercent;
-        const file = set.resources[prev.resourceAlias] || "";
-        if (file) {
-          resourcePages[file] = prev.page;
-          pdfToShow.value = file;
-        }
-      } else if (idx === -1) {
-        // Fallback: find the last previous step by page number
-        const candidates = steps.filter((s) => s.page < curPage);
-        const prev = candidates.length
-          ? candidates[candidates.length - 1]
-          : undefined;
-        if (prev) {
-          pageToShow.value = prev.page;
-          scrollPercentToShow.value = prev.scrollPercent;
-          const file = set.resources[prev.resourceAlias] || "";
-          if (file) {
-            resourcePages[file] = prev.page;
-            pdfToShow.value = file;
-          }
-        }
-      }
+    switch (event.key) {
+      case "f": setPage(pageToShow.value + 1); break; // Next PDF page
+      case "d": setPage(pageToShow.value - 1); break; // Previous PDF page
+      case "c": moveStep(1); break;  // Next PageRef element (can cross resources)
+      case "x": moveStep(-1); break; // Previous PageRef element
     }
   }
-  function handleMouseMove(event: MouseEvent) {
-    const banner = event.currentTarget as HTMLElement;
-    const rect = banner.getBoundingClientRect();
-    mousePosition.value = {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    };
-  }
+  //#endregion -----------------------------------------------------------------
 
-  function commandRecognized(command: string) {
+  //#region VOICE & GESTURE COMMANDS -------------------------------------------
+  function commandRecognized(rawCommand: string | null | undefined) {
+    const command = (rawCommand ?? "").toLowerCase().trim();
+    if (!command) return;
     console.log(`[commands] Execute '${command}'`);
-    command = command.toLowerCase().trim();
 
-    if (command == "show") {
-      studySetComponent.value.revealCurrent();
-    }
+    const studySetVue = studySetComponent.value;
+    const gestures = gestureRecognizer.value;
 
-    const recallTypes = ["hide", "forgot", "bad", "not bad", "ok"];
-    recallTypes.forEach((t) => {
-      if (command == t) {
-        studySetComponent.value.hideCurrent(t);
-      }
-    });
-
-    if (command == "next page") {
-      pageToShow.value = pageToShow.value + 1;
-      if (pdfToShow.value) resourcePages[pdfToShow.value] = pageToShow.value;
-    } else if (command == "previous page") {
-      pageToShow.value = Math.max(1, pageToShow.value - 1);
-      if (pdfToShow.value) resourcePages[pdfToShow.value] = pageToShow.value;
-    }
-
-    if (command == "point") {
-      gestureRecognizer.value.enablePointing();
-    } else if (command == "stop point" || command == "that") {
-      gestureRecognizer.value.disablePointing();
-      commandRecognized(gestureRecognizer.value.currentPointing);
+    if (command === "show") {
+      studySetVue?.revealCurrent();
+    } else if (RECALL_COMMANDS.includes(command)) {
+      studySetVue?.hideCurrent(command);
+    } else if (command === "next page") {
+      setPage(pageToShow.value + 1);
+    } else if (command === "previous page") {
+      setPage(pageToShow.value - 1);
+    } else if (command === "point") {
+      gestures?.enablePointing();
+    } else if (command === "stop point" || command === "that") {
+      if (!gestures) return;
+      const pointed = gestures.currentPointing;
+      gestures.disablePointing();
+      commandRecognized(pointed);
     }
   }
 
-  function highlightPointing(what: string) {
+  function highlightPointing(what: string | null) {
     console.log(`[gestures] Passing over '${what}'`);
-    studySetComponent.value.point(what);
+    studySetComponent.value?.point(what);
   }
 
   const isPointing = computed(() => gestureRecognizer.value?.pointing || false);
+  //#endregion -----------------------------------------------------------------
 
+  //#region PROGRESS -----------------------------------------------------------
   const totalCards = computed(() => studySet.value?.flashcards.length || 0);
-  // Remaining cards X: cards that have the minimum review count c
+
+  /** Cards not reviewed yet today. */
   const remainingCards = computed(() => {
-    // const set = studySet.value;
-    // if (!set || !set.flashcards || set.flashcards.length === 0) return 0;
-
-    // // Compute c = min reviewCount (treat missing as 0)
-    // const counts = set.flashcards
-    //   .filter((f) => f !== undefined && f !== null)
-    //   .map((f) => (typeof f.reviewCount === 'number' ? f.reviewCount : 0));
-    // if (counts.length === 0) return 0;
-    // const c = Math.min(...counts);
-
-    // // X = number of cards reviewed exactly c times
-    // return set.flashcards.filter((f) => (f?.reviewCount ?? 0) === c).length;
-
     const set = studySet.value;
     if (!set || !set.flashcards) return 0;
 
@@ -322,30 +260,33 @@ export function useApp() {
 
     return set.flashcards.filter((f) => {
       if (!f) return false;
-      // If never reviewed, treat as remaining
       if (!f.reviewedAt) return true;
-      // Check if reviewed before today
       return new Date(f.reviewedAt) < today;
     }).length;
   });
 
-  // Progress based on current round: (total - remaining) / total
   const progressPercent = computed(() => {
     if (!totalCards.value) return 0;
     return ((totalCards.value - remainingCards.value) / totalCards.value) * 100;
   });
+  //#endregion -----------------------------------------------------------------
 
-  function getCurrentPdfAlias(): string {
-    const set = studySet.value;
-    if (!set) return "";
-    const file = pdfToShow.value;
-    const aliases = Object.keys(set.resources || {});
-    return aliases.find((a) => set.resources[a] === file) || "";
+  //#region UI -----------------------------------------------------------------
+  function handleScroll() {
+    isScrolled.value = window.scrollY > 50;
   }
 
+  function handleMouseMove(event: MouseEvent) {
+    const banner = event.currentTarget as HTMLElement;
+    const rect = banner.getBoundingClientRect();
+    mousePosition.value = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+  }
+  //#endregion -----------------------------------------------------------------
+
   onMounted(() => {
-    // let vid = document.getElementById("video-bg");
-    // vid.playbackRate = 0.3;
     window.addEventListener("scroll", handleScroll);
     window.addEventListener("keydown", handleKeydown);
   });

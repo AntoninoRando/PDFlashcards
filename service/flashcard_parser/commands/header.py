@@ -12,7 +12,7 @@ class Header:
             print("[Header] Has no parent!")
             self.text = ""
             return
-        f = next((f for f in study_set.flashcards if f.line_descriptor == parent), None)
+        f = next((f for f in study_set.flashcards if f.line_descriptor is parent), None)
         if f:
             study_set.flashcards.remove(f)
         self.text = parent.trimmed_line

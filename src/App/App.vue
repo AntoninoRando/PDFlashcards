@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import StudySet from '../Components/Flashcards/StudySet.vue'
-import Resources from '../Components/Resources.vue'
-import FileParser from '../Components/FileParser.vue'
-import PDFUploader from '../Components/PDFUploader.vue'
-import GestureRecognizer from '../Components/GestureRecognizer/GestureRecognizer.vue'
-import VoiceRecognizer from '../Components/VoiceRecognizer/VoiceRecognizer.vue'
-import TextEditor from '../Components/TextEditor.vue'
-import ShuffleMenu from '../Components/ShuffleMenu.vue'
-import ShortcutsSidebar from '../Components/ShortcutsSidebar.vue'
+import StudySet from '@/Components/Flashcards/StudySet.vue'
+import Resources from '@/Components/Resources/Resources.vue'
+import PDFUploader from '@/Components/Resources/PDFUploader.vue'
+import FileParser from '@/Components/StudySetFile/FileParser.vue'
+import TextEditor from '@/Components/StudySetFile/TextEditor.vue'
+// import GestureRecognizer from '@/Components/Recognizers/GestureRecognizer.vue'
+import VoiceRecognizer from '@/Components/Recognizers/VoiceRecognizer.vue'
+import ShuffleMenu from '@/Components/Layout/ShuffleMenu.vue'
+import ShortcutsSidebar from '@/Components/Layout/ShortcutsSidebar.vue'
 import { useApp } from './UseApp'
-import { SortModes } from '@/FlashcardsScheduler'
+import { SortModes } from '@/Scheduler/FlashcardsScheduler'
 import { computed } from 'vue'
 
 const {
@@ -49,40 +49,42 @@ const shuffleOriginalOrder = () => {
 const shuffleRandomOrder = () => {
   studySetComponent.value?.shuffleFlashcards(SortModes.random)
 }
-const shuffleLearnOrder = () => {
-  studySetComponent.value?.shuffleFlashcards(SortModes.learningPriority)
+const shuffleDefaultOrder = () => {
+  studySetComponent.value?.shuffleFlashcards(SortModes.sectionLearningPriority)
+}
+
+interface PdfResourceItem {
+  type: 'pdf'
+  pdfUrl: string
+  pageToShow: number
+  scrollPercent?: number
+  trigger: number
+  /** File name of the PDF (key of `pdfCache`). */
+  fileName: string
 }
 
 // Build the resources list (PDF-only for now) and keep the current one on top
-const resourcesList = computed(() => {
-  const set = studySet.value
-  if (!set) return [] as any[]
+const resourcesList = computed<PdfResourceItem[]>(() => {
+  if (!studySet.value) return []
 
-  const aliases = Object.keys(set.resources || {})
-  const items: any[] = []
+  const items: PdfResourceItem[] = []
+  for (const [fileName, url] of Object.entries(pdfCache)) {
+    if (!url) continue
 
-  console.log('Building resources list with pdfToShow:', pdfToShow.value);
-
-  for (const pdfFileName of Object.keys(pdfCache)) {
-    const url = pdfCache[pdfFileName];
-    if (!url) continue;
-    
-    // Determine if this is the currently active PDF
-    console.log('Evaluating PDF:', pdfFileName, 'Current pdfToShow:', pdfToShow.value);
-    const isCurrent = pdfToShow.value === pdfFileName;
-    
-    // Priority: 1. Active Page (if current), 2. Cached Page, 3. Default (-1)
-    const page = isCurrent ? pageToShow.value : (resourcePages[pdfFileName] ?? -1);
-    const scrollPercent = isCurrent ? scrollPercentToShow.value : undefined;
-    const trigger = isCurrent ? revealTrigger.value : 0;
-    
-    let alias = aliases.find(a => set.resources[a] === pdfFileName) || null;
-    alias = alias !== null ? set.resources[alias] : pdfFileName;
-    items.push({ type: 'pdf', pdfUrl: url, pageToShow: page, scrollPercent, trigger, _alias: alias })
+    // Active PDF uses the live page, the others the last page they showed
+    const isCurrent = pdfToShow.value === fileName
+    items.push({
+      type: 'pdf',
+      pdfUrl: url,
+      pageToShow: isCurrent ? pageToShow.value : (resourcePages[fileName] ?? -1),
+      scrollPercent: isCurrent ? scrollPercentToShow.value : undefined,
+      trigger: isCurrent ? revealTrigger.value : 0,
+      fileName,
+    })
   }
 
   // Ensure the currently selected PDF (pdfToShow) appears first in the list
-  const idx = items.findIndex(it => it._alias === pdfToShow.value)
+  const idx = items.findIndex(it => it.fileName === pdfToShow.value)
   if (idx > 0) {
     const [sel] = items.splice(idx, 1)
     items.unshift(sel)
@@ -91,13 +93,12 @@ const resourcesList = computed(() => {
   return items
 })
 
-function onResourceChanged(item: any) {
-  if (item && typeof item === 'object' && item._alias) {
-    pdfToShow.value = item._alias
-    const page = resourcePages[item._alias]
-    if (typeof page === 'number' && page > 0) {
-      pageToShow.value = page
-    }
+function onResourceChanged(item: PdfResourceItem) {
+  if (!item?.fileName) return
+  pdfToShow.value = item.fileName
+  const page = resourcePages[item.fileName]
+  if (typeof page === 'number' && page > 0) {
+    pageToShow.value = page
   }
 }
 </script>
@@ -115,7 +116,7 @@ function onResourceChanged(item: any) {
         '--mouse-y': mousePosition.y + 'px'
       }"></div>
       <div class="logo-container">
-        <img src="@/Assets/WebLogo.svg" alt="Logo" class="logo" />
+        <img src="@/Assets/WebLogo.svg" alt="PDFlashcards" class="logo" />
       </div>
 
       <nav class="navbar" :class="{ 'sticky': isScrolled }">
@@ -162,7 +163,7 @@ function onResourceChanged(item: any) {
     <!-- Wheel of options to manipulate the StudySet, e.g. by showing the cards
     in order instead of "randomly". -->
     <ShuffleMenu v-if="studySet" @order-original="shuffleOriginalOrder" @order-random="shuffleRandomOrder"
-      @order-learn="shuffleLearnOrder" />
+      @order-default="shuffleDefaultOrder" />
 
   </div>
 </template>

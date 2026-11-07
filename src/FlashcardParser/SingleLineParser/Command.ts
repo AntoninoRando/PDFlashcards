@@ -21,7 +21,7 @@ export function parseCommandLine(
 
     let endOfCommand = -1;
     let startOfArg = -1;
-    let subCommands = [];
+    const subCommands: string[] = [];
     let openCount = 0;
     let openIndex = -1;
     let closeIndex = -1;
@@ -58,7 +58,7 @@ export function parseCommandLine(
 
 
     let cmdName: string;
-    let cmdArg: string;
+    let cmdArg: string | null;
     if (startOfArg === -1) {
         cmdName = trimmedLine;
         cmdArg = null;
@@ -76,7 +76,11 @@ export function parseCommandLine(
         return false;
     }
 
-    let receiver = inLine ? lineDescriptor : lineDescriptor.parent;
+    const receiver = inLine ? lineDescriptor : lineDescriptor.parent;
+    if (!receiver) {
+        console.error(`[studySet] Command at line ${index} has no parent to attach to`);
+        return false;
+    }
     receiver.subParts.push({ ...command.toJson(), subParts: [], sourceIndex: lineDescriptor.index });
 
     subCommands.forEach((x) => {

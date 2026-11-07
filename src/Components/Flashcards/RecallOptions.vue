@@ -14,7 +14,7 @@
       @click="() => chooseRecallOption('bad')">
       😶 Bad
     </button>
-    <button class="revealed-button" :class="{ pressed: pressedButton === 'fine', pointed: pointedButton === 'fine' }"
+    <button class="revealed-button" :class="{ pressed: pressedButton === 'not bad', pointed: pointedButton === 'not bad' }"
       @click="() => chooseRecallOption('not bad')">
       🙂 Fine
     </button>
@@ -29,22 +29,20 @@
 import { HideOption } from "@/FlashcardParser/Types/Types";
 import { ref } from "vue";
 
-// Define emits
 const emit = defineEmits<{
   optionSelected: [option: HideOption];
 }>();
 
-// Reactive data
 const pressedButton = ref<string | null>(null);
 const pointedButton = ref<string | null>(null);
 
-const chooseRecallOption = (option: HideOption) => {
+const chooseRecallOption = (option: HideOption | `${HideOption}`) => {
   pressedButton.value = option;
-  emit("optionSelected", option);
+  emit("optionSelected", option as HideOption);
 };
 
-const point = (what: string) => {
-  if (what === "not bad") what = "fine";
+/** Highlights the option the user is pointing at (gesture recognition). */
+const point = (what: string | null) => {
   pointedButton.value = what;
 };
 

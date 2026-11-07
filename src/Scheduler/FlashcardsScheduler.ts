@@ -1,0 +1,673 @@
+import { IFlashcard } from "@/FlashcardParser/Types/Types";
+
+export interface CardStats {
+  total: number;
+  new: number;
+  learning: number;
+  review: number;
+  overdue: number;
+  badRecall: number;
+}
+
+/**
+ * FSRS default initial stabilities (in days) for the grades
+ * 0 = forgot, 1 = bad, 2 = not bad, 3 = ok.
+ */
+const INITIAL_STABILITY = [0.4, 0.6, 2.4, 5.8] as const;
+const MIN_INTERVAL_DAYS = 0.5;
+const MAX_INTERVAL_DAYS = 1825;
+
+export enum SortModes {
+  sectionLearningPriority = 'section learning priority', // Default
+  learningPriority = 'learning priority',
+  byDueDate = 'by due date',
+  random = 'random',
+  originalOrder= 'original order',
+}
+
+export default class FlashcardsScheduler {
+  //#region PROPERTIES ---------------------------------------------------------
+  flashcards: IFlashcard[];
+  sortedFlashcards: IFlashcard[];
+
+  sortMode: SortModes = SortModes.sectionLearningPriority;
+  private bucketOrder: string[];
+  private bucketMap: Map<string, IFlashcard[]>;
+  private bucketProgress: Map<string, { total: number; fineCount: number }>;
+  private currentBucketKey: string | null;
+  private sessionRecalls: Map<IFlashcard, number>;
+  private readonly fineRecallGrade = 2;
+  /*
+    Percentage (over 100) of flashcards that needs to be completed with good 
+    recall in order to continue to the next chapter.
+  */
+  private readonly bucketCompletionRatio = 1.0;
+  private readonly fallbackBucketKey = '__NO_HEADER__';
+  
+  /* --- Learning settings --- */
+  initialLearningPhaseFixedSteps: string[];
+  easyIntervalOnExitingLearningMode: string;
+  defaultDifficulty: number;
+  maximumIntervals: number;
+  //#endregion -----------------------------------------------------------------
+  
+
+
+  //#region CONSTRUCTORS -------------------------------------------------------
+  constructor() {
+    this.flashcards = [];
+    this.sortedFlashcards = [];
+    this.bucketOrder = [];
+    this.bucketMap = new Map();
+    this.bucketProgress = new Map();
+    this.currentBucketKey = null;
+    this.sessionRecalls = new Map();
+    this.initialLearningPhaseFixedSteps = ["30m", "2h", "2d"];
+    this.easyIntervalOnExitingLearningMode = "4d";
+    // Default difficulty used by the Free Spaced Repetition Scheduler (FSRS)
+    // Difficulty is scaled between 1 and 10. 5 represents a medium difficulty.
+    this.defaultDifficulty = 5;
+    // Maximum allowed interval expressed in days
+    this.maximumIntervals = 1825; // Days
+  }
+  //#endregion -----------------------------------------------------------------
+
+
+
+  //#region METHODS ------------------------------------------------------------
+  /**
+   * Removes every cards from the scheduler.
+   */
+  resetCards(): void {
+    this.flashcards = [];
+    this.sortedFlashcards = [];
+    this.bucketMap.clear();
+    this.bucketOrder = [];
+    this.bucketProgress.clear();
+  }
+
+  /**
+   * Clears session-specific data so the scheduler can start fresh progress
+   * tracking for the next study run.
+   */
+  startSession(): void {
+    this.sessionRecalls.clear();
+    this.bucketMap.clear();
+    this.bucketOrder = [];
+    this.bucketProgress.clear();
+    this.currentBucketKey = null;
+  }
+
+  /**
+   * 
+   * @param flashcard One or more flashcards to add to the scheduler.
+   */
+  addFlashcards(...flashcard: IFlashcard[]): void {
+    if (flashcard.length > 0) {
+      const validCards = flashcard.filter((card): card is IFlashcard => !!card);
+      this.flashcards.push(...validCards);
+    }
+    this.rebuildBuckets();
+    this.sort();
+  }
+
+  /**
+   * Returns the first card in the sorted list (i.e., the first card to study),
+   * or null if no cards are available.
+   */
+  getFirstCard(): IFlashcard | null {
+    const now = new Date();
+
+    if (!this.currentBucketKey) {
+      const initialCard =
+        this.flashcards.find((card) => this.isCardDue(card, now)) ??
+        this.flashcards.find((card) => !this.isSkipActive(card, now)) ??
+        null;
+      if (initialCard) {
+        this.currentBucketKey = this.getBucketKey(initialCard);
+      }
+    }
+
+    this.advanceBucketIfNeeded();
+
+    if (!this.currentBucketKey) {
+      console.log('[scheduler] No cards available across buckets');
+      return null;
+    }
+
+    const activeBucket = this.currentBucketKey;
+    const card =
+      this.flashcards.find(
+        (c) => this.getBucketKey(c) === activeBucket && this.isCardDue(c, now)
+      ) ??
+      this.flashcards.find(
+        (c) => this.getBucketKey(c) === activeBucket && !this.isSkipActive(c, now)
+      ) ??
+      null;
+
+    if (card) {
+      const progress = this.bucketProgress.get(activeBucket);
+      const fineCount = progress?.fineCount ?? 0;
+      const total = progress?.total ?? 0;
+      console.log(`[scheduler] Getting first card from bucket '${activeBucket}' (${fineCount}/${total} fine)`);
+      return card;
+    }
+
+    const currentIndex = this.bucketOrder.indexOf(activeBucket);
+    for (let i = currentIndex + 1; i < this.bucketOrder.length; i++) {
+      const candidateKey = this.bucketOrder[i];
+      const candidateCard = this.flashcards.find(
+        (c) => this.getBucketKey(c) === candidateKey && !this.isSkipActive(c, now)
+      );
+      if (!candidateCard) continue;
+
+      this.currentBucketKey = candidateKey;
+      const progress = this.bucketProgress.get(candidateKey);
+      const fineCount = progress?.fineCount ?? 0;
+      const total = progress?.total ?? 0;
+      console.log(`[scheduler] Getting first card from bucket '${candidateKey}' (${fineCount}/${total} fine)`);
+      return candidateCard;
+    }
+
+    console.log('[scheduler] No cards available across buckets');
+    this.currentBucketKey = null;
+    return null;
+  }
+
+  /**
+   * 
+   * @param timeString A string representing a time duration, e.g. "30m", "2h", 
+   * "3d". This string should only contain a number followed by a SINGLE
+   * character representing the time unit: 'm' for minutes, 'h' for hours,
+   * @returns The time duration in milliseconds.
+   */
+  static parseTimeString(timeString: string): number {
+    const unit = timeString.slice(-1);
+    const value = parseInt(timeString.slice(0, -1), 10);
+
+    switch (unit) {
+      case "m": return value * 60 * 1000;
+      case "h": return value * 60 * 60 * 1000;
+      case "d":
+      default: return value * 24 * 60 * 60 * 1000;
+    }
+  }
+
+  /**
+   * Updates a flashcard's scheduling data after a review session, then sorts
+   * the cards of this scheduler.
+   * @param flashcard The flashcard to update.
+   * @param retrievalSuccess An integer representing the recall quality:
+   * 0 = "forgot", 1 = "bad", 2 = "not bad", 3 = "ok".
+   * @returns The updated flashcard.
+   */
+  updateFlashcardAfterReview(
+    flashcard: IFlashcard,
+    retrievalSuccess: number
+  ): IFlashcard {
+    const now = new Date();
+    const lastReview = flashcard.reviewedAt;
+    flashcard.reviewedAt = now;
+    flashcard.retrievalSuccess = retrievalSuccess;
+    flashcard.reviewCount = (flashcard.reviewCount || 0) + 1;
+
+    // Calculate next review time based on performance
+    const result = FlashcardsScheduler.nextInterval(
+      retrievalSuccess,
+      flashcard.interval || 0,
+      flashcard.ease ?? this.defaultDifficulty,
+      lastReview
+    );
+
+    flashcard.interval = result.interval;
+    flashcard.ease = result.ease;
+
+    // Set next review time
+    const nextReviewTime = new Date(
+      now.getTime() + result.interval * 24 * 60 * 60 * 1000
+    );
+    flashcard.nextReviewAt = nextReviewTime;
+
+    this.recordSessionRecall(flashcard, retrievalSuccess);
+    this.sort();
+    console.log(`[scheduler] Updated card '${flashcard.text}' with:
+      retrievalSuccess=${retrievalSuccess}, 
+      nextReviewAt=${flashcard.nextReviewAt}, 
+      interval=${flashcard.interval}, 
+      ease=${flashcard.ease}`);
+
+    return flashcard;
+  }
+
+  /**
+   * Restores the session recall state for a flashcard (used when undoing).
+   */
+  restoreSessionRecall(
+    flashcard: IFlashcard,
+    retrievalSuccess: number | null | undefined
+  ): void {
+    const previousGrade = this.sessionRecalls.get(flashcard);
+    const prevFine = this.isGradeFine(previousGrade);
+
+    if (typeof retrievalSuccess === 'number') {
+      this.sessionRecalls.set(flashcard, retrievalSuccess);
+    } else {
+      this.sessionRecalls.delete(flashcard);
+    }
+
+    const newFine = this.isGradeFine(retrievalSuccess ?? undefined);
+    const bucketKey = this.getBucketKey(flashcard);
+    this.currentBucketKey = bucketKey;
+    const progress = this.bucketProgress.get(bucketKey);
+
+    if (!progress || prevFine === newFine) {
+      this.advanceBucketIfNeeded();
+      return;
+    }
+
+    let fineCount = progress.fineCount;
+    if (prevFine) fineCount = Math.max(0, fineCount - 1);
+    if (newFine) fineCount = Math.min(progress.total, fineCount + 1);
+
+    this.bucketProgress.set(bucketKey, { ...progress, fineCount });
+    this.advanceBucketIfNeeded();
+  }
+
+  // Get statistics about card distribution
+  getCardStats(): CardStats {
+    const stats: CardStats = {
+      total: this.flashcards.length,
+      new: 0,
+      learning: 0,
+      review: 0,
+      overdue: 0,
+      badRecall: 0,
+    };
+
+    const now = new Date();
+
+    this.flashcards.forEach((card) => {
+      if (card.reviewedAt === null) {
+        stats.new++;
+      } else if (card.interval < 1) {
+        stats.learning++;
+      } else {
+        stats.review++;
+      }
+
+      if (card.nextReviewAt && card.nextReviewAt < now) {
+        stats.overdue++;
+      }
+
+      if (card.retrievalSuccess !== null && card.retrievalSuccess <= 1) {
+        stats.badRecall++;
+      }
+    });
+
+    return stats;
+  }
+
+  private recordSessionRecall(flashcard: IFlashcard, retrievalSuccess: number): void {
+    const previousGrade = this.sessionRecalls.get(flashcard);
+    const prevFine = this.isGradeFine(previousGrade);
+    const newFine = this.isGradeFine(retrievalSuccess);
+
+    this.sessionRecalls.set(flashcard, retrievalSuccess);
+
+    const bucketKey = this.getBucketKey(flashcard);
+    this.currentBucketKey = bucketKey;
+    const progress = this.bucketProgress.get(bucketKey);
+
+    if (!progress || prevFine === newFine) {
+      this.advanceBucketIfNeeded();
+      return;
+    }
+
+    let fineCount = progress.fineCount;
+    if (prevFine) fineCount = Math.max(0, fineCount - 1);
+    if (newFine) fineCount = Math.min(progress.total, fineCount + 1);
+
+    this.bucketProgress.set(bucketKey, { ...progress, fineCount });
+    this.advanceBucketIfNeeded();
+  }
+
+  private rebuildBuckets(): void {
+    const previousBucketKey = this.currentBucketKey;
+    const map = new Map<string, IFlashcard[]>();
+    const firstIndex = new Map<string, number>();
+
+    for (const card of this.flashcards) {
+      const key = this.getBucketKey(card);
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+
+      map.get(key)!.push(card);
+
+      const lineIndex = card.lineDescriptor?.index ?? 0;
+      const storedIndex = firstIndex.get(key);
+      if (storedIndex === undefined || lineIndex < storedIndex) {
+        firstIndex.set(key, lineIndex);
+      }
+    }
+
+    this.bucketMap = map;
+    this.bucketOrder = Array.from(map.keys()).sort((a, b) => {
+      const aIndex = firstIndex.get(a) ?? 0;
+      const bIndex = firstIndex.get(b) ?? 0;
+      return aIndex - bIndex;
+    });
+
+    const now = new Date();
+    const progress = new Map<string, { total: number; fineCount: number }>();
+    for (const [key, cards] of map.entries()) {
+      // Exclude skipped cards from the total count
+      const nonSkippedCards = cards.filter(card => !this.isSkipActive(card, now));
+      const total = nonSkippedCards.length;
+      let fineCount = 0;
+      for (const card of nonSkippedCards) {
+        const grade = this.sessionRecalls.get(card);
+        if (this.isGradeFine(grade)) fineCount++;
+      }
+      progress.set(key, { total, fineCount });
+    }
+    this.bucketProgress = progress;
+
+    if (previousBucketKey && map.has(previousBucketKey)) {
+      this.currentBucketKey = previousBucketKey;
+    } else {
+      this.currentBucketKey = null;
+    }
+  }
+
+  private getBucketKey(card: IFlashcard): string {
+    const topHeader = card.headers?.[0]?.trim();
+    if (topHeader) {
+      return topHeader;
+    }
+    return this.fallbackBucketKey;
+  }
+
+  private isGradeFine(grade: number | null | undefined): boolean {
+    if (typeof grade !== 'number') {
+      return false;
+    }
+    return grade >= this.fineRecallGrade;
+  }
+
+  private advanceBucketIfNeeded(): void {
+    if (!this.currentBucketKey) {
+      return;
+    }
+
+    let safety = 0;
+    while (this.currentBucketKey) {
+      safety++;
+      if (safety > this.bucketOrder.length) {
+        this.currentBucketKey = null;
+        break;
+      }
+
+      const progress = this.bucketProgress.get(this.currentBucketKey);
+      const total = progress?.total ?? 0;
+      const fineCount = progress?.fineCount ?? 0;
+      const ratio = total === 0 ? 1 : fineCount / total;
+
+      if (ratio >= this.bucketCompletionRatio) {
+        const currentIndex = this.bucketOrder.indexOf(this.currentBucketKey);
+        const nextIndex = currentIndex + 1;
+        if (nextIndex < this.bucketOrder.length) {
+          this.currentBucketKey = this.bucketOrder[nextIndex];
+          continue;
+        }
+        this.currentBucketKey = null;
+      }
+      break;
+    }
+  }
+
+  private isCardDue(card: IFlashcard | undefined, referenceDate: Date): boolean {
+    if (!card) return false;
+
+    if (card.skipUntil && card.skipUntil.getTime() > referenceDate.getTime()) {
+      return false;
+    }
+
+    if (card.reviewedAt === null) {
+      return true;
+    }
+
+    if (!card.nextReviewAt) {
+      return true;
+    }
+
+    return card.nextReviewAt.getTime() <= referenceDate.getTime();
+  }
+
+  private isSkipActive(card: IFlashcard | undefined, referenceDate: Date): boolean {
+    if (!card || !card.skipUntil) return false;
+    return card.skipUntil.getTime() > referenceDate.getTime();
+  }
+
+  static intervalNoise(): number {
+    return Math.random() * 0.1 + 0.95; // Random noise between 0.95 and 1.05
+  }
+
+  /**
+   * Calculate the next interval, ease, and stability for a flashcard based on
+   * the Free Spaced Repetition Scheduler (FSRS) algorithm.
+   * @param retrievalSuccess 
+   * @param currentStability 
+   * @param difficulty 
+   * @param lastReviewDate 
+   * @returns 
+   */
+  static nextInterval(
+    retrievalSuccess: number,
+    currentStability = 0,
+    difficulty = 5,
+    lastReviewDate: Date | null = null
+  ): { interval: number; ease: number; stability: number } {
+    // Implementation of a simplified Free Spaced Repetition Scheduler (FSRS)
+    // https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm
+    const now = new Date();
+    const elapsedDays = lastReviewDate
+      ? (now.getTime() - lastReviewDate.getTime()) / (1000 * 60 * 60 * 24)
+      : 0;
+
+    const retrievability = currentStability
+      ? Math.exp(Math.log(0.9) * (elapsedDays / currentStability))
+      : 0;
+
+    // weights tuned roughly according to the public implementation
+    const AGAIN_DIFFICULTY_DELTA = 0.8;
+    const HARD_DIFFICULTY_DELTA = 0.4;
+    const GOOD_DIFFICULTY_DELTA = -0.1;
+    const EASY_DIFFICULTY_DELTA = -0.2;
+
+    const HARD_FACTOR = 1.2;
+    const GOOD_FACTOR = 1.8;
+    const EASY_FACTOR = 2.5;
+
+    let newDifficulty = difficulty;
+    let newStability = currentStability;
+
+    // First review of a card: the stability only depends on the grade (FSRS
+    // initial stabilities w0..w3). Without this a new card would keep its
+    // placeholder stability whatever the answer was.
+    const isFirstReview = !lastReviewDate || currentStability <= 0;
+
+    switch (retrievalSuccess) {
+      case 0: // Again
+        newDifficulty = Math.min(10, difficulty + AGAIN_DIFFICULTY_DELTA);
+        newStability = isFirstReview ? INITIAL_STABILITY[0] : 0.5; // restart learning
+        break;
+      case 1: // Hard
+        newDifficulty = Math.min(10, difficulty + HARD_DIFFICULTY_DELTA);
+        newStability =
+          currentStability *
+          (1 + HARD_FACTOR * (10 - difficulty) * (1 - retrievability));
+        break;
+      case 2: // Good
+        newDifficulty = Math.max(1, difficulty + GOOD_DIFFICULTY_DELTA);
+        newStability =
+          currentStability *
+          (1 + GOOD_FACTOR * (10 - difficulty) * (1 - retrievability));
+        break;
+      case 3: // Easy
+        newDifficulty = Math.max(1, difficulty + EASY_DIFFICULTY_DELTA);
+        newStability =
+          currentStability *
+          (1 + EASY_FACTOR * (10 - difficulty) * (1 - retrievability));
+        break;
+    }
+
+    if (isFirstReview && retrievalSuccess >= 1 && retrievalSuccess <= 3) {
+      newStability = INITIAL_STABILITY[retrievalSuccess];
+    }
+
+    newStability = Math.min(
+      Math.max(newStability * FlashcardsScheduler.intervalNoise(), MIN_INTERVAL_DAYS),
+      MAX_INTERVAL_DAYS
+    );
+
+    // Keep fractional days: the interval is also used as the stability of the
+    // next review, and rounding to whole days would turn short intervals into 0
+    // (which then never grows again).
+    const interval = Math.round(newStability * 100) / 100;
+
+    return { interval, ease: newDifficulty, stability: newStability };
+  }
+
+
+  sort(): IFlashcard | null {
+    switch (this.sortMode) {
+      case SortModes.byDueDate:
+        this.flashcards.sort((a, b) => {
+          const aTime = a.nextReviewAt ? a.nextReviewAt.getTime() : Infinity;
+          const bTime = b.nextReviewAt ? b.nextReviewAt.getTime() : Infinity;
+          return aTime - bTime;
+        });
+        break;
+      case SortModes.random:
+        FlashcardsScheduler.shuffle(this.flashcards);
+        break;
+      case SortModes.originalOrder:
+        this.flashcards.sort((a, b) => 
+          (a.lineDescriptor.index ?? 0) - (b.lineDescriptor.index ?? 0));
+        break;
+      case SortModes.sectionLearningPriority:
+        this.sortFlashcardsBySectionSchedule();
+        break;
+      case SortModes.learningPriority:
+      default:
+        this.sortFlashcardsBySchedule();
+        break;
+    }
+    return this.getFirstCard();
+  }
+
+
+
+  /** Sorts by recall priority, without taking sections into account. */
+  sortFlashcardsBySchedule(): void {
+    const now = new Date();
+    this.flashcards.sort((a, b) => FlashcardsScheduler.compareByRecallPriority(a, b, now));
+  }
+
+  // Get flashcards that are due for review, but the first card is taken from
+  // the "section" (i.e., header) with the max number of due cards. Differently
+  // from what happens with the sortFlashcardsBySchedule method, here we try to
+  // avoid situations in which the majority of the cards in a section are known,
+  // but since there is a single unknown card that entire section will be 
+  // studied first (since ending a section is prioritized).
+  sortFlashcardsBySectionSchedule(): void {
+    const now = new Date();
+
+    // 1. Count due cards per bucket
+    const bucketDueCounts = new Map<string, number>();
+    for (const card of this.flashcards) {
+      if (this.isCardDue(card, now)) {
+        const key = this.getBucketKey(card);
+        bucketDueCounts.set(key, (bucketDueCounts.get(key) || 0) + 1);
+      }
+    }
+
+    // 2. Sort bucketOrder by due count (descending), then by file position (ascending)
+    this.bucketOrder.sort((keyA, keyB) => {
+      const countA = bucketDueCounts.get(keyA) ?? 0;
+      const countB = bucketDueCounts.get(keyB) ?? 0;
+      
+      if (countA !== countB) {
+        return countB - countA; // More due cards first
+      }
+
+      // Tie-breaker: original file order (min line index of the bucket)
+      const cardsA = this.bucketMap.get(keyA) ?? [];
+      const cardsB = this.bucketMap.get(keyB) ?? [];
+      
+      const minIndexA = cardsA.reduce((min, c) => Math.min(min, c.lineDescriptor?.index ?? Infinity), Infinity);
+      const minIndexB = cardsB.reduce((min, c) => Math.min(min, c.lineDescriptor?.index ?? Infinity), Infinity);
+        
+      return minIndexA - minIndexB;
+    });
+
+    // 3. Map bucket key to its new rank index
+    const bucketRank = new Map<string, number>();
+    this.bucketOrder.forEach((key, index) => bucketRank.set(key, index));
+
+    this.flashcards.sort((a, b) => {
+      // Priority 0: Bucket Priority (Use the sorted bucketOrder)
+      const bucketA = this.getBucketKey(a);
+      const bucketB = this.getBucketKey(b);
+
+      if (bucketA !== bucketB) {
+        const rankA = bucketRank.get(bucketA) ?? Infinity;
+        const rankB = bucketRank.get(bucketB) ?? Infinity;
+        return rankA - rankB;
+      }
+
+      return FlashcardsScheduler.compareByRecallPriority(a, b, now);
+    });
+  }
+
+  /**
+   * Comparator shared by the scheduling sort modes:
+   * 1. cards with bad recall (retrievalSuccess 0 or 1) first, most overdue
+   *    first;
+   * 2. then cards already reviewed, by next review time;
+   * 3. then new cards, in random order.
+   */
+  private static compareByRecallPriority(a: IFlashcard, b: IFlashcard, now: Date): number {
+    const aBadRecall = a.retrievalSuccess !== null && a.retrievalSuccess <= 1;
+    const bBadRecall = b.retrievalSuccess !== null && b.retrievalSuccess <= 1;
+
+    if (aBadRecall !== bBadRecall) return aBadRecall ? -1 : 1;
+
+    if (aBadRecall && bBadRecall) {
+      const aOverdue = a.nextReviewAt ? now.getTime() - a.nextReviewAt.getTime() : 0;
+      const bOverdue = b.nextReviewAt ? now.getTime() - b.nextReviewAt.getTime() : 0;
+      return bOverdue - aOverdue; // More overdue first
+    }
+
+    const aReviewed = a.reviewedAt !== null;
+    const bReviewed = b.reviewedAt !== null;
+
+    if (aReviewed !== bReviewed) return aReviewed ? -1 : 1;
+
+    if (aReviewed && bReviewed) {
+      return (a.nextReviewAt?.getTime() ?? 0) - (b.nextReviewAt?.getTime() ?? 0);
+    }
+
+    // New cards (never reviewed): random order
+    return Math.random() - 0.5;
+  }
+
+  /** Unbiased in-place shuffle (Fisher–Yates). */
+  private static shuffle<T>(items: T[]): void {
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+  }
+}

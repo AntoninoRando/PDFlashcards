@@ -1,11 +1,13 @@
 import { IFlashcard, IStudySet } from "@/FlashcardParser/Types/Types";
+import { countTabs } from "@/FlashcardParser/LineTabCounter";
+import { RecallData } from "@/Commands/All/RecallData";
 
 export type BuildStudySetContentResult =
   | { ok: true; content: string }
   | { ok: false; reason: 'missing-original-lines' | 'no-reviewed-cards' };
 
 function ensureSerializableCards(flashcards: IFlashcard[]): IFlashcard[] {
-  return flashcards.filter((card: IFlashcard) => card.reviewedAt !== null);
+  return flashcards.filter((card: IFlashcard) => card.reviewedAt instanceof Date);
 }
 
 export function buildStudySetContent(studySet: IStudySet): BuildStudySetContentResult {
@@ -15,28 +17,42 @@ export function buildStudySetContent(studySet: IStudySet): BuildStudySetContentR
 
   const lines: string[] = [...studySet.originalLines];
   const reviewedCards = ensureSerializableCards(studySet.flashcards);
-  console.log(`Found ${reviewedCards.length} reviewed cards to save out of ${studySet.flashcards.length} total cards`);
 
   if (reviewedCards.length === 0) {
     return { ok: false, reason: 'no-reviewed-cards' };
   }
 
+  // Process cards bottom-up so that inserting/removing lines never shifts the
+  // index of a card that still has to be processed.
   const cardsSorted = [...reviewedCards].sort((a: IFlashcard, b: IFlashcard) =>
     b.lineDescriptor.index - a.lineDescriptor.index
   );
 
-  for (let i = 0; i < cardsSorted.length; i++) {
-    const card = cardsSorted[i] as IFlashcard;
-    console.log(`Saving card: "${card.text}" - reviewedAt: ${card.reviewedAt} - line: ${card.lineDescriptor.index}`);
+  for (const card of cardsSorted) {
+    const cardIndex = card.lineDescriptor.index;
+    const cardLine = lines[cardIndex] ?? '';
+    const cardTabs = countTabs(cardLine);
+    const cardIndent = cardLine.slice(0, cardLine.length - cardLine.trimStart().length);
 
-    const insertIndex = card.lineDescriptor.index + 1;
-    const command = `\t*** ${card.reviewedAt.toISOString()}, ${card.ease}, ${card.interval}, ${card.learningPhase}`;
-
-    while (insertIndex < lines.length && lines[insertIndex].trimStart().startsWith('***')) {
-      lines.splice(insertIndex, 1);
+    // Remove every previous recall-data line that belongs to this card (they
+    // are not necessarily the first child line, e.g. after a "+ remember").
+    let i = cardIndex + 1;
+    while (i < lines.length && lines[i].trim() !== '' && countTabs(lines[i]) > cardTabs) {
+      const isOwnRecallData =
+        countTabs(lines[i]) === cardTabs + 1 &&
+        lines[i].trimStart().startsWith(RecallData.symbol);
+      if (isOwnRecallData) {
+        lines.splice(i, 1);
+      } else {
+        i++;
+      }
     }
 
-    lines.splice(insertIndex, 0, command);
+    const reviewedAt = card.reviewedAt as Date;
+    const command =
+      `${cardIndent}\t${RecallData.symbol} ${reviewedAt.toISOString()}, ` +
+      `${card.ease}, ${card.interval}, ${card.learningPhase}`;
+    lines.splice(cardIndex + 1, 0, command);
   }
 
   const content = lines.join('\n');

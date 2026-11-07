@@ -1,4 +1,8 @@
 #!/bin/bash
+# Starts only the web app (in Docker). Features that need the Python service
+# (autosave, gestures) will not be available.
+
+set -e
 
 # Check if Docker is running
 if ! docker info >/dev/null 2>&1; then
@@ -6,5 +10,5 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-# Start the app with docker-compose in the background
-docker-compose up
+cd "$(dirname "$0")"
+docker compose up

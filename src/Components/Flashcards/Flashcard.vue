@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { HideOption, IFlashcard } from '@/FlashcardParser/Types/Types';
 import RecallOptions from './RecallOptions.vue'
-import { createApp, ref, onMounted, watch } from 'vue'
+import { createApp, ref, onMounted, onBeforeUnmount, watch, type App } from 'vue'
 
 
 //#region PROPS ----------------------------------------------------------------
@@ -40,42 +40,50 @@ function reveal() {
   emit('reveal', props.flashcard)
 }
 
-function hide(recall = 'hide') {
+function hide(recall: HideOption = HideOption.hide) {
   hidingRecallOptions.value = true
   setTimeout(() => {
     revealed.value = false
     hidingRecallOptions.value = false
-    props.flashcard.reviewedAt = new Date()
+    // NOTE: `reviewedAt` is updated by the scheduler, which needs the previous
+    // review date to compute the elapsed time.
     pdfBlur(false)
     emit('hide', { flashcard: props.flashcard, recall })
   }, 300)
 }
 
 function forgot() {
-  recallOptions.value?.chooseRecallOption('forgot')
+  recallOptions.value?.chooseRecallOption(HideOption.forgot)
 }
 
 function bad() {
-  recallOptions.value?.chooseRecallOption('bad')
+  recallOptions.value?.chooseRecallOption(HideOption.bad)
 }
 
 function notBad() {
-  recallOptions.value?.chooseRecallOption('not bad')
+  recallOptions.value?.chooseRecallOption(HideOption.notBad)
 }
 
 function ok() {
-  recallOptions.value?.chooseRecallOption('ok')
+  recallOptions.value?.chooseRecallOption(HideOption.ok)
 }
 
-function point(what: string) {
+function point(what: string | null) {
   recallOptions.value?.point(what)
 }
 
-const toUnmount = [];
+/** Vue apps mounted for the subparts, to unmount before re-rendering. */
+let mountedSubparts: App[] = [];
+
+function unmountSubparts() {
+  mountedSubparts.forEach((app) => app.unmount());
+  mountedSubparts = [];
+}
 
 function showSubparts() {
-  toUnmount.forEach((app) => app.unmount());
-  const subpartsElement = subparts.value as HTMLElement
+  unmountSubparts();
+  const subpartsElement = subparts.value
+  if (!subpartsElement) return
   subpartsElement.innerHTML = '';
 
   const cardLD: any = props.flashcard.lineDescriptor as any;
@@ -88,7 +96,7 @@ function showSubparts() {
       componentContainer.id = `subpart-${sub.name || Math.random().toString(36)}`
       subpartsElement.appendChild(componentContainer)
       const app = createApp(sub.vueComponent, { config: sub })
-      toUnmount.push(app);
+      mountedSubparts.push(app);
       app.mount(componentContainer)
     })
   }
@@ -129,11 +137,10 @@ function showSubparts() {
 
 
 
-watch(revealed, async (oldV, newV) => {
-  showSubparts();
-})
+watch(revealed, () => showSubparts())
 
 onMounted(showSubparts)
+onBeforeUnmount(unmountSubparts)
 
 function pdfBlur(on: boolean) {
   const sections = document.querySelectorAll('.pdf-section');

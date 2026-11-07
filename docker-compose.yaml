@@ -1,5 +1,6 @@
-version: '3.8'
 services:
+  # Web app (Vite dev server). The Python service runs on the host (see
+  # start.sh) because it needs access to the camera.
   vue-dev:
     build:
       context: .
@@ -15,25 +16,7 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://host.docker.internal:5001
+      # Where the dev server proxies `/api` and `/socket.io`
+      - API_PROXY_TARGET=http://host.docker.internal:5001
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
-  # flask-api:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.flask
-  #   ports:
-  #     - "5001:5001"
-  #   environment:
-  #     - FLASK_ENV=development
-  #   # Grant access to camera devices
-  #   devices:
-  #     - /dev/video0:/dev/video0
-  #   # Additional privileges for camera access
-  #   privileged: true
-  #   # Alternative to privileged (more secure)
-  #   # cap_add:
-  #   #   - SYS_ADMIN
-  #   # security_opt:
-  #   #   - apparmor:unconfined

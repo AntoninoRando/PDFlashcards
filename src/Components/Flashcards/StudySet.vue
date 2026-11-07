@@ -19,11 +19,12 @@ import {
 import { updateCardsSchedule } from './StudySetMethods/UpdateCardsSchedule';
 import { saveStudySet } from './StudySetMethods/SaveStudySet';
 import { autosaveStudySet } from './StudySetMethods/AutoSaveStudySet';
-import { SortModes } from '@/FlashcardsScheduler';
+import { SortModes } from '@/Scheduler/FlashcardsScheduler';
 import { playRecallSound } from './StudySetMethods/PlayRecallSound';
 import { burstConfetti } from './StudySetMethods/BurstConfetti';
 import { parseCommandLine } from '@/FlashcardParser/SingleLineParser/Command';
 import { Skip } from '@/Commands/All/Skip';
+import { isTypingInInput } from '@/Utils/Dom';
 
 
 
@@ -55,7 +56,7 @@ const emit = defineEmits<Emits>();
 /**
  * The current card that is being showed (or hidden).
  */
-const studyCard = ref<IFlashcard>(null);
+const studyCard = ref<IFlashcard | null>(null);
 /**
  * The VUE COMPONENT instance of the current shown flashcard.
  */
@@ -87,7 +88,7 @@ const hideCurrent = (recallType: HideOption) => {
     console.warn('[studySet] Flashcard to HIDE is "null"');
     return;
   }
-  if (!isFlashcardRevealed) {
+  if (!isFlashcardRevealed.value) {
     console.warn('[studySet] Flashcard to HIDE is "already hidden"');
     return;
   }
@@ -152,14 +153,7 @@ const undoLastReview = () => {
   const originalFlashcard = props.studySet.flashcards[index];
   if (!originalFlashcard) return;
 
-  originalFlashcard.reviewedAt = snapshot.reviewedAt;
-  originalFlashcard.reviewedAt = snapshot.reviewedAt,
-    originalFlashcard.nextReviewAt = snapshot.nextReviewAt,
-    originalFlashcard.interval = snapshot.interval,
-    originalFlashcard.ease = snapshot.ease,
-    originalFlashcard.retrievalSuccess = snapshot.retrievalSuccess,
-    originalFlashcard.reviewCount = snapshot.reviewCount,
-    originalFlashcard.learningPhase = snapshot.learningPhase
+  Object.assign(originalFlashcard, snapshot);
 
   props.studySet.scheduler.restoreSessionRecall(originalFlashcard, snapshot.retrievalSuccess);
   /*
@@ -322,8 +316,11 @@ const downloadSet = () => {
 };
 
 const hideCardWithKeyboard = (event: KeyboardEvent) => {
+  if (isTypingInInput() || event.ctrlKey || event.metaKey || event.altKey) return;
+
   switch (event.key) {
     case ' ':
+      event.preventDefault(); // Do not scroll the page
       if (isFlashcardRevealed.value) {
         hideCurrent(HideOption.hide);
       } else {

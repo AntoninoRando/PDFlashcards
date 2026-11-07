@@ -35,7 +35,7 @@ export function parseCardLine(
 		interval: 0.5,
 		learningPhase: true,
 		reviewedAt: null,
-		retrievalSuccess: 0,
+		retrievalSuccess: null, // Not reviewed yet (0 would mean "forgot")
 		reviewCount: 0,
 		nextReviewAt: new Date(), // Default to now, will be updated if recall data follows
 		skipUntil: null,
@@ -65,6 +65,7 @@ function addHeaders(card: IFlashcard, studySet: IStudySet) {
 		if (lineDescriptor.index > card.lineDescriptor.index) continue;
 
 		const header = lineDescriptor.subParts.find((x) => x.name === Header.commandName);
+		if (!header) continue;
 		if (lastHeaderLevel !== undefined && header.level >= lastHeaderLevel) {
 			break;
 		}

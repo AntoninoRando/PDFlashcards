@@ -12,7 +12,7 @@ import {
 import { parseCommandLine } from "./SingleLineParser/Command";
 import { parseAcronymLine } from "./SingleLineParser/Alias";
 import { parseResourceLine } from "./SingleLineParser/Resource";
-import FlashcardsScheduler from "@/FlashcardsScheduler";
+import FlashcardsScheduler from "@/Scheduler/FlashcardsScheduler";
 
 export function parseStudyset(lines: string[]): IStudySet | null {
     const originalLines = lines;
@@ -34,7 +34,7 @@ export function parseStudyset(lines: string[]): IStudySet | null {
 
     try {
         let lastCategoryIndex = 0;
-        let currentCategory: Category = undefined;
+        let currentCategory: Category | undefined = undefined;
         let isUnderComment: boolean = false;
 
 
@@ -141,11 +141,17 @@ function parseLine(
     studySet: IStudySet
 ): boolean {
     const { trimmedLine, category, index } = lineDescriptor;
-    const { name: categoryName, line: categoryLine } = category;
-    
+
     if (trimmedLine.length == 0) return true;
-    if (index == categoryLine) return true;
     if (lineDescriptor.isComment) return true;
+
+    if (!category) {
+        console.error(`[parser] Line ${index} is not under any category: "${trimmedLine}"`);
+        return false;
+    }
+
+    const { name: categoryName, line: categoryLine } = category;
+    if (index == categoryLine) return true;
 
     if (lineDescriptor.tabs > 0) {
         return parseCommandLine(lineDescriptor, studySet);

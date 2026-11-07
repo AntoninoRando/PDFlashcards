@@ -46,15 +46,7 @@ export function updateCardsSchedule(
     `\t-interval=${flashcard.interval};\n` +
     `\t-ease=${flashcard.ease},`);
 
-  const n = studySet.flashcards.filter((f: any) => f !== undefined).length;
-  if (n === 0) {
-    console.log("No cards to update");
-    return;
-  }
-
-  if (studySet) {
-    studySet.studiedCards = (studySet.studiedCards || 0) + 1;
-  }
+  studySet.studiedCards = (studySet.studiedCards || 0) + 1;
 
   // Reset and repopulate scheduler with updated flashcards
   studySet.scheduler.resetCards();

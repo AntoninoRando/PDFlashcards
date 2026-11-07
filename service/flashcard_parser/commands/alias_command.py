@@ -20,7 +20,7 @@ class Alias:
                 print("[Alias] Parent is not a resource")
                 self.is_valid = False
                 return
-            study_set.resources[alias] = parent.original_line
+            study_set.resources[alias] = parent.trimmed_line
 
     def to_json(self):
         return {
