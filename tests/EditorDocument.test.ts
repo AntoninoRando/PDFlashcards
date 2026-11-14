@@ -187,7 +187,7 @@ describe("validateDocument", () => {
     expect(errors.map((e) => e.message)).toEqual([
       'The front cannot contain ".." (it starts the page reference)',
       'Unknown resource "nope"',
-      '"3-x" is not a page, a range (3-5) or a page with scroll (3%50)',
+      '"3-x" is not a page, a range (3-5), a page with scroll (3%50) or with a region (3{10,20,60,30})',
     ]);
   });
 

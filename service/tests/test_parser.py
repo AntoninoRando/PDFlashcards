@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from flashcard_parser.commands.page_ref import PageRef
 from flashcard_parser.studyset_parser import parse_studyset
 
 STUDY_SET = """\
@@ -64,6 +65,15 @@ def test_page_refs_match_the_web_app_format():
     assert page_ref["allRefs"] == [["book", 10, 50], ["slides", 2, None]]
     pages = cards[0].line_descriptor.sub_parts[0]
     assert [step[1] for step in pages["allRefs"]] == [3, 4]
+
+
+def test_page_refs_with_regions():
+    page_ref = PageRef("book: 3, 12{10,20.5,60,30}, slides: 7%50").to_json()
+    assert page_ref["allRefs"] == [
+        ["book", 3, None],
+        ["book", 12, None, {"x": 10, "y": 20.5, "w": 60, "h": 30}],
+        ["slides", 7, 50],
+    ]
 
 
 def test_textbox_and_skip_commands():

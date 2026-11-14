@@ -17,6 +17,7 @@ import {
   COMMENT_SYMBOL,
 } from "@/FlashcardParser/Symbols";
 import type { IStudySet } from "@/FlashcardParser/Types/Types";
+import { extractRegion, formatRegion, splitPageTokens, type PdfRegion } from "@/Utils/PdfRegion";
 
 //#region TYPES ----------------------------------------------------------------
 /** Kinds of child lines of a card the editor knows how to edit. */
@@ -458,6 +459,64 @@ export function pageRefOf(card: Pick<CardEntry, "resource" | "pages">): string {
   return resource ? `${resource}: ${pages}` : pages;
 }
 
+/** File of the default resource (the first one), or "" when there is none. */
+export function defaultResourceFile(doc: EditorDocument): string {
+  return doc.resources.find((r) => r.file.trim())?.file.trim() ?? "";
+}
+
+/** Shortest name a card can use for a resource file: its first alias, else the file name. */
+export function resourceNameFor(doc: EditorDocument, file: string): string {
+  const resource = doc.resources.find((r) => r.file.trim() === file);
+  return resource?.aliases.find((a) => a.trim())?.trim() ?? file;
+}
+
+/** A page with a region, as written in a page list: `12{10,20,60,30}`. */
+export function regionToken(page: number, region: PdfRegion): string {
+  return `${page}${formatRegion(region)}`;
+}
+
+/** A new card whose answer is a region of a page of `file`. */
+export function newRegionCard(doc: EditorDocument, file: string, page: number, region: PdfRegion): CardEntry {
+  const resource = file === defaultResourceFile(doc) ? "" : resourceNameFor(doc, file);
+  return newCard({ answer: "pages", resource, pages: regionToken(page, region) });
+}
+
+/**
+ * Adds a region of a page of `file` to the pages a card opens (the card's
+ * answer becomes "PDF pages" if it was a text).
+ */
+export function addRegionToCard(
+  doc: EditorDocument,
+  card: CardEntry,
+  file: string,
+  page: number,
+  region: PdfRegion,
+): void {
+  const token = regionToken(page, region);
+  const defaultFile = defaultResourceFile(doc);
+  card.answer = "pages";
+
+  if (!card.pages.trim()) {
+    card.resource = file === defaultFile ? "" : resourceNameFor(doc, file);
+    card.pages = token;
+    return;
+  }
+
+  const names = resourceNames(doc);
+  const cardFile = card.resource.trim() ? (names.get(card.resource.trim()) ?? card.resource.trim()) : defaultFile;
+  // An alias inside the list ("other: 5") applies to the pages after it too:
+  // only a list without aliases can take a bare page of the card's resource.
+  if (cardFile === file && !card.pages.includes(":")) {
+    card.pages = `${card.pages.trim()}, ${token}`;
+    return;
+  }
+
+  // Name the resource explicitly. The card's own resource must be explicit
+  // too: "3, book: 5" would read "3, book" as the resource name.
+  if (!card.resource.trim()) card.resource = resourceNameFor(doc, defaultFile);
+  card.pages = `${card.pages.trim()}, ${resourceNameFor(doc, file)}: ${token}`;
+}
+
 function detailLines(detail: CardDetail): string[] {
   const value = detail.type === "raw" ? detail.value : oneLine(detail.value);
   switch (detail.type) {
@@ -602,13 +661,23 @@ const PAGE_TOKEN = /^\d+(\s*-\s*\d+)?(\s*%\s*\d+)?$/;
 
 /** Checks a page list; returns an error message or null. */
 export function checkPages(pages: string, names: Map<string, string>): string | null {
-  const tokens = pages.split(/[;,]/).map((t) => t.trim()).filter(Boolean);
-  for (const token of tokens) {
+  for (const token of splitPageTokens(pages)) {
     const colon = token.indexOf(":");
     const alias = colon === -1 ? (/\d/.test(token) ? "" : token) : token.slice(0, colon).trim();
-    const work = colon === -1 ? (alias ? "" : token) : token.slice(colon + 1).trim();
+    let work = colon === -1 ? (alias ? "" : token) : token.slice(colon + 1).trim();
     if (alias && !names.has(alias)) return `Unknown resource "${alias}"`;
-    if (work && !PAGE_TOKEN.test(work)) return `"${token}" is not a page, a range (3-5) or a page with scroll (3%50)`;
+
+    const { rest, region, error } = extractRegion(work);
+    if (error) return error;
+    if (region) {
+      if (!/^\d+$/.test(rest)) return `"${token}": a region goes right after a single page, like 12{10,20,60,30}`;
+      continue;
+    }
+    work = rest;
+
+    if (work && !PAGE_TOKEN.test(work)) {
+      return `"${token}" is not a page, a range (3-5), a page with scroll (3%50) or with a region (3{10,20,60,30})`;
+    }
     const range = work.match(/^(\d+)\s*-\s*(\d+)/);
     if (range && Number(range[1]) > Number(range[2])) return `Range "${work}" goes backwards`;
   }

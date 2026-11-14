@@ -24,12 +24,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import PDFPreview from './PDFPreview.vue'
+import type { PdfRegion } from '@/Utils/PdfRegion'
 
 type PDFResource = {
   type: 'pdf'
   pdfUrl: string
   pageToShow?: number
   scrollPercent?: number
+  region?: PdfRegion
   trigger?: number
 }
 
@@ -89,6 +91,7 @@ function resolveProps(item: ResourceItem): Record<string, any> {
         pdfUrl: pdf.pdfUrl,
         pageToShow: pdf.pageToShow ?? 1,
         scrollPercent: pdf.scrollPercent,
+        region: pdf.region,
         trigger: pdf.trigger,
       }
     }

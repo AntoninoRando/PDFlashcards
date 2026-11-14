@@ -1,7 +1,8 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from "vue";
 import { parseStudyset } from "@/FlashcardParser/StudySetParser";
 import { HideOption, IFlashcard, IStudySet } from "@/FlashcardParser/Types/Types";
-import { PageRef } from "@/Commands/All/PageRef";
+import { PageRef, type PageStepRef } from "@/Commands/All/PageRef";
+import type { PdfRegion } from "@/Utils/PdfRegion";
 import { buildStudySetContent } from "@/Components/Flashcards/StudySetMethods/SaveStudySet";
 import { isTypingInInput } from "@/Utils/Dom";
 
@@ -15,6 +16,8 @@ interface PageStep {
   page: number;
   resourceAlias: string;
   scrollPercent?: number;
+  /** Part of the page that answers the card, highlighted in the viewer. */
+  region?: PdfRegion;
 }
 
 const RECALL_COMMANDS: ReadonlyArray<string> = [
@@ -47,6 +50,7 @@ export function useApp() {
   /** Pages (possibly across resources) referenced by the revealed card. */
   const currentCardSteps = ref<PageStep[]>([]);
   const scrollPercentToShow = ref<number | undefined>(undefined);
+  const regionToShow = ref<PdfRegion | undefined>(undefined);
   /** Incremented on each reveal to force the PDF viewer to scroll again. */
   const revealTrigger = ref<number>(0);
 
@@ -61,14 +65,12 @@ export function useApp() {
     for (const component of flashcard.lineDescriptor.subParts ?? []) {
       if (component?.name !== PageRef.commandName) continue;
 
-      const pairs: Array<[string | null, number, number?]> = Array.isArray(component.allRefs)
-        ? component.allRefs
-        : [];
+      const pairs: PageStepRef[] = Array.isArray(component.allRefs) ? component.allRefs : [];
 
       if (pairs.length) {
-        for (const [aliasMaybe, page, scrollPercent] of pairs) {
+        for (const [aliasMaybe, page, scrollPercent, region] of pairs) {
           const resourceAlias = aliasMaybe ?? component.resourceAlias ?? defaultAlias;
-          steps.push({ page, resourceAlias, scrollPercent });
+          steps.push({ page, resourceAlias, scrollPercent, region });
         }
       } else {
         const page = typeof component.ref === "number" ? component.ref : 0;
@@ -169,16 +171,20 @@ export function useApp() {
   //#endregion -----------------------------------------------------------------
 
   //#region PDF NAVIGATION -----------------------------------------------------
+  /** Shows a page from its top (the scroll and region of a step belong to the step's page). */
   function setPage(page: number) {
     pageToShow.value = Math.max(1, page);
+    scrollPercentToShow.value = undefined;
+    regionToShow.value = undefined;
     if (pdfToShow.value) resourcePages[pdfToShow.value] = pageToShow.value;
   }
 
   function goToStep(step: PageStep) {
     const file = studySet.value?.resources[step.resourceAlias] || "";
     if (file) pdfToShow.value = file;
-    scrollPercentToShow.value = step.scrollPercent;
     setPage(step.page);
+    scrollPercentToShow.value = step.scrollPercent;
+    regionToShow.value = step.region;
   }
 
   function getCurrentPdfAlias(): string {
@@ -311,6 +317,7 @@ export function useApp() {
   return {
     pageToShow,
     scrollPercentToShow,
+    regionToShow,
     studySet,
     pdfCache,
     pdfToShow,

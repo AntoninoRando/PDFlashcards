@@ -1,11 +1,15 @@
 import VuePageRef from "../Components/VuePageRef.vue";
+import { extractRegion, splitPageTokens, type PdfRegion } from "@/Utils/PdfRegion";
+
+/** A page to show: resource alias (null for the default one), page, scroll % and region. */
+export type PageStepRef = [string | null, number, number?, PdfRegion?];
 
 export class PageRef {
 	public static symbol: string = '..';
 	public static commandName: string = 'pageref';
 
 	public pageRef: number;
-	public allPageRefs: Array<[string | null, number, number?]>;
+	public allPageRefs: PageStepRef[];
 	public pagesString: string;
 	public resourceAlias?: string;
 
@@ -32,14 +36,12 @@ export class PageRef {
 		this.pageRef = (this.allPageRefs[0]?.[1] ?? 0);
 	}
 
-	private parsePageRefs(pageRefString: string, defaultAlias?: string): Array<[string | null, number, number?]> {
-		const result: Array<[string | null, number, number?]> = [];
+	private parsePageRefs(pageRefString: string, defaultAlias?: string): PageStepRef[] {
+		const result: PageStepRef[] = [];
 
 		// Tokenize by ',' and ';' while allowing alias overrides per token.
-		const tokens = pageRefString
-			.split(/[;,]/)
-			.map((t) => t.trim())
-			.filter((t) => t.length > 0);
+		// Commas inside a region ({x,y,w,h}) do not separate tokens
+		const tokens = splitPageTokens(pageRefString);
 
 		let currentAlias: string | null = defaultAlias ?? null;
 
@@ -62,6 +64,10 @@ export class PageRef {
 			}
 
 			if (!work) continue;
+
+			// A single page can show a region of it: "num{x,y,w,h}"
+			const { rest, region } = extractRegion(work);
+			work = rest;
 
 			// Parse either range "a-b" or single number, with optional scroll percentage "num%scroll"
 			let scrollPercent: number | undefined = undefined;
@@ -87,7 +93,9 @@ export class PageRef {
 			} else {
 				const num = parseInt(work, 10);
 				if (!isNaN(num)) {
-					result.push([aliasForToken ?? currentAlias ?? null, num, scrollPercent]);
+					const step: PageStepRef = [aliasForToken ?? currentAlias ?? null, num, scrollPercent];
+					if (region) step[3] = region;
+					result.push(step);
 				}
 			}
 		}
@@ -111,7 +119,7 @@ export interface IPageRef {
 	name: string;
 	vueComponent: any;
 	ref: number;
-	allRefs: Array<[string | null, number, number?]>;
+	allRefs: PageStepRef[];
 	pagesString: string;
 	resourceAlias?: string;
 }

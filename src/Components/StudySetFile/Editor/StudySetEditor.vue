@@ -8,13 +8,17 @@
 */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import PDFPreview from '@/Components/Resources/PDFPreview.vue'
+import RegionPicker from '@/Components/Resources/RegionPicker.vue'
 import { PageRef } from '@/Commands/All/PageRef'
+import type { PdfRegion } from '@/Utils/PdfRegion'
 import CardRow from './CardRow.vue'
 import ResourcesPanel from './ResourcesPanel.vue'
 import EditorIcon from './EditorIcon.vue'
 import {
+  addRegionToCard,
   checkParses,
   cloneEntry,
+  defaultResourceFile,
   documentFromText,
   documentToText,
   downloadText,
@@ -23,7 +27,9 @@ import {
   isEmptyCard,
   newCard,
   newHeader,
+  newRegionCard,
   pageRefOf,
+  resourceNameFor,
   resourceNames,
   validateDocument,
   type CardEntry,
@@ -347,6 +353,7 @@ interface PreviewStep {
   label: string
   page: number
   scroll?: number
+  region?: PdfRegion
 }
 
 /** Pages the focused card opens, in order (like the study view). */
@@ -354,14 +361,14 @@ const previewSteps = computed<PreviewStep[]>(() => {
   const card = focusedCard.value
   if (!card || card.answer !== 'pages') return []
   const names = resourceNames(doc.value)
-  const defaultFile = doc.value.resources.find((r) => r.file.trim())?.file.trim() ?? ''
+  const defaultFile = defaultResourceFile(doc.value)
   const refs = [pageRefOf(card), ...card.details.filter((d) => d.type === 'pages').map((d) => d.value)]
   const steps: PreviewStep[] = []
   for (const ref of refs) {
     if (!ref.trim()) continue
-    for (const [alias, page, scroll] of new PageRef(ref).allPageRefs) {
+    for (const [alias, page, scroll, region] of new PageRef(ref).allPageRefs) {
       const file = alias ? (names.get(alias) ?? alias) : defaultFile
-      steps.push({ file, label: alias || defaultFile, page, scroll })
+      steps.push({ file, label: alias || defaultFile, page, scroll, region })
       if (steps.length >= 40) return steps
     }
   }
@@ -375,6 +382,94 @@ const currentStep = computed(() => {
 const previewUrl = computed(() => (currentStep.value ? props.pdfCache[currentStep.value.file] : undefined))
 
 watch(focusedId, () => (previewIndex.value = 0))
+//#endregion -------------------------------------------------------------------
+
+
+
+//#region CAPTURE --------------------------------------------------------------
+/* "Capture" tab of the preview: drag a box on a PDF page to create a card
+   whose answer is that region, or to add it to the selected card. */
+const previewTab = ref<'card' | 'capture'>('card')
+const captureFile = ref('')
+const capturePage = ref(1)
+const captureRegion = ref<PdfRegion | null>(null)
+
+/** Resources of the study set whose PDF is uploaded (only those can be shown). */
+const captureFiles = computed(() =>
+  doc.value.resources.map((r) => r.file.trim()).filter((file) => file && props.pdfCache[file]),
+)
+const captureUrl = computed(() => (captureFile.value ? props.pdfCache[captureFile.value] : undefined))
+
+/** The card a region can be added to: the selected one, if it is a page card or still empty. */
+const captureTarget = computed(() => {
+  const card = focusedCard.value
+  return card && (card.answer === 'pages' || isEmptyCard(card)) ? card : undefined
+})
+
+function captureLabel(file: string): string {
+  const name = resourceNameFor(doc.value, file)
+  return name === file ? file : `${name} (${file})`
+}
+
+/** Opens the capture tab on the page the preview shows (or the first PDF). */
+function openCapture() {
+  previewOpen.value = true
+  previewTab.value = 'capture'
+  const step = currentStep.value
+  if (step && props.pdfCache[step.file]) {
+    captureFile.value = step.file
+    capturePage.value = step.page
+  } else if (!captureFiles.value.includes(captureFile.value)) {
+    captureFile.value = captureFiles.value[0] ?? ''
+    capturePage.value = 1
+  }
+  captureRegion.value = null
+  nextTick(() => document.querySelector<HTMLElement>('.region-picker .surface')?.focus({ preventScroll: true }))
+}
+
+function toggleCapture() {
+  if (previewOpen.value && previewTab.value === 'capture') previewTab.value = 'card'
+  else openCapture()
+}
+
+watch(captureFile, () => (captureRegion.value = null))
+// Uploading the first PDF while the tab is open selects it
+watch(captureFiles, (files) => {
+  if (!files.includes(captureFile.value)) captureFile.value = files[0] ?? ''
+})
+
+/** Creates a card answered by the selected region, or fills the selected card if it is empty. */
+function createCardFromRegion() {
+  const region = captureRegion.value
+  if (!region || !captureFile.value) return
+  query.value = ''
+  const page = capturePage.value
+  const focused = focusedCard.value
+
+  let card: CardEntry
+  if (focused && isEmptyCard(focused)) {
+    addRegionToCard(doc.value, focused, captureFile.value, page, region)
+    card = focused
+  } else {
+    card = newRegionCard(doc.value, captureFile.value, page, region)
+    const index = indexOfId(focusedId.value)
+    doc.value.entries.splice(index === -1 ? doc.value.entries.length : index + 1, 0, card)
+  }
+  captureRegion.value = null
+  // Write the question right away; the capture tab stays open for the next one
+  focusEntry(card.id)
+  showToast(`Card ${cardNumbers.value.get(card.id) ?? ''} created from page ${page}: write its question`)
+}
+
+/** Adds the selected region to the pages the selected card opens. */
+function addRegionToSelected() {
+  const region = captureRegion.value
+  const card = captureTarget.value
+  if (!region || !card || !captureFile.value) return
+  addRegionToCard(doc.value, card, captureFile.value, capturePage.value, region)
+  captureRegion.value = null
+  showToast(`Region added to card ${cardNumbers.value.get(card.id) ?? ''}`)
+}
 //#endregion -------------------------------------------------------------------
 
 
@@ -548,6 +643,12 @@ onBeforeUnmount(() => {
             :aria-pressed="previewOpen" title="Show the PDF page of the selected card" @click="previewOpen = !previewOpen">
             <EditorIcon name="eye" /> Preview
           </button>
+          <button v-if="view === 'visual'" type="button" class="ghost-btn"
+            :class="{ active: previewOpen && previewTab === 'capture' }"
+            :aria-pressed="previewOpen && previewTab === 'capture'"
+            title="Drag a box on a PDF page to make a card from it" @click="toggleCapture">
+            <EditorIcon name="crop" /> Capture
+          </button>
           <button type="button" class="ghost-btn" title="Download the study set as a .txt file" @click="download">
             <EditorIcon name="download" /> .txt
           </button>
@@ -566,7 +667,11 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <div class="workspace" :class="{ 'with-preview': previewOpen && view === 'visual', 'text-view': view === 'text' }">
+      <div class="workspace" :class="{
+        'with-preview': previewOpen && view === 'visual',
+        capturing: previewOpen && view === 'visual' && previewTab === 'capture',
+        'text-view': view === 'text',
+      }">
         <!-- SIDEBAR -->
         <aside v-if="view === 'visual'" class="sidebar">
           <section class="panel">
@@ -687,6 +792,8 @@ onBeforeUnmount(() => {
               <dd>Card opening pages 12, 14, 15 and 16</dd>
               <dt><code>Front .. book: 3%50</code></dt>
               <dd>Page 3 of “book”, scrolled halfway</dd>
+              <dt><code>Front .. 12{10,20,60,30}</code></dt>
+              <dd>A region of page 12: left, top, width, height in % (use Capture in the visual view)</dd>
               <dt><code>Front ... answer</code></dt>
               <dd>Card with a text answer</dd>
               <dt><code>Chapter 1</code><br /><code>⇥^ 1</code></dt>
@@ -705,12 +812,47 @@ onBeforeUnmount(() => {
         <!-- PREVIEW -->
         <aside v-if="previewOpen && view === 'visual'" class="preview">
           <header class="preview-header">
-            <h3 class="panel-title">Preview</h3>
+            <div class="segmented preview-tabs" role="tablist" aria-label="Preview">
+              <button type="button" role="tab" :aria-selected="previewTab === 'card'"
+                :class="{ active: previewTab === 'card' }" @click="previewTab = 'card'">Card</button>
+              <button type="button" role="tab" :aria-selected="previewTab === 'capture'"
+                :class="{ active: previewTab === 'capture' }" @click="openCapture">Capture</button>
+            </div>
             <button type="button" class="icon-btn" title="Close preview" @click="previewOpen = false">
               <EditorIcon name="x" :size="14" />
             </button>
           </header>
-          <p v-if="!focusedCard" class="preview-empty">Select a card to see the page it opens.</p>
+
+          <!-- CAPTURE: make cards from regions of the PDF -->
+          <template v-if="previewTab === 'capture'">
+            <p v-if="!captureFiles.length" class="preview-empty">
+              Upload a PDF of the study set (Resources, on the left) to make cards from its pages.
+            </p>
+            <template v-else>
+              <select v-if="captureFiles.length > 1" v-model="captureFile" class="capture-resource"
+                aria-label="PDF to capture from">
+                <option v-for="file in captureFiles" :key="file" :value="file">{{ captureLabel(file) }}</option>
+              </select>
+              <p class="capture-hint">
+                Drag a box around the answer on the page. <kbd>Enter</kbd> creates the card, <kbd>Esc</kbd> clears the box.
+              </p>
+              <RegionPicker v-if="captureUrl" v-model:page="capturePage" v-model:region="captureRegion"
+                :pdf-url="captureUrl" @confirm="createCardFromRegion" />
+              <div class="capture-actions">
+                <button type="button" class="primary-btn" :disabled="!captureRegion" @click="createCardFromRegion">
+                  <EditorIcon name="plus" :size="14" />
+                  {{ focusedCard && isEmptyCard(focusedCard) ? `Use for card ${cardNumbers.get(focusedCard.id)}` : 'New card' }}
+                </button>
+                <button v-if="captureTarget && !isEmptyCard(captureTarget)" type="button" class="ghost-btn"
+                  :disabled="!captureRegion" :title="`Add the region to the pages card ${cardNumbers.get(captureTarget.id)} opens`"
+                  @click="addRegionToSelected">
+                  Add to card {{ cardNumbers.get(captureTarget.id) }}
+                </button>
+              </div>
+            </template>
+          </template>
+
+          <p v-else-if="!focusedCard" class="preview-empty">Select a card to see the page it opens.</p>
           <template v-else>
             <div class="preview-card">
               <span class="eyebrow">Card {{ cardNumbers.get(focusedCard.id) }}</span>
@@ -724,11 +866,13 @@ onBeforeUnmount(() => {
                 <button v-for="(step, i) in previewSteps" :key="i" type="button" class="step"
                   :class="{ active: step === currentStep }" :title="`${step.label}, page ${step.page}`"
                   @click="previewIndex = i">
-                  p. {{ step.page }}<template v-if="step.scroll !== undefined"> · {{ step.scroll }}%</template>
+                  p. {{ step.page }}<template v-if="step.region"> · region</template><template
+                    v-else-if="step.scroll !== undefined"> · {{ step.scroll }}%</template>
                 </button>
               </div>
               <div v-if="previewUrl" class="pdf-frame">
-                <PDFPreview :pdf-url="previewUrl" :page-to-show="currentStep.page" :scroll-percent="currentStep.scroll" />
+                <PDFPreview :pdf-url="previewUrl" :page-to-show="currentStep.page" :scroll-percent="currentStep.scroll"
+                  :region="currentStep.region" />
               </div>
               <p v-else class="preview-empty">
                 Upload <strong>{{ currentStep.file || 'a PDF' }}</strong> (Resources, on the left) to preview
@@ -1012,6 +1156,7 @@ button:focus-visible {
 
 /* WORKSPACE ---------------------------------------------------------------- */
 .workspace {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: grid;
@@ -1550,6 +1695,51 @@ code {
   overflow: hidden;
 }
 
+.preview-tabs button {
+  padding: 0.25rem 0.8rem;
+}
+
+.capture-resource {
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--ed-border);
+  background: var(--ed-input);
+  color: var(--ed-text);
+}
+
+.capture-resource option {
+  background: var(--ed-surface);
+}
+
+.capture-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ed-muted);
+}
+
+.capture-hint kbd {
+  font-size: 0.72rem;
+}
+
+.capture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.capture-actions .ghost-btn {
+  border-color: var(--ed-border);
+}
+
+.capture-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
 /* STATUS BAR --------------------------------------------------------------- */
 .statusbar {
   display: flex;
@@ -1704,6 +1894,18 @@ kbd {
 
   .workspace.with-preview .preview {
     display: none;
+  }
+
+  /* No room for a third column: capturing slides the panel over the cards */
+  .workspace.with-preview.capturing .preview {
+    display: flex;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(460px, 100%);
+    z-index: 5;
+    box-shadow: -18px 0 40px rgba(3, 2, 14, 0.6);
   }
 
   .shortcuts {

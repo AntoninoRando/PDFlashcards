@@ -14,9 +14,11 @@ const props = defineProps<Props>();
 const pages = ref<string>('');
 
 const configureFromJson = (settings: IPageRef) => {
+    // A region's coordinates mean nothing to the reader: just mark that there is one
+    const pagesString = (settings.pagesString || '').replace(/\s*\{[^}]*\}/g, ' (region)');
     pages.value = settings.resourceAlias
-        ? `${settings.resourceAlias}:${settings.pagesString || ''}`
-        : (settings.pagesString || '');
+        ? `${settings.resourceAlias}:${pagesString}`
+        : pagesString;
 };
 
 onMounted(() => {

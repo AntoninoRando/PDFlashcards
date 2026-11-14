@@ -21,6 +21,7 @@ const PATHS = {
   card: 'M3 6h18v12H3zM7 10h6',
   undo: 'M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3',
   upload: 'M12 16V4M6 10l6-6 6 6M4 20h16',
+  crop: 'M6 2v14a2 2 0 0 0 2 2h14M18 22V8a2 2 0 0 0-2-2H2',
 } as const
 </script>
 

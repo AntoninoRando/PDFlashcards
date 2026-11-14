@@ -1,8 +1,14 @@
 import re
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
-# (resource alias, page, scroll percentage)
-PageStep = Tuple[Optional[str], int, Optional[int]]
+# Region of a page, in % of its size: {"x", "y", "w", "h"}
+Region = Dict[str, float]
+
+# (resource alias, page, scroll percentage) plus the region, when there is one
+PageStep = Union[
+    Tuple[Optional[str], int, Optional[int]],
+    Tuple[Optional[str], int, Optional[int], Region],
+]
 
 
 class PageRef:
@@ -31,7 +37,7 @@ class PageRef:
     @staticmethod
     def _parse_page_refs(page_ref_string: str, default_alias: Optional[str]) -> List[PageStep]:
         result: List[PageStep] = []
-        tokens = [t.strip() for t in re.split(r"[;,]", page_ref_string) if t.strip()]
+        tokens = _split_page_tokens(page_ref_string)
         current_alias = default_alias
 
         for token in tokens:
@@ -51,6 +57,9 @@ class PageRef:
             if not work:
                 continue
 
+            # A single page can show a region of it: "num{x,y,w,h}"
+            work, region = _extract_region(work)
+
             scroll: Optional[int] = None
             percent_pos = work.find("%")
             if percent_pos != -1:
@@ -66,7 +75,10 @@ class PageRef:
             else:
                 page = _to_int(work)
                 if page is not None:
-                    result.append((step_alias, page, scroll))
+                    if region is not None:
+                        result.append((step_alias, page, scroll, region))
+                    else:
+                        result.append((step_alias, page, scroll))
         return result
 
     def to_json(self):
@@ -77,6 +89,51 @@ class PageRef:
             "pagesString": self.pages_string,
             "resourceAlias": self.resource_alias,
         }
+
+
+def _split_page_tokens(pages: str) -> List[str]:
+    """Splits on ',' and ';', except inside a region (port of `splitPageTokens`)."""
+    tokens: List[str] = []
+    depth = 0
+    current = ""
+    for char in pages:
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth = max(0, depth - 1)
+        if char in ",;" and depth == 0:
+            tokens.append(current)
+            current = ""
+        else:
+            current += char
+    tokens.append(current)
+    return [t.strip() for t in tokens if t.strip()]
+
+
+def _extract_region(token: str) -> Tuple[str, Optional[Region]]:
+    """Separates "12{10,20,60,30}" into "12" and the region (port of `extractRegion`)."""
+    start = token.find("{")
+    end = token.find("}", start) if start != -1 else -1
+    if start == -1 or end == -1:
+        return token, None
+    rest = (token[:start] + token[end + 1 :]).strip()
+    return rest, _parse_region(token[start + 1 : end])
+
+
+def _parse_region(text: str) -> Optional[Region]:
+    parts = [p.strip() for p in text.split(",")]
+    if len(parts) != 4 or not all(re.fullmatch(r"\d+(\.\d+)?", p) for p in parts):
+        return None
+    x, y, w, h = (_number(p) for p in parts)
+    if w <= 0 or h <= 0 or x + w > 100.05 or y + h > 100.05:
+        return None
+    return {"x": x, "y": y, "w": w, "h": h}
+
+
+def _number(value: str) -> float:
+    # Integers stay integers, so that the JSON matches the web app's numbers
+    number = float(value)
+    return int(number) if number.is_integer() else number
 
 
 def _to_int(value: str) -> Optional[int]:

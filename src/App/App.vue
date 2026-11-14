@@ -11,10 +11,12 @@ import ShortcutsSidebar from '@/Components/Layout/ShortcutsSidebar.vue'
 import { useApp } from './UseApp'
 import { SortModes } from '@/Scheduler/FlashcardsScheduler'
 import { computed } from 'vue'
+import type { PdfRegion } from '@/Utils/PdfRegion'
 
 const {
   pageToShow,
   scrollPercentToShow,
+  regionToShow,
   studySet,
   pdfCache,
   pdfToShow,
@@ -61,6 +63,7 @@ interface PdfResourceItem {
   pdfUrl: string
   pageToShow: number
   scrollPercent?: number
+  region?: PdfRegion
   trigger: number
   /** File name of the PDF (key of `pdfCache`). */
   fileName: string
@@ -81,6 +84,7 @@ const resourcesList = computed<PdfResourceItem[]>(() => {
       pdfUrl: url,
       pageToShow: isCurrent ? pageToShow.value : (resourcePages[fileName] ?? -1),
       scrollPercent: isCurrent ? scrollPercentToShow.value : undefined,
+      region: isCurrent ? regionToShow.value : undefined,
       trigger: isCurrent ? revealTrigger.value : 0,
       fileName,
     })
@@ -99,6 +103,9 @@ const resourcesList = computed<PdfResourceItem[]>(() => {
 function onResourceChanged(item: PdfResourceItem) {
   if (!item?.fileName) return
   pdfToShow.value = item.fileName
+  // The scroll and region of the card's step belong to the PDF it was in
+  scrollPercentToShow.value = undefined
+  regionToShow.value = undefined
   const page = resourcePages[item.fileName]
   if (typeof page === 'number' && page > 0) {
     pageToShow.value = page
