@@ -754,6 +754,7 @@ onBeforeUnmount(() => {
                 :issues="issuesById.get(entry.id) ?? []" :resource-options="resourceOptions"
                 :default-resource="doc.resources[0]?.file ?? ''" :focused="focusedId === entry.id"
                 :can-move="!query.trim()" @focus="focusedId = entry.id" @add-after="addCard(index)"
+                @add-section="addHeader(index)" @capture="openCapture"
                 @move="moveEntry(index, $event)" @duplicate="duplicateEntry(index)" @remove="removeEntry(index)" />
 
               <section v-else-if="entry.kind === 'header'" class="header-row" :class="`level-${entry.level}`"
@@ -945,7 +946,8 @@ onBeforeUnmount(() => {
         </button>
         <span v-if="dirty" class="muted">Unsaved changes</span>
         <span class="shortcuts">
-          <kbd>Enter</kbd> next field · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> new card · <kbd>Alt</kbd>+<kbd>↑↓</kbd> move ·
+          <kbd>/</kbd> commands · <kbd>Enter</kbd> next field · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> new card ·
+          <kbd>Alt</kbd>+<kbd>↑↓</kbd> move ·
           <kbd>Ctrl</kbd>+<kbd>S</kbd> save · <kbd>Esc</kbd> close
         </span>
       </footer>

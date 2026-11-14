@@ -3,8 +3,9 @@
   One flashcard in the study-set editor: front text, answer (PDF pages or a
   text box) and the details tabbed under it (remember, notes, tags...).
 */
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import EditorIcon from './EditorIcon.vue'
+import SlashMenu from './SlashMenu.vue'
 import {
   DETAIL_KINDS,
   newDetail,
@@ -12,6 +13,7 @@ import {
   type DetailType,
   type Issue,
 } from './EditorDocument'
+import { filterCommands, findSlashQuery, removeSlashQuery, type SlashCommand } from './SlashCommands'
 
 const props = defineProps<{
   card: CardEntry
@@ -27,6 +29,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   focus: []
   addAfter: []
+  /** Add a section right after this card. */
+  addSection: []
+  /** Open the Capture tab, to draw this card's answer on a PDF page. */
+  capture: []
   move: [direction: -1 | 1]
   duplicate: []
   remove: []
@@ -53,13 +59,207 @@ function addDetail(event: Event) {
   const type = select.value as DetailType
   select.value = ''
   if (!type) return
-  props.card.details.push(newDetail(type))
-  // Focus the new field so that the user can type right away
-  nextTick(() => {
-    const inputs = detailsList.value?.querySelectorAll<HTMLInputElement>('.detail-input')
-    inputs?.[inputs.length - 1]?.focus()
-  })
+  addDetailOfType(type)
 }
+
+/** Adds a detail; returns whether it has a field (which gets the focus, so that the user can type right away). */
+function addDetailOfType(type: DetailType): boolean {
+  const detail = newDetail(type)
+  props.card.details.push(detail)
+  const hasField = type !== 'autoReveal' && type !== 'reverse'
+  if (hasField) {
+    nextTick(() => {
+      detailsList.value?.querySelector<HTMLInputElement>(`[data-detail-id="${detail.id}"] .detail-input`)?.focus()
+    })
+  }
+  return hasField
+}
+
+//#region SLASH MENU -----------------------------------------------------------
+/* Typing "/" in a field of the card opens a menu of commands (see
+   SlashCommands.ts). The "/query" is removed from the field when one runs. */
+interface CardCommand extends SlashCommand {
+  run: () => void
+}
+
+/** What some details are for, when the "+ Detail" placeholder does not say it. */
+const DETAIL_HINTS: Partial<Record<DetailType, string>> = {
+  tag: 'Group cards by topic',
+  pages: 'Another page the card opens',
+  autoReveal: 'Open the answer as soon as the card is shown',
+  reverse: 'Also study it the other way: the answer first',
+}
+
+const DETAIL_KEYWORDS: Partial<Record<DetailType, string[]>> = {
+  remember: ['+', 'hint'],
+  tag: ['#', 'label', 'topic'],
+  pages: ['..', 'pdf', 'page'],
+  autoReveal: ['open', 'show'],
+  reverse: ['<>', 'flip', 'both', 'backwards'],
+}
+
+const DETAIL_SHORTCUTS: Partial<Record<DetailType, string>> = {
+  remember: '+',
+  tag: '#',
+  pages: '..',
+  reverse: '<>',
+}
+
+const slashCommands = computed<CardCommand[]>(() => {
+  const details: CardCommand[] = addableKinds.value.map((kind) => ({
+    id: kind.type,
+    label: kind.type === 'reverse' ? 'Reverse card' : kind.label,
+    hint: DETAIL_HINTS[kind.type] ?? kind.placeholder,
+    keywords: DETAIL_KEYWORDS[kind.type] ?? [],
+    shortcut: DETAIL_SHORTCUTS[kind.type],
+    // Details without a field (reverse, auto-reveal) leave the focus where it is
+    run: () => void addDetailOfType(kind.type),
+  }))
+
+  const textAnswer = props.card.answer === 'textbox'
+  return [
+    ...details,
+    textAnswer
+      ? { id: 'answer-pages', label: 'PDF pages answer', hint: 'The answer is in the PDF', keywords: ['pdf', 'page'], run: () => switchAnswer('pages') }
+      : { id: 'answer-text', label: 'Text answer', hint: 'Write the answer instead of pointing to a page', keywords: ['...', 'textbox'], shortcut: '...', run: () => switchAnswer('textbox') },
+    { id: 'capture', label: 'Capture from PDF', hint: 'Draw this card’s answer on a page', keywords: ['region', 'box', 'select', 'highlight'], run: () => emit('capture') },
+    { id: 'card', label: 'New card below', hint: 'Ctrl+Enter', keywords: ['add', 'create'], run: () => emit('addAfter') },
+    { id: 'section', label: 'New section below', hint: 'Group the next cards', keywords: ['header', 'chapter', 'add'], shortcut: '^', run: () => emit('addSection') },
+    { id: 'duplicate', label: 'Duplicate card', hint: 'A copy right after this one', keywords: ['copy', 'clone'], run: () => emit('duplicate') },
+  ]
+})
+
+function switchAnswer(answer: CardEntry['answer']) {
+  props.card.answer = answer
+  nextTick(focusAnswer)
+}
+
+interface SlashState {
+  el: HTMLInputElement | HTMLTextAreaElement
+  start: number
+  query: string
+  /** Writes a new value of the field into the card. */
+  apply: (value: string) => void
+}
+
+const slash = ref<SlashState | null>(null)
+const slashIndex = ref(0)
+const slashPosition = ref<{ left: number; top?: number; bottom?: number }>({ left: 0, top: 0 })
+/** A "/" the user closed the menu of (Esc): it does not open again while it is there. */
+let dismissed: { el: EventTarget; start: number } | null = null
+
+const slashItems = computed(() => (slash.value ? filterCommands(slashCommands.value, slash.value.query) : []))
+
+const MENU_WIDTH = 300
+const MENU_HEIGHT = 340
+
+function placeMenu(el: HTMLElement) {
+  const rect = el.getBoundingClientRect()
+  const left = Math.max(8, Math.min(rect.left, window.innerWidth - MENU_WIDTH - 8))
+  // Above the field when there is no room below it
+  slashPosition.value = rect.bottom + MENU_HEIGHT + 8 > window.innerHeight && rect.top > MENU_HEIGHT
+    ? { left, bottom: window.innerHeight - rect.top + 4 }
+    : { left, top: rect.bottom + 4 }
+}
+
+/** Opens, updates or closes the menu from the text before the caret. */
+function updateSlash(event: Event, apply: (value: string) => void) {
+  const el = event.target as HTMLInputElement | HTMLTextAreaElement
+  const found = findSlashQuery(el.value, el.selectionStart ?? el.value.length)
+  if (!found) {
+    dismissed = null
+    closeSlash()
+    return
+  }
+  if (dismissed?.el === el && dismissed.start === found.start) return
+
+  const isNew = !slash.value || slash.value.el !== el || slash.value.start !== found.start
+  slash.value = { el, start: found.start, query: found.query, apply }
+  if (!slashItems.value.length) {
+    // Nothing matches: it was not a command
+    closeSlash()
+    return
+  }
+  if (isNew) slashIndex.value = 0
+  slashIndex.value = Math.min(slashIndex.value, slashItems.value.length - 1)
+  placeMenu(el)
+  window.addEventListener('scroll', onScroll, true)
+  window.addEventListener('resize', closeSlash)
+}
+
+function closeSlash() {
+  slash.value = null
+  window.removeEventListener('scroll', onScroll, true)
+  window.removeEventListener('resize', closeSlash)
+}
+
+function onScroll(event: Event) {
+  // Scrolling the list of commands itself is fine
+  if ((event.target as HTMLElement | null)?.closest?.('.slash-menu')) return
+  closeSlash()
+}
+
+/** Handles the menu keys; returns true if the event was for the menu. */
+function slashKeydown(event: KeyboardEvent): boolean {
+  if (!slash.value || !slashItems.value.length) return false
+  const count = slashItems.value.length
+  switch (event.key) {
+    case 'ArrowDown':
+      slashIndex.value = (slashIndex.value + 1) % count
+      break
+    case 'ArrowUp':
+      slashIndex.value = (slashIndex.value - 1 + count) % count
+      break
+    case 'Enter':
+    case 'Tab':
+      if (event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return false
+      runSlash(slashIndex.value)
+      break
+    case 'Escape':
+      dismissed = { el: slash.value.el, start: slash.value.start }
+      closeSlash()
+      break
+    default:
+      return false
+  }
+  // Not the field's own Enter (next field, new card) nor the editor's Escape (close)
+  event.preventDefault()
+  event.stopPropagation()
+  return true
+}
+
+function runSlash(index: number) {
+  const state = slash.value
+  const command = slashItems.value[index] as CardCommand | undefined
+  if (!state || !command) return
+  closeSlash()
+  const { el, start, apply } = state
+  const { value, caret } = removeSlashQuery(el.value, start, el.selectionStart ?? el.value.length)
+  apply(value)
+  // The field keeps the focus unless the command moves it
+  nextTick(() => el.setSelectionRange?.(caret, caret))
+  command.run()
+}
+
+/** Listeners for a field of the card: `apply` writes its new value. */
+function slashField(apply: (value: string) => void) {
+  return {
+    input: (event: Event) => updateSlash(event, apply),
+    // Moving the caret with the keyboard or the mouse may leave the "/query"
+    keyup: (event: KeyboardEvent) => {
+      if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) updateSlash(event, apply)
+    },
+    click: (event: Event) => slash.value && updateSlash(event, apply),
+    blur: () => closeSlash(),
+  }
+}
+
+const frontField = slashField((value) => (props.card.front = value))
+const pagesField = slashField((value) => (props.card.pages = value))
+const textBoxField = slashField((value) => (props.card.textBox = value))
+
+onBeforeUnmount(closeSlash)
+//#endregion -------------------------------------------------------------------
 
 function removeDetail(index: number) {
   const detail = props.card.details[index]
@@ -101,7 +301,17 @@ function rowsOf(text: string): number {
   return Math.min(8, Math.max(1, text.split('\n').length))
 }
 
+function onFrontKeydown(event: KeyboardEvent) {
+  if (slashKeydown(event)) return
+  // Enter on the front goes to the answer
+  if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    event.preventDefault()
+    focusAnswer()
+  }
+}
+
 function onAnswerKeydown(event: KeyboardEvent) {
+  if (slashKeydown(event)) return
   // Enter on the answer adds the next card; Shift+Enter is a plain new line
   if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
     event.preventDefault()
@@ -117,8 +327,8 @@ function onAnswerKeydown(event: KeyboardEvent) {
 
     <div class="card-body">
       <input class="front-input" v-model="card.front" type="text" spellcheck="true"
-        placeholder="Front of the card: a question or a prompt" aria-label="Front of the card"
-        @keydown.enter.exact.prevent="focusAnswer" />
+        placeholder="Front of the card: a question or a prompt · / for commands" aria-label="Front of the card"
+        aria-haspopup="listbox" v-on="frontField" @keydown="onFrontKeydown" />
 
       <div class="answer-line">
         <div class="segmented" role="radiogroup" aria-label="Answer type">
@@ -137,15 +347,16 @@ function onAnswerKeydown(event: KeyboardEvent) {
             </option>
           </select>
           <input ref="answerInput" class="pages-input" v-model="card.pages" type="text" inputmode="numeric"
-            placeholder="Pages: 12 · 14-16 · 20%50" aria-label="Pages" @keydown="onAnswerKeydown" />
+            placeholder="Pages: 12 · 14-16 · 20%50" aria-label="Pages" v-on="pagesField" @keydown="onAnswerKeydown" />
         </template>
         <textarea v-else ref="answerInput" class="textbox-input" v-model="card.textBox" :rows="rowsOf(card.textBox)"
           placeholder="Answer shown when the card is revealed" aria-label="Answer text"
-          @keydown="onAnswerKeydown" />
+          v-on="textBoxField" @keydown="onAnswerKeydown" />
       </div>
 
       <ul v-if="card.details.length" ref="detailsList" class="details">
-        <li v-for="(detail, i) in card.details" :key="detail.id" class="detail" :class="`detail-${detail.type}`">
+        <li v-for="(detail, i) in card.details" :key="detail.id" class="detail" :class="`detail-${detail.type}`"
+          :data-detail-id="detail.id">
           <span class="detail-label">{{ DETAIL_KINDS[detail.type].label }}</span>
           <span v-if="detail.type === 'recall'" class="detail-info" :title="detail.value">
             {{ recallSummary(detail.value) }}
@@ -162,7 +373,8 @@ function onAnswerKeydown(event: KeyboardEvent) {
           <textarea v-else-if="detail.type === 'raw'" class="detail-input raw-input" v-model="detail.value"
             :rows="rowsOf(detail.value)" spellcheck="false" aria-label="Raw lines" />
           <input v-else class="detail-input" v-model="detail.value" type="text"
-            :placeholder="DETAIL_KINDS[detail.type].placeholder" :aria-label="DETAIL_KINDS[detail.type].label" />
+            :placeholder="DETAIL_KINDS[detail.type].placeholder" :aria-label="DETAIL_KINDS[detail.type].label"
+            aria-haspopup="listbox" v-on="slashField((value) => (detail.value = value))" @keydown="slashKeydown" />
           <button type="button" class="icon-btn small"
             :title="detail.type === 'recall' ? 'Reset review progress' : 'Remove'" @click="removeDetail(i)">
             <EditorIcon name="x" :size="14" />
@@ -198,6 +410,10 @@ function onAnswerKeydown(event: KeyboardEvent) {
         </button>
       </div>
     </div>
+
+    <!-- Fixed to the window, next to the field being typed in -->
+    <SlashMenu v-if="slash && slashItems.length" :items="slashItems" :active-index="slashIndex"
+      :position="slashPosition" :query="slash.query" @hover="slashIndex = $event" @pick="runSlash" />
   </article>
 </template>
 
