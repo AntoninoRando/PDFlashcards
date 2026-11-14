@@ -13,7 +13,6 @@
     "format": "prettier . --write"
   },
   "dependencies": {
-    "@vue-pdf-viewer/viewer": "^2.5.1",
     "pdfjs-dist": "^5.2.133",
     "socket.io-client": "^4.7.5",
     "vue": "^3.5.13"

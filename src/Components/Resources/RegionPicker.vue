@@ -4,11 +4,13 @@
   is in percentages of the page (see `Utils/PdfRegion.ts`), so it does not
   depend on the size the page is drawn at.
 
-  It renders with pdf.js directly (not the viewer used elsewhere), because it
-  needs full control of the page's position to map the mouse onto it.
+  It renders a single page with pdf.js (not the scrolling viewer of
+  `PDFPreview.vue`), because it needs full control of the page's position to
+  map the mouse onto it.
 */
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import type { RenderTask } from 'pdfjs-dist'
+import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
+import { openDocument } from '@/Utils/Pdfjs'
 import { clampRegion, formatRegion, MIN_REGION_SIZE, type PdfRegion } from '@/Utils/PdfRegion'
 
 const props = defineProps<{
@@ -206,29 +208,6 @@ const regionStyle = computed(() => {
 //#endregion -------------------------------------------------------------------
 
 defineExpose({ pageCount })
-</script>
-
-<script lang="ts">
-/* Module scope: shared by every picker */
-import * as pdfjs from 'pdfjs-dist'
-import type { PDFDocumentProxy } from 'pdfjs-dist'
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
-
-pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
-
-/* Documents stay open for the whole session: object URLs of uploaded PDFs do
-   not change, and reopening the editor should not parse them again. */
-const documents = new Map<string, Promise<PDFDocumentProxy>>()
-
-function openDocument(url: string): Promise<PDFDocumentProxy> {
-  let doc = documents.get(url)
-  if (!doc) {
-    doc = pdfjs.getDocument({ url }).promise
-    doc.catch(() => documents.delete(url))
-    documents.set(url, doc)
-  }
-  return doc
-}
 </script>
 
 <template>
