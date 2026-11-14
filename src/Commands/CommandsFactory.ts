@@ -10,6 +10,7 @@ import { Example } from "./All/Example";
 import { RecallData } from "./All/RecallData";
 import { Note } from "./All/Note";
 import { Skip } from "./All/Skip";
+import { Reverse } from "./All/Reverse";
 import { LineDescriptor, IStudySet } from "@/FlashcardParser/Types/Types";
 
 export class CommandsFactory {
@@ -68,6 +69,11 @@ export class CommandsFactory {
             case 'Skip':
             case 'skip':
                 return new Skip(lineDescriptor, studySet, commandArgument);
+            case Reverse.symbol:
+            case 'reverse':
+                if (commandArgument) return null;
+                const reverse = new Reverse(lineDescriptor, studySet);
+                return reverse.isValid ? reverse : null;
             default:
                 console.log(`[MakeCommand] Unrecognized command ${commandNameOrShortcut}`)
                 return null;

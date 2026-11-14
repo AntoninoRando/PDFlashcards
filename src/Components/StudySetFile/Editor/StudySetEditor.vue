@@ -840,6 +840,8 @@ onBeforeUnmount(() => {
               <dd>Section header (level 1)</dd>
               <dt><code>⇥+ text</code> <code>⇥# tag</code></dt>
               <dd>Remember / tag, under a card</dd>
+              <dt><code>⇥&lt;&gt;</code></dt>
+              <dd>Also study the card the other way: its page (or text) first, then the front</dd>
               <dt><code>⇥note …</code> <code>⇥example …</code> <code>⇥recap …</code></dt>
               <dd>Notes shown on the card</dd>
               <dt><code>// comment</code></dt>

@@ -117,3 +117,23 @@ def test_lines_tabbed_under_a_comment_are_ignored():
 
 def test_invalid_category_fails():
     assert parse("[Unknown]\nsomething") is None
+
+
+def test_reverse_cards():
+    study_set = parse_studyset([
+        "[Cards]",
+        "What is a deadlock? .. 12",
+        "\t<>",
+        "\t\t*** 2025-01-15T10:30:00.000Z, 5, 3, false",
+        "Another card .. 4",
+    ])
+    card, reverse, other = study_set.flashcards
+    assert reverse.reverse_of is card
+    assert reverse.text == card.text
+    assert reverse.interval == 3 and card.reviewed_at is None
+    assert reverse.to_dict()["reverseOf"] == card.line_descriptor.index
+    assert other.to_dict()["reverseOf"] is None
+
+
+def test_reverse_must_be_under_a_card():
+    assert parse_studyset(["[Cards]", "A card", "\t<>", "\t\t<>"]) is None

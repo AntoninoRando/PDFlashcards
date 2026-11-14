@@ -1,6 +1,6 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from "vue";
 import { parseStudyset } from "@/FlashcardParser/StudySetParser";
-import { HideOption, IFlashcard, IStudySet } from "@/FlashcardParser/Types/Types";
+import { contentLineOf, HideOption, IFlashcard, IStudySet } from "@/FlashcardParser/Types/Types";
 import { PageRef, type PageStepRef } from "@/Commands/All/PageRef";
 import type { PdfRegion } from "@/Utils/PdfRegion";
 import { buildStudySetContent } from "@/Components/Flashcards/StudySetMethods/SaveStudySet";
@@ -62,7 +62,8 @@ export function useApp() {
   //#region CARDS --------------------------------------------------------------
   function collectPageSteps(flashcard: IFlashcard, defaultAlias: string): PageStep[] {
     const steps: PageStep[] = [];
-    for (const component of flashcard.lineDescriptor.subParts ?? []) {
+    // A reverse card opens the pages of the card it reverses
+    for (const component of contentLineOf(flashcard).subParts ?? []) {
       if (component?.name !== PageRef.commandName) continue;
 
       const pairs: PageStepRef[] = Array.isArray(component.allRefs) ? component.allRefs : [];
@@ -94,7 +95,8 @@ export function useApp() {
 
     const steps = collectPageSteps(flashcard, set.defaultResource ?? "");
     if (!steps.length || !steps[0].resourceAlias) {
-      console.error("[showPage] Revealed card has no page or resource: " + flashcard.text);
+      // The reverse of a text-answer card shows its text on the card, not a page
+      if (!flashcard.reverseOf) console.error("[showPage] Revealed card has no page or resource: " + flashcard.text);
       return;
     }
 
@@ -112,6 +114,15 @@ export function useApp() {
   function cardHidden() {
     cardRevealed.value = false;
     currentCardSteps.value = [];
+  }
+
+  /**
+   * A card is shown, not revealed yet. A reverse card asks for its front from
+   * its answer, so its pages open right away; any other card hides the PDF.
+   */
+  function cardPresented(flashcard: IFlashcard | null) {
+    cardHidden();
+    if (flashcard?.reverseOf) showPage(flashcard);
   }
   //#endregion -----------------------------------------------------------------
 
@@ -333,6 +344,7 @@ export function useApp() {
     gestureRecognizer,
     showPage,
     cardHidden,
+    cardPresented,
     loadStudySet,
     openCreator,
     openEditor,

@@ -39,7 +39,8 @@ const hasError = computed(() => props.issues.some((i) => i.severity === 'error')
 
 const addableKinds = computed(() =>
   Object.values(DETAIL_KINDS).filter(
-    (k) => k.addable && !(k.type === 'autoReveal' && props.card.details.some((d) => d.type === 'autoReveal')),
+    // Auto-reveal and reverse make sense once per card
+    (k) => k.addable && !((k.type === 'autoReveal' || k.type === 'reverse') && props.card.details.some((d) => d.type === k.type)),
   ),
 )
 
@@ -63,6 +64,8 @@ function addDetail(event: Event) {
 function removeDetail(index: number) {
   const detail = props.card.details[index]
   if (detail.type === 'recall' && !confirm('Reset the review progress of this card?')) return
+  if (detail.type === 'reverse' && detail.value.includes('***') &&
+    !confirm('Remove the reverse card and its review progress?')) return
   props.card.details.splice(index, 1)
 }
 
@@ -83,6 +86,15 @@ function recallSummary(line: string): string {
 function skipSummary(line: string): string {
   const until = new Date(line.replace(/^\S+\s*/, ''))
   return isNaN(until.getTime()) ? line : `Hidden until ${formatDate(until)}`
+}
+
+/** What a reverse detail does, plus the progress of the reverse card (kept under it). */
+function reverseSummary(value: string): string {
+  const what = props.card.answer === 'textbox'
+    ? 'Also studied the other way: the text first, then this front'
+    : 'Also studied the other way: the page first, then this front'
+  const recall = value.split('\n').map((l) => l.trim()).find((l) => l.startsWith('***'))
+  return recall ? `${what} · ${recallSummary(recall)}` : what
 }
 
 function rowsOf(text: string): number {
@@ -143,6 +155,9 @@ function onAnswerKeydown(event: KeyboardEvent) {
           </span>
           <span v-else-if="detail.type === 'autoReveal'" class="detail-info">
             The answer opens as soon as the card is shown
+          </span>
+          <span v-else-if="detail.type === 'reverse'" class="detail-info" :title="detail.value || undefined">
+            {{ reverseSummary(detail.value) }}
           </span>
           <textarea v-else-if="detail.type === 'raw'" class="detail-input raw-input" v-model="detail.value"
             :rows="rowsOf(detail.value)" spellcheck="false" aria-label="Raw lines" />

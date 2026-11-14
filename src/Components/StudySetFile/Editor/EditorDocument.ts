@@ -29,6 +29,7 @@ export type DetailType =
   | "recap"
   | "pages"
   | "autoReveal"
+  | "reverse"
   | "recall"
   | "skip"
   | "raw";
@@ -125,6 +126,7 @@ export const DETAIL_KINDS: Record<DetailType, DetailKind> = {
   tag: { type: "tag", label: "Tag", placeholder: "tag-name", addable: true },
   pages: { type: "pages", label: "More pages", placeholder: "e.g. other-book: 40-41", addable: true },
   autoReveal: { type: "autoReveal", label: "Auto-reveal", placeholder: "", addable: true },
+  reverse: { type: "reverse", label: "Reverse", placeholder: "", addable: true },
   recall: { type: "recall", label: "Review data", placeholder: "", addable: false },
   skip: { type: "skip", label: "Skipped", placeholder: "", addable: false },
   raw: { type: "raw", label: "Raw lines", placeholder: "Lines written in the study-set syntax", addable: false },
@@ -268,6 +270,8 @@ const DETAIL_TOKENS: Record<string, DetailType> = {
   page: "pages",
   autoReveal: "autoReveal",
   auto_reveal: "autoReveal",
+  "<>": "reverse",
+  reverse: "reverse",
   "***": "recall",
   recall_data: "recall",
   SKIP: "skip",
@@ -280,6 +284,12 @@ const HEADER_TOKENS = ["^", "header"];
 function detailFromBlock(block: Block): CardDetail {
   const raw = (): CardDetail => newDetail("raw", relativeLines(block.lines, block.tabs).join("\n"));
 
+  // A reverse card: its review data (nested lines) is kept as written, under it
+  const head = splitCommand(block.head);
+  if (block.lines.length > 1 && DETAIL_TOKENS[head.token] === "reverse" && !head.arg) {
+    return newDetail("reverse", relativeLines(block.lines.slice(1), block.tabs + 1).join("\n"));
+  }
+
   // Nested lines or inline sub-commands: keep them as written
   if (block.lines.length > 1 || block.head.startsWith(COMMENT_SYMBOL)) return raw();
   const { token, arg } = splitCommand(block.head);
@@ -288,7 +298,7 @@ function detailFromBlock(block: Block): CardDetail {
   const type = DETAIL_TOKENS[token];
   if (!type) return raw();
   if (type === "recall" || type === "skip") return newDetail(type, block.head);
-  if (type === "autoReveal") return arg ? raw() : newDetail(type);
+  if (type === "autoReveal" || type === "reverse") return arg ? raw() : newDetail(type);
   if (!arg) return raw();
   return newDetail(type, arg);
 }
@@ -550,6 +560,8 @@ function detailLines(detail: CardDetail): string[] {
     case "recap": return value ? [`\trecap ${value}`] : [];
     case "pages": return value ? [`\t.. ${value}`] : [];
     case "autoReveal": return ["\tautoReveal"];
+    // Its value: the lines under it (the reverse card's review data), kept as written
+    case "reverse": return ["\t<>", ...indent(detail.value, 2)];
     case "recall":
     case "skip": return value ? [`\t${value}`] : [];
     case "raw": return indent(value, 1);
@@ -779,6 +791,13 @@ export function validateDocument(doc: EditorDocument): Issue[] {
         if (pe) add("error", pe, entry.id);
       }
       if (d.type === "tag" && /\s/.test(d.value.trim())) add("warning", "Tags work best without spaces", entry.id);
+    }
+
+    const reverses = entry.details.filter((d) => d.type === "reverse").length;
+    if (reverses > 1) add("error", "A card can have only one reverse", entry.id);
+    const hasAnswer = entry.answer === "pages" ? !!entry.pages.trim() : !!entry.textBox.trim();
+    if (reverses && !hasAnswer) {
+      add("warning", "The reverse card shows the answer first, but this card has none", entry.id);
     }
   }
 

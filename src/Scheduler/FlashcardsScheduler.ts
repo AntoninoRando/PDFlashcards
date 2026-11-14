@@ -1,4 +1,4 @@
-import { IFlashcard } from "@/FlashcardParser/Types/Types";
+import { areSiblings, IFlashcard } from "@/FlashcardParser/Types/Types";
 
 export interface CardStats {
   total: number;
@@ -36,6 +36,8 @@ export default class FlashcardsScheduler {
   private bucketProgress: Map<string, { total: number; fineCount: number }>;
   private currentBucketKey: string | null;
   private sessionRecalls: Map<IFlashcard, number>;
+  /** Card graded last: its other direction (reverse card) is not shown right after it. */
+  private lastReviewed: IFlashcard | null = null;
   private readonly fineRecallGrade = 2;
   /*
     Percentage (over 100) of flashcards that needs to be completed with good 
@@ -120,8 +122,8 @@ export default class FlashcardsScheduler {
 
     if (!this.currentBucketKey) {
       const initialCard =
-        this.flashcards.find((card) => this.isCardDue(card, now)) ??
-        this.flashcards.find((card) => !this.isSkipActive(card, now)) ??
+        this.findAvoidingSibling((card) => this.isCardDue(card, now)) ??
+        this.findAvoidingSibling((card) => !this.isSkipActive(card, now)) ??
         null;
       if (initialCard) {
         this.currentBucketKey = this.getBucketKey(initialCard);
@@ -137,10 +139,10 @@ export default class FlashcardsScheduler {
 
     const activeBucket = this.currentBucketKey;
     const card =
-      this.flashcards.find(
+      this.findAvoidingSibling(
         (c) => this.getBucketKey(c) === activeBucket && this.isCardDue(c, now)
       ) ??
-      this.flashcards.find(
+      this.findAvoidingSibling(
         (c) => this.getBucketKey(c) === activeBucket && !this.isSkipActive(c, now)
       ) ??
       null;
@@ -207,6 +209,7 @@ export default class FlashcardsScheduler {
   ): IFlashcard {
     const now = new Date();
     const lastReview = flashcard.reviewedAt;
+    this.lastReviewed = flashcard;
     flashcard.reviewedAt = now;
     flashcard.retrievalSuccess = retrievalSuccess;
     flashcard.reviewCount = (flashcard.reviewCount || 0) + 1;
@@ -329,6 +332,25 @@ export default class FlashcardsScheduler {
 
     this.bucketProgress.set(bucketKey, { ...progress, fineCount });
     this.advanceBucketIfNeeded();
+  }
+
+  /**
+   * First card (in sorted order) that matches, skipping the other direction
+   * of the card just reviewed: right after "What is X? -> page", the page
+   * asking for "X" would be trivial. Returns that sibling only when no other
+   * card matches.
+   */
+  private findAvoidingSibling(match: (card: IFlashcard) => boolean): IFlashcard | undefined {
+    let sibling: IFlashcard | undefined;
+    for (const card of this.flashcards) {
+      if (!match(card)) continue;
+      if (this.lastReviewed && areSiblings(card, this.lastReviewed)) {
+        sibling ??= card;
+        continue;
+      }
+      return card;
+    }
+    return sibling;
   }
 
   private rebuildBuckets(): void {

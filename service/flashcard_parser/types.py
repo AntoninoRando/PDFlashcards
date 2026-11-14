@@ -55,6 +55,8 @@ class Flashcard:
     learning_phase: bool = True
     skip_until: Optional[datetime] = None
     alias: Optional[List[str]] = None
+    # Reverse card (`<>` under a card): the card it reverses
+    reverse_of: Optional[Flashcard] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -70,6 +72,8 @@ class Flashcard:
             "learningPhase": self.learning_phase,
             "skipUntil": self.skip_until.isoformat() if self.skip_until else None,
             "alias": self.alias,
+            # Line of the card it reverses (cards are referenced by line, like `lineDescriptor`)
+            "reverseOf": self.reverse_of.line_descriptor.index if self.reverse_of else None,
         }
 
 

@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { HideOption, IFlashcard } from '@/FlashcardParser/Types/Types';
+import { contentLineOf, HideOption, IFlashcard } from '@/FlashcardParser/Types/Types';
+import { PageRef } from '@/Commands/All/PageRef';
+import { TextBox } from '@/Commands/All/TextBox';
 import RecallOptions from './RecallOptions.vue'
-import { createApp, ref, onMounted, onBeforeUnmount, watch, type App } from 'vue'
+import { isSubpartShown } from './SubpartsVisibility'
+import { computed, createApp, ref, onMounted, onBeforeUnmount, watch, type App } from 'vue'
 
 
 //#region PROPS ----------------------------------------------------------------
@@ -26,6 +29,22 @@ const revealed = ref(false)
 const hidingRecallOptions = ref(false)
 const recallOptions = ref<InstanceType<typeof RecallOptions> | null>(null)
 const subparts = ref<HTMLElement | null>(null)
+//#endregion -------------------------------------------------------------------
+
+
+
+//#region REVERSE CARDS --------------------------------------------------------
+/* A reverse card (`<>`) shows the answer first (the PDF opens with it, or the
+   text answer below the card) and asks for the front, shown once revealed. */
+const isReverse = computed(() => !!props.flashcard.reverseOf)
+
+const reversePrompt = computed(() => {
+  const parts: any[] = contentLineOf(props.flashcard).subParts ?? []
+  if (parts.some((p) => p?.name === TextBox.commandName)) return 'What does this describe?'
+  const pages = parts.filter((p) => p?.name === PageRef.commandName)
+  if (pages.some((p) => (p.allRefs ?? []).some((ref: any[]) => ref?.[3]))) return 'What is highlighted on the page?'
+  return 'What is on this page?'
+})
 //#endregion -------------------------------------------------------------------
 
 
@@ -86,11 +105,14 @@ function showSubparts() {
   if (!subpartsElement) return
   subpartsElement.innerHTML = '';
 
-  const cardLD: any = props.flashcard.lineDescriptor as any;
+  // A reverse card shows the details of the card it reverses
+  const cardLD: any = contentLineOf(props.flashcard) as any;
+  // Before the reveal, the answer stays hidden (see SubpartsVisibility.ts)
+  const shown = (sub: any) => isSubpartShown(sub?.name, { revealed: revealed.value, reverse: isReverse.value });
 
   const renderList = (list: any[]) => {
     list.forEach((sub: any) => {
-      if (!sub || !sub.vueComponent) return;
+      if (!sub || !sub.vueComponent || !shown(sub)) return;
       const componentContainer = document.createElement('div')
       componentContainer.className = 'subpart-container'
       componentContainer.id = `subpart-${sub.name || Math.random().toString(36)}`
@@ -157,12 +179,25 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
   <div class="flashcard">
     <!--The flashcard in it's hide state-->
     <div v-if="!revealed" class="card-container">
-      <button @click="reveal" class="flashcard-button" v-html="flashcard.text"></button>
+      <button v-if="!isReverse" @click="reveal" class="flashcard-button" v-html="flashcard.text"></button>
+      <!--A reverse card asks for its front: the answer is in the PDF (or the text below)-->
+      <button v-else @click="reveal" class="flashcard-button reverse" :aria-label="`Reverse card: ${reversePrompt}`">
+        <span class="reverse-badge" aria-hidden="true">⇄ Reverse</span>
+        <span class="reverse-prompt">{{ reversePrompt }}</span>
+      </button>
     </div>
 
-    <!--Recall options for the flashcards when it is revealed-->
-    <RecallOptions v-else ref="recallOptions" class="buttons-container" :class="{ hiding: hidingRecallOptions }"
-      @mouseenter="() => pdfBlur(true)" @mouseleave="() => pdfBlur(false)" @optionSelected="option => hide(option)" />
+    <template v-else>
+      <!--The front of a reverse card is its answer-->
+      <div v-if="isReverse" class="reverse-answer" :class="{ hiding: hidingRecallOptions }">
+        <span class="reverse-badge">Answer</span>
+        <span v-html="flashcard.text"></span>
+      </div>
+
+      <!--Recall options for the flashcards when it is revealed-->
+      <RecallOptions ref="recallOptions" class="buttons-container" :class="{ hiding: hidingRecallOptions }"
+        @mouseenter="() => pdfBlur(true)" @mouseleave="() => pdfBlur(false)" @optionSelected="option => hide(option)" />
+    </template>
 
     <!--Here flashcard subparts are added-->
     <div ref="subparts" id="subparts"></div>
@@ -256,6 +291,51 @@ defineExpose({ isRevealed, reveal, hide, forgot, bad, notBad, ok, point, showSub
 
 .flashcard-button:active {
   transform: translateY(-1px) scale(0.99);
+}
+
+/* REVERSE CARDS */
+.flashcard-button.reverse {
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.reverse-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pink);
+}
+
+.reverse-prompt {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.reverse-answer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  padding: 1rem 1.5rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text);
+  /* Opaque like the card: it sits over the (white) PDF */
+  background:
+    linear-gradient(160deg, rgba(42, 34, 100, 0.97), rgba(18, 14, 48, 0.98)) padding-box,
+    var(--grad-nitro) border-box;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 50px rgba(3, 2, 14, 0.55);
+  transition: opacity 0.3s ease-in-out;
+}
+
+.reverse-answer.hiding {
+  opacity: 0;
 }
 
 #subparts {

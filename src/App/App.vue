@@ -32,6 +32,7 @@ const {
   gestureRecognizer,
   showPage,
   cardHidden,
+  cardPresented,
   loadStudySet,
   openCreator,
   openEditor,
@@ -194,7 +195,7 @@ function onResourceChanged(item: PdfResourceItem) {
 
             <p class="hero-fineprint">Study sets are plain .txt files · Add PDFs anytime from the top bar</p>
           </section>
-          <StudySet ref="studySetComponent" v-else :key="studySetKey" @reveal="showPage" @hide="cardHidden" :studySet="studySet" />
+          <StudySet ref="studySetComponent" v-else :key="studySetKey" @reveal="showPage" @hide="cardHidden" @present="cardPresented" :studySet="studySet" />
         </div>
       </div>
     </div>

@@ -14,6 +14,22 @@ export interface IFlashcard {
     learningPhase: boolean;
     skipUntil?: Date | null;
     alias?: string[];
+    /**
+     * Set on a reverse card (`<>` under a card): the card it reverses. It is
+     * studied the other way (its answer first, `text` to recall) and its
+     * `lineDescriptor` is the `<>` line, which holds its own review data.
+     */
+    reverseOf?: IFlashcard;
+}
+
+/** The line holding a card's answer and details (for a reverse card, the line of the card it reverses). */
+export function contentLineOf(card: IFlashcard): LineDescriptor {
+    return card.reverseOf?.lineDescriptor ?? card.lineDescriptor;
+}
+
+/** Whether two cards are the two directions of the same card. */
+export function areSiblings(a: IFlashcard, b: IFlashcard): boolean {
+    return a !== b && (a.reverseOf === b || b.reverseOf === a || (!!a.reverseOf && a.reverseOf === b.reverseOf));
 }
 
 export interface ISubPart {

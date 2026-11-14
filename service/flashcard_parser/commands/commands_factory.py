@@ -10,6 +10,7 @@ from .page_ref import PageRef
 from .recall_data import RecallData
 from .recap import Recap
 from .remember import Remember
+from .reverse import Reverse
 from .skip import Skip
 from .tag import Tag
 from .text_box import TextBox
@@ -51,6 +52,11 @@ class CommandsFactory:
             return RecallData(line_descriptor, study_set, command_argument or "")
         if name in (Skip.symbol, "Skip", "skip"):
             return Skip(line_descriptor, study_set, command_argument)
+        if name in (Reverse.symbol, "reverse"):
+            if command_argument:
+                return None
+            reverse = Reverse(line_descriptor, study_set)
+            return reverse if reverse.is_valid else None
 
         lowered = name.lower()
         if lowered == "recap":

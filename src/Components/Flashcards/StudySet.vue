@@ -46,6 +46,11 @@ interface Emits {
    * hide option or a recall option.
    */
   hide: [flashcard: IFlashcard];
+  /**
+   * Notifies that a card is now shown, not revealed yet (null: no card left).
+   * A reverse card shows its answer (the PDF) at this point.
+   */
+  present: [flashcard: IFlashcard | null];
 }
 const emit = defineEmits<Emits>();
 //#endregion -------------------------------------------------------------------
@@ -57,6 +62,9 @@ const emit = defineEmits<Emits>();
  * The current card that is being showed (or hidden).
  */
 const studyCard = ref<IFlashcard | null>(null);
+
+/** Tells the app which card is shown now. Called after `hide`, which closes the PDF of the previous card. */
+const announceCard = () => emit('present', studyCard.value ?? null);
 /**
  * The VUE COMPONENT instance of the current shown flashcard.
  */
@@ -138,11 +146,13 @@ const updateCards = (flashcardObj: {
     console.log(`[studySet] No more cards due for review`);
   }
   emit('hide', flashcard);
+  announceCard();
 };
 
 const shuffleFlashcards = (mode: SortModes) => {
   props.studySet.scheduler.sortMode = mode;
   studyCard.value = props.studySet.scheduler.sort();
+  announceCard();
 };
 
 const undoLastReview = () => {
@@ -162,6 +172,7 @@ const undoLastReview = () => {
   */
   props.studySet.scheduler.sort();
   studyCard.value = props.studySet.scheduler.getFirstCard() ?? originalFlashcard;
+  announceCard();
 };
 
 const point = (what: string) => {
@@ -307,6 +318,7 @@ const skipCurrentCard = () => {
   studyCard.value = nextCard ?? null;
 
   emit('hide', card);
+  announceCard();
   void autosaveStudySet(props.studySet);
 };
 
@@ -353,6 +365,7 @@ onMounted(() => {
     props.studySet.scheduler.addFlashcards(...props.studySet.flashcards);
 
     studyCard.value = props.studySet.scheduler.sort();
+    announceCard();
 
     console.log(`[studySet] Initialized with ${props.studySet.flashcards.length} flashcards`);
     console.log(`[studySet] First card: ${studyCard.value?.text || 'None'}`);
@@ -374,7 +387,8 @@ defineExpose({
 
 <template>
   <div class="all-container" ref="animationContainer">
-    <div class="header-section" v-if="!isFlashcardRevealed">
+    <!--Hidden while the PDF is open: a revealed card, or a reverse card (it shows its PDF first)-->
+    <div class="header-section" v-if="!isFlashcardRevealed && !studyCard?.reverseOf">
       <span class="set-title pill-badge">{{ studySet.title }}</span>
       <h1 class="display breadcrumb" v-if="headerBreadcrumb">{{ headerBreadcrumb }}</h1>
 
