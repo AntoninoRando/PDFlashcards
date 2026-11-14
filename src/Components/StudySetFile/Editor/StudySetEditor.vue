@@ -16,6 +16,7 @@ import ResourcesPanel from './ResourcesPanel.vue'
 import EditorIcon from './EditorIcon.vue'
 import {
   addRegionToCard,
+  cardFrontFromText,
   checkParses,
   cloneEntry,
   defaultResourceFile,
@@ -387,12 +388,19 @@ watch(focusedId, () => (previewIndex.value = 0))
 
 
 //#region CAPTURE --------------------------------------------------------------
-/* "Capture" tab of the preview: drag a box on a PDF page to create a card
-   whose answer is that region, or to add it to the selected card. */
+/* "Capture" tab of the preview: drag a box on a PDF page (or select its text)
+   to create a card whose answer is that region, or to add it to the selected
+   card. Selected text becomes the question of the new card. */
 const previewTab = ref<'card' | 'capture'>('card')
 const captureFile = ref('')
 const capturePage = ref(1)
 const captureRegion = ref<PdfRegion | null>(null)
+/** Front of the next card: typed, or filled by selecting text on the page. */
+const captureQuestion = ref('')
+
+function onSelectText(text: string) {
+  captureQuestion.value = cardFrontFromText(text)
+}
 
 /** Resources of the study set whose PDF is uploaded (only those can be shown). */
 const captureFiles = computed(() =>
@@ -446,8 +454,11 @@ function createCardFromRegion() {
   const page = capturePage.value
   const focused = focusedCard.value
 
+  const question = oneLineText(captureQuestion.value)
+
   let card: CardEntry
-  if (focused && isEmptyCard(focused)) {
+  const filled = !!focused && isEmptyCard(focused)
+  if (focused && filled) {
     addRegionToCard(doc.value, focused, captureFile.value, page, region)
     card = focused
   } else {
@@ -455,10 +466,39 @@ function createCardFromRegion() {
     const index = indexOfId(focusedId.value)
     doc.value.entries.splice(index === -1 ? doc.value.entries.length : index + 1, 0, card)
   }
+  card.front = question
   captureRegion.value = null
-  // Write the question right away; the capture tab stays open for the next one
-  focusEntry(card.id)
-  showToast(`Card ${cardNumbers.value.get(card.id) ?? ''} created from page ${page}: write its question`)
+  captureQuestion.value = ''
+  const number = cardNumbers.value.get(card.id) ?? ''
+
+  if (!question) {
+    // Write the question right away; the capture tab stays open for the next one
+    focusEntry(card.id)
+    showToast(`Card ${number} created from page ${page}: write its question`)
+    return
+  }
+  // The card is complete: stay on the page for the next one, which goes after this card
+  focusedId.value = card.id
+  nextTick(() => {
+    document.querySelector(`[data-entry-id="${card.id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    document.querySelector<HTMLElement>('.region-picker .surface')?.focus({ preventScroll: true })
+  })
+  showToast(`Card ${number} created from page ${page}`, () => undoCapture(card, filled))
+}
+
+/** Undo for a card made in the capture tab: empties the card it filled, or removes the one it created. */
+function undoCapture(card: CardEntry, filled: boolean) {
+  if (filled) {
+    Object.assign(card, { front: '', resource: '', pages: '' })
+    return
+  }
+  const index = indexOfId(card.id)
+  if (index !== -1) doc.value.entries.splice(index, 1)
+  if (focusedId.value === card.id) focusedId.value = null
+}
+
+function oneLineText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim()
 }
 
 /** Adds the selected region to the pages the selected card opens. */
@@ -834,10 +874,17 @@ onBeforeUnmount(() => {
                 <option v-for="file in captureFiles" :key="file" :value="file">{{ captureLabel(file) }}</option>
               </select>
               <p class="capture-hint">
-                Drag a box around the answer on the page. <kbd>Enter</kbd> creates the card, <kbd>Esc</kbd> clears the box.
+                <strong>Box</strong>: drag around the answer. <strong>Text</strong>: select words, they become the
+                question and their area the answer. <kbd>Enter</kbd> creates the card, <kbd>Esc</kbd> clears.
               </p>
               <RegionPicker v-if="captureUrl" v-model:page="capturePage" v-model:region="captureRegion"
-                :pdf-url="captureUrl" @confirm="createCardFromRegion" />
+                :pdf-url="captureUrl" @confirm="createCardFromRegion" @select-text="onSelectText" />
+              <label class="capture-question">
+                <span>Question</span>
+                <input v-model="captureQuestion" type="text" spellcheck="true"
+                  placeholder="Optional: select text on the page, or type it"
+                  @keydown.enter.prevent="createCardFromRegion" />
+              </label>
               <div class="capture-actions">
                 <button type="button" class="primary-btn" :disabled="!captureRegion" @click="createCardFromRegion">
                   <EditorIcon name="plus" :size="14" />
@@ -1721,6 +1768,34 @@ code {
 
 .capture-hint kbd {
   font-size: 0.72rem;
+}
+
+.capture-question {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ed-muted);
+}
+
+.capture-question input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 400;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--ed-border);
+  background: var(--ed-input);
+  color: var(--ed-text);
+  outline: none;
+}
+
+.capture-question input:focus {
+  border-color: var(--ed-accent);
+  box-shadow: 0 0 0 3px var(--ed-accent-ring);
 }
 
 .capture-actions {

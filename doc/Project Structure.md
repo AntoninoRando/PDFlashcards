@@ -24,7 +24,7 @@ Folder and file names under `src` use **PascalCase**. Keep imports in the exact 
     See [How to Create Commands](How%20to%20Create%20Commands.md).
 - `Components/`: Vue components.
     - `Flashcards/`: the study set, the flashcard and its recall options. `StudySetMethods/` contains the logic used by `StudySet.vue` (schedule update, save/autosave, effects).
-    - `Resources/`: PDF upload and preview. `PDFPreview.vue` also scrolls to and highlights the region a card points to (`12{x,y,w,h}`, see `Utils/PdfRegion.ts`); `RegionPicker.vue` lets the editor's Capture tab draw such regions on a page.
+    - `Resources/`: PDF upload and preview. `PDFPreview.vue` also scrolls to and highlights the region a card points to (`12{x,y,w,h}`, see `Utils/PdfRegion.ts`); `RegionPicker.vue` lets the editor's Capture tab draw such regions on a page, or select its text (pdf.js text layer) to use as the card's question.
     - `StudySetFile/`: upload of the study-set `.txt` file and the in-app editor (`Editor/`). The editor creates a study set from scratch or edits the loaded one, in a visual view (cards, sections, resources, live PDF preview) or a text view. `Editor/EditorDocument.ts` converts the `.txt` syntax to the structure the editor binds to and back, keeping verbatim every line it does not model (review data, comments...): when you add a command to the DSL, teach it there too or it shows up as raw lines.
     - `Recognizers/`: voice (browser Web Speech API) and gesture (service) recognition.
     - `Layout/`: shortcuts sidebar and shuffle menu.

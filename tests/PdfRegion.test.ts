@@ -3,12 +3,14 @@ import {
   extractRegion,
   formatRegion,
   parseRegion,
+  regionAround,
   splitPageTokens,
 } from "@/Utils/PdfRegion";
 import { PageRef } from "@/Commands/All/PageRef";
 import { parseStudyset } from "@/FlashcardParser/StudySetParser";
 import {
   addRegionToCard,
+  cardFrontFromText,
   checkPages,
   documentFromText,
   documentToText,
@@ -38,6 +40,16 @@ describe("PdfRegion", () => {
   it("never rounds a region off the page", () => {
     const text = formatRegion({ x: 33.35, y: 0, w: 66.65, h: 100 });
     expect(parseRegion(text.slice(1, -1))).not.toBeNull();
+  });
+
+  it("wraps the lines of a selection in one region with a margin", () => {
+    const lines = [
+      { x: 10, y: 20, w: 50, h: 2 },
+      { x: 10, y: 23, w: 30, h: 2 },
+    ];
+    expect(regionAround(lines, { x: 1, y: 1 })).toEqual({ x: 9, y: 19, w: 52, h: 7 });
+    expect(regionAround([{ x: 0, y: 99, w: 100, h: 1 }])).toEqual({ x: 0, y: 98.5, w: 100, h: 1.5 });
+    expect(regionAround([])).toBeNull();
   });
 
   it("separates the region from the page", () => {
@@ -101,6 +113,21 @@ describe("editor support for regions", () => {
     const region = { x: 10, y: 20, w: 30, h: 40 };
     expect(newRegionCard(doc, "book.pdf", 4, region)).toMatchObject({ resource: "", pages: "4{10,20,30,40}" });
     expect(newRegionCard(doc, "slides.pdf", 2, region)).toMatchObject({ resource: "sl", pages: "2{10,20,30,40}" });
+  });
+
+  it("turns selected PDF text into a valid card front", () => {
+    expect(cardFrontFromText("  What is a dead-\nlock?\n  It is ")).toBe("What is a deadlock? It is");
+    expect(cardFrontFromText("Well-\nKnown")).toBe("Well- Known");
+    expect(cardFrontFromText("Wait.. and see...")).toBe("Wait… and see…");
+    expect(cardFrontFromText("// not a comment")).toBe("not a comment");
+    expect(cardFrontFromText("/usr/bin")).toBe("/usr/bin");
+    expect(cardFrontFromText("[Cards]")).toBe("Cards");
+    expect(cardFrontFromText("x < y > z")).toBe("x &lt; y &gt; z");
+
+    // The result is read back as the same front
+    const front = cardFrontFromText("Deadlock.. a set of processes");
+    const set = parseStudyset(["[Cards]", `${front} .. 3`])!;
+    expect(set.flashcards[0].text).toBe(front);
   });
 
   it("adds regions to existing cards without changing their other pages", () => {

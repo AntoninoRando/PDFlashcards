@@ -517,6 +517,29 @@ export function addRegionToCard(
   card.pages = `${card.pages.trim()}, ${resourceNameFor(doc, file)}: ${token}`;
 }
 
+/**
+ * Turns text selected in a PDF into a card front: one line, and nothing the
+ * study-set syntax would read as something else.
+ */
+export function cardFrontFromText(text: string): string {
+  let front = text
+    // Words hyphenated at the end of a line ("dead-\nlock")
+    .replace(/(\p{Ll})-\s*\n\s*(\p{Ll})/gu, "$1$2")
+    .replace(/\s+/g, " ")
+    .trim()
+    // ".." starts the page reference: an ellipsis keeps the meaning
+    .replace(/\.{2,}/g, "…")
+    // The front is shown as HTML: keep "<" and ">" as text
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  // A comment or a category line
+  while (front.startsWith(COMMENT_SYMBOL)) front = front.slice(COMMENT_SYMBOL.length).trim();
+  if (front.startsWith(CATEGORY_START_SYMBOL) && front.endsWith(CATEGORY_END_SYMBOL)) {
+    front = front.slice(1, -1).trim();
+  }
+  return front;
+}
+
 function detailLines(detail: CardDetail): string[] {
   const value = detail.type === "raw" ? detail.value : oneLine(detail.value);
   switch (detail.type) {

@@ -92,6 +92,22 @@ export function formatRegion(region: PdfRegion): string {
   return `${REGION_START_SYMBOL}${[x, y, w, h].join(",")}${REGION_END_SYMBOL}`;
 }
 
+/**
+ * The smallest region containing all the given ones (e.g. the lines of a text
+ * selection), with a little margin so that the highlight does not touch the
+ * text. Null for an empty list.
+ */
+export function regionAround(parts: PdfRegion[], margin = { x: 0.8, y: 0.5 }): PdfRegion | null {
+  if (!parts.length) return null;
+  const left = Math.min(...parts.map((p) => p.x)) - margin.x;
+  const top = Math.min(...parts.map((p) => p.y)) - margin.y;
+  const right = Math.max(...parts.map((p) => p.x + p.w)) + margin.x;
+  const bottom = Math.max(...parts.map((p) => p.y + p.h)) + margin.y;
+  const x = clamp(left, 0, 100);
+  const y = clamp(top, 0, 100);
+  return clampRegion({ x, y, w: clamp(right, 0, 100) - x, h: clamp(bottom, 0, 100) - y });
+}
+
 /** Keeps a region inside the page (0-100%). */
 export function clampRegion(region: PdfRegion): PdfRegion {
   const x = clamp(region.x, 0, 100);
